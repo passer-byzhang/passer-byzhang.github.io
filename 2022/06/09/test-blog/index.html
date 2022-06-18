@@ -372,6 +372,7 @@ deltaBlock\)</span>，确实和我们预想的一样。</p>
 
           </div>
           
+    <div class="comments" id="gitalk-container"></div>
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -587,6 +588,26 @@ deltaBlock\)</span>，确实和我们预想的一样。</p>
     
 
   
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '7be3591b434db5b63b24# GitHub Application Client ID',
+      clientSecret: '7eb0d37c9980f54a98774c5db4b43ed03465efd1# GitHub Application Client Secret',
+      repo        : 'BlogComments# Repository name to store issues',
+      owner       : 'passer-byzhang# GitHub repo owner',
+      admin       : ['passer-byzhang'],
+      id          : 'c71bac2ad73109f2bb2e902c5bc94cd4',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
 
 </body>
 </html>

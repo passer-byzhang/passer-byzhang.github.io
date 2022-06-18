@@ -20,28 +20,33 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Alvan&#39;s Blog">
-<meta property="og:url" content="http://example.com/index.html">
+  <meta name="description" content="原文链接：https:&#x2F;&#x2F;noxx.substack.com&#x2F;p&#x2F;evm-deep-dives-the-path-to-shadowy?s&#x3D;r 译者博客: Alvan的Blog Digging deep into the EVM mechanics during contract function calls 第一性原理我们经常听说，就是着重于理解事物的基本概念从而更好地理解构建与其之上的组件。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解EVM - Part 1">
+<meta property="og:url" content="http://example.com/2022/06/17/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3EVM%20-%20Part%201/index.html">
 <meta property="og:site_name" content="Alvan&#39;s Blog">
+<meta property="og:description" content="原文链接：https:&#x2F;&#x2F;noxx.substack.com&#x2F;p&#x2F;evm-deep-dives-the-path-to-shadowy?s&#x3D;r 译者博客: Alvan的Blog Digging deep into the EVM mechanics during contract function calls 第一性原理我们经常听说，就是着重于理解事物的基本概念从而更好地理解构建与其之上的组件。">
 <meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-06-17T10:39:22.000Z">
+<meta property="article:modified_time" content="2022-06-18T11:26:14.088Z">
 <meta property="article:author" content="张钰Alvan">
+<meta property="article:tag" content="ethereum">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://example.com/">
+<link rel="canonical" href="http://example.com/2022/06/17/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3EVM%20-%20Part%201/">
 
 
 <script id="page-configurations">
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome : true,
-    isPost : false,
+    isHome : false,
+    isPost : true,
     lang   : 'en'
   };
 </script>
 
-  <title>Alvan's Blog</title>
+  <title>深入理解EVM - Part 1 | Alvan's Blog</title>
   
 
 
@@ -159,9 +164,10 @@
         <div class="content-wrap">
           
 
-          <div class="content index posts-expand">
+          <div class="content post posts-expand">
             
-      
+
+    
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
@@ -177,10 +183,9 @@
       <meta itemprop="name" content="Alvan's Blog">
     </span>
       <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2022/06/17/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3EVM%20-%20Part%201/" class="post-title-link" itemprop="url">深入理解EVM - Part 1</a>
-        </h2>
+        <h1 class="post-title" itemprop="name headline">
+          深入理解EVM - Part 1
+        </h1>
 
         <div class="post-meta">
             <span class="post-meta-item">
@@ -210,7 +215,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?s=r
+        <p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?s=r
 译者博客: <a href="alvan.coffee">Alvan的Blog</a></p>
 <h3
 id="digging-deep-into-the-evm-mechanics-during-contract-function-calls">Digging
@@ -405,296 +410,33 @@ into按钮(就是那个弯箭头)，一步一步运行opcode。</p>
 target="_blank" rel="noopener" href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?s=r">EVM
 Deep Dives - Part 2</a>。</p>
 
-      
     </div>
 
     
     
     
+
       <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
+          <div class="post-tags">
+              <a href="/tags/ethereum/" rel="tag"># ethereum</a>
+          </div>
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/13/Alpaca%E6%96%87%E6%A1%A3%E7%BF%BB%E8%AF%91/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/Alvan.png">
-      <meta itemprop="name" content="张钰Alvan">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Alvan's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2022/06/13/Alpaca%E6%96%87%E6%A1%A3%E7%BF%BB%E8%AF%91/" class="post-title-link" itemprop="url">Alpaca文档翻译</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2022-06-13 15:01:30" itemprop="dateCreated datePublished" datetime="2022-06-13T15:01:30+08:00">2022-06-13</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2022-06-16 13:31:54" itemprop="dateModified" datetime="2022-06-16T13:31:54+08:00">2022-06-16</time>
-              </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>在学Alpaca的时候发现最重要的合约介绍没有中文版本，就把它搬过来了。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2022/06/13/Alpaca%E6%96%87%E6%A1%A3%E7%BF%BB%E8%AF%91/">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
         
-      
-    </div>
 
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/13/Intro-DEX-AMM-LP-Token/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/Alvan.png">
-      <meta itemprop="name" content="张钰Alvan">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Alvan's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2022/06/13/Intro-DEX-AMM-LP-Token/" class="post-title-link" itemprop="url">入门Defi第一步，初识DEX,AMM与LP token</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2022-06-13 14:46:33" itemprop="dateCreated datePublished" datetime="2022-06-13T14:46:33+08:00">2022-06-13</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2022-06-16 13:32:22" itemprop="dateModified" datetime="2022-06-16T13:32:22+08:00">2022-06-16</time>
-              </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>defi中DEX，AMM与LP Token的介绍</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2022/06/13/Intro-DEX-AMM-LP-Token/">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
         
-      
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/06/13/Alpaca%E6%96%87%E6%A1%A3%E7%BF%BB%E8%AF%91/" rel="prev" title="Alpaca文档翻译">
+      <i class="fa fa-chevron-left"></i> Alpaca文档翻译
+    </a></div>
+      <div class="post-nav-item"></div>
     </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
       </footer>
+    
   </article>
   
   
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/09/test-blog/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/Alvan.png">
-      <meta itemprop="name" content="张钰Alvan">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Alvan's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2022/06/09/test-blog/" class="post-title-link" itemprop="url">defi-compound经济模型</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-
-              <time title="Created: 2022-06-09 01:13:07" itemprop="dateCreated datePublished" datetime="2022-06-09T01:13:07+08:00">2022-06-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2022-06-13 14:54:47" itemprop="dateModified" datetime="2022-06-13T14:54:47+08:00">2022-06-13</time>
-              </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>compound的经济模型，包括利息产生机制，利率计算，激励计算和分配</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2022/06/09/test-blog/">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/09/hello-world/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/Alvan.png">
-      <meta itemprop="name" content="张钰Alvan">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Alvan's Blog">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2022/06/09/hello-world/" class="post-title-link" itemprop="url">Hello</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">Posted on</span>
-              
-
-              <time title="Created: 2022-06-09 01:12:20 / Modified: 22:28:30" itemprop="dateCreated datePublished" datetime="2022-06-09T01:12:20+08:00">2022-06-09</time>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>你好呀，我是张钰Alvan，主业是区块链/智能合约开发，了解一些defi项目，喜欢芥川龙之介和卡夫卡，希望能和更多的人交朋友！qq1541115709</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-
   
 
 
@@ -747,6 +489,10 @@ Deep Dives - Part 2</a>。</p>
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#digging-deep-into-the-evm-mechanics-during-contract-function-calls"><span class="nav-number">1.</span> <span class="nav-text">Digging
+deep into the EVM mechanics during contract function calls</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#the-basics-solidity-bytecode-opcode"><span class="nav-number"></span> <span class="nav-text">The Basics: Solidity →
+Bytecode → Opcode</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#storage.sol-breakdown"><span class="nav-number">1.</span> <span class="nav-text">1_Storage.sol Breakdown</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#smart-contract-function-calls-calldata"><span class="nav-number">2.</span> <span class="nav-text">Smart Contract Function
+Calls &amp; Calldata</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#opcodes-the-call-stack"><span class="nav-number">3.</span> <span class="nav-text">Opcodes &amp; The Call Stack</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#evm-playground"><span class="nav-number">4.</span> <span class="nav-text">EVM Playground</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -858,61 +604,6 @@ Deep Dives - Part 2</a>。</p>
   
 
   
-      
-
-<script>
-  if (typeof MathJax === 'undefined') {
-    window.MathJax = {
-      loader: {
-          load: ['[tex]/mhchem'],
-        source: {
-          '[tex]/amsCd': '[tex]/amscd',
-          '[tex]/AMScd': '[tex]/amscd'
-        }
-      },
-      tex: {
-        inlineMath: {'[+]': [['$', '$']]},
-          packages: {'[+]': ['mhchem']},
-        tags: 'ams'
-      },
-      options: {
-        renderActions: {
-          findScript: [10, doc => {
-            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
-              const display = !!node.type.match(/; *mode=display/);
-              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
-              const text = document.createTextNode('');
-              node.parentNode.replaceChild(text, node);
-              math.start = {node: text, delim: '', n: 0};
-              math.end = {node: text, delim: '', n: 0};
-              doc.math.push(math);
-            });
-          }, '', false],
-          insertedScript: [200, () => {
-            document.querySelectorAll('mjx-container').forEach(node => {
-              let target = node.parentNode;
-              if (target.nodeName.toLowerCase() === 'li') {
-                target.parentNode.classList.add('has-jax');
-              }
-            });
-          }, '', false]
-        }
-      }
-    };
-    (function () {
-      var script = document.createElement('script');
-      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
-      script.defer = true;
-      document.head.appendChild(script);
-    })();
-  } else {
-    MathJax.startup.document.state(0);
-    MathJax.texReset();
-    MathJax.typeset();
-  }
-</script>
-
-    
 
   
 

@@ -28,7 +28,7 @@
 <meta property="og:description" content="翻译深入理解EVM系列文章，第一篇是关于函数选择器与字节码&#x2F;opcode">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2022-06-17T10:39:22.000Z">
-<meta property="article:modified_time" content="2022-06-18T11:34:13.562Z">
+<meta property="article:modified_time" content="2022-06-18T14:47:47.344Z">
 <meta property="article:author" content="张钰Alvan">
 <meta property="article:tag" content="ethereum">
 <meta name="twitter:card" content="summary">
@@ -201,7 +201,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2022-06-18 19:34:13" itemprop="dateModified" datetime="2022-06-18T19:34:13+08:00">2022-06-18</time>
+                <time title="Modified: 2022-06-18 22:47:47" itemprop="dateModified" datetime="2022-06-18T22:47:47+08:00">2022-06-18</time>
               </span>
 
           
@@ -235,9 +235,12 @@ target="_blank" rel="noopener" href="https://medium.com/@eiki1212/explaining-eth
 <p>solidity创造的运行时字节码对应着一整个合约，合约部署之后，其中可能存在多个可以被调用的函数。这里边一个基础问题是EVM怎么根据合约调用的函数知道执行哪些字节码。</p>
 <h3 id="storage.sol-breakdown">1_Storage.sol Breakdown</h3>
 <p>在demo里我们使用了一个Storage.sol的合约，这是remix生成的默认合约之一。</p>
-<p><img
+<figure>
+<img
 src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F3400bba6-f870-4b68-8ba8-118562b08aef_489x538.png"
-alt="img" />60003560e01c80632e64cec11461003b5780636057361d1461005957</p>
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
 <p>在这个合约里有两个函数，store(uint256) 和 retrieve()
 ，当函数调用的时候EVM就必须进行区分，下边就是此合约编译出的字节码。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">608060405234801561001057600080fd5b50600436106100365760003560e01c80632e64cec11461003b5780636057361d14610059575b600080fd5b610043610075565b60405161005091906100d9565b60405180910390f35b610073600480360381019061006e919061009d565b61007e565b005b60008054905090565b8060008190555050565b60008135905061009781610103565b92915050565b6000602082840312156100b3576100b26100fe565b5b60006100c184828501610088565b91505092915050565b6100d3816100f4565b82525050565b60006020820190506100ee60008301846100ca565b92915050565b6000819050919050565b600080fd5b61010c816100f4565b811461011757600080fd5b5056fea2646970667358221220404e37f487a89a932dca5e77faaf6ca2de3b991f93d230604b1b8daaef64766264736f6c63430008070033 </span><br></pre></td></tr></table></figure>
@@ -396,7 +399,8 @@ alt="img" />
 </figure>
 <p>我们可以到store(uint156)的字节码处依照此法继续执行了。虽然这个合约只有2个函数，但是原理和20+函数的合约是一样的。你现在知道EVM如何基于函数调用找到函数的字节码了，这其实就是对合约里所有函数的位址进行if-else判断实现的。</p>
 <h3 id="evm-playground">EVM Playground</h3>
-<p>我强烈建议大家看看[这个](https://www.evm.codes/playground?unit=Wei&amp;callData=0x6057361d000000000000000000000000000000000000000000000000000000000000000a&amp;codeType=Mnemonic&amp;code=%27!0<sub>0KCALLDATALOAD</sub>2z2qw!E0<sub>3KSHR</sub>5z2qwDUP1<sub>6(X4_2E64CEC1</sub>7KEQ<sub>12z5qwX2_3B</sub>13(<em>I<sub>16z3qwDUP1</sub>17KX4_6057361D<sub>18KEQ</sub>23z5qwX2_59<sub>24K<em>I<sub>27z3qwkY%20wX30_0</sub>28KwZGV59z31q!1<sub>60%20%7BG%7DW%7DKwkYwX26_0</sub>62z2qKZstore%7Buint256V89z27q!0%20ZContinueW.KK%27~%20ZOffset%20z%20%7Bprevious%20instruFoccupies%20w%5Cnq)s%7DwkZThes-ar-just%20paddingNenabl-usNgetN_%200xZ%2F%2F%20Yprogram%20counter%2059%20%26%2089XPUSHW%20funFexecution...V%7Dcodew</em>DEST</sub>N%20to(wwGretrieve%7BFction%20-e%20</em>JUMP)%20byte(%20K!X1_%01!()*-FGKNVWXYZ_kqwz~_),这是一个EVM运行环境，你可以设置字节码然后在上边执行。在这里可以看到调用栈的变化，我也添加了JUMPDEST，所以你也可以看到JUMPI后发生了什么</p>
+<p>我强烈建议大家看看<a
+target="_blank" rel="noopener" href="https://www.evm.codes/playground%5D">这个</a>,这是一个EVM运行环境，你可以设置字节码然后在上边执行。在这里可以看到调用栈的变化，我也添加了JUMPDEST，所以你也可以看到JUMPI后发生了什么</p>
 <figure>
 <img
 src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F86591a6b-ee71-4590-8462-4ebb38f5cb80_1503x887.png"

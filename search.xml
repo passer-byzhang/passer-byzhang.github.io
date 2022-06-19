@@ -1,0 +1,621 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>Alpaca文档翻译</title>
+    <url>/2022/06/13/Alpaca-docs/</url>
+    <content><![CDATA[<h2 id="overview">Overview</h2>
+<p>Alpaca
+Finance是一个借贷协议，但它和Compound，Aave等单纯等待别人从池子里借款从而分红利息的项目不一样，在这里你不仅可以加上杠杆，还可以主动选择一些心仪的流动性挖矿项目并质押进去，吃到多次利润。</p>
+<p>Alpaca Leverage Farming 主要有四个组成部分 1.Vault 2.Worker
+3.Strategy 4.Fairlaunch(此模块另行介绍)</p>
+<h2 id="architecture">Architecture</h2>
+<ul>
+<li>前端(Frontend) - Alpaca 前端接口</li>
+<li>清算机器人(Liquidator) -
+观察仓位状态，一旦出现资不抵债就进行清算的机器人</li>
+<li>复投机器人(Reinvestor) - 自动收获利润又复投的机器人</li>
+</ul>
+<p><img
+src="https://alpaca-doc.s3.ap-southeast-1.amazonaws.com/lyf/Export-3aa4ff3c-20f2-4868-95ee-96a4da364889/Contract%20Documentation%204c48a0c0db7442c6aa0268dd110e6b80/Screen_Shot_2564-09-29_at_12.03.52.png" /></p>
+<h2 id="vault">Vault</h2>
+<p>顾名思义，这个合约用处是存放借款者的抵押物。作为在此时贡献资金池使用率的回报，借款者还可以向Vault申请资金。一个底层资产对应一个Vault合约。</p>
+<h2 id="worker">Worker</h2>
+<p>worker是一个管理仓位使用方法的合约，使用方法包括但不限于
+在一个DEX里开启一个流动性挖矿的仓位 平掉这个仓位 调节这个仓位
+每一个worker都对应特定的一些代币和一个特定的DEX，不同的ERC20代币/DEX会使用不同的worker。</p>
+<h2 id="strategy">Strategy</h2>
+<p>strategy合约是具体操作DEX的合约，每次只处理一个特定场景。可以对动态指定的不同的token做出童谣的DEX操作。</p>
+<h2 id="fairlaunch">FairLaunch</h2>
+<p>这是Alpaca的激励组件，可以接收ERC20然后给各个token池生成Alpaca代币，每个池子的发放量存在差异</p>
+<h2 id="contract-document">Contract Document</h2>
+<p><a href="#Vault%20Contract">Vault Contract</a> <a
+href="#Worker%20Contract">Worker Contract</a> <a
+href="#Strategy%20Contract">Strategy Contract</a></p>
+<h2 id="dex-integration">DEX Integration</h2>
+<p>尽管Alpaca集成了不少不同的DEX，他们之间也在细节上有差别，但是大部分DEX都是基于uniswapV2的机制，在这版文档里我们只讨论与PancakeSwap对接的Worker和Strategy。即以下具体实现：</p>
+<h3 id="worker-1">Worker</h3>
+<p>PancakeSwap Worker</p>
+<h3 id="strategy-1">Strategy</h3>
+<p>PancakeswapV2RestrictedStrategyAddBaseTokenOnly Strategy
+PancakeswapV2RestrictedStrategyAddTwoSidesOptimal Strategy
+PancakeswapV2RestrictedStrategyLiquidate Strategy
+PancakeswapV2RestrictedStrategyPartialCloseLiquidateStrategy
+PancakeswapV2RestrictedStrategyPartialCloseMinimizeTrading Strategy
+PancakeswapV2RestrictedStrategyWithdrawMinimizeTrading Strategy</p>
+<h1 id="vault-contract">Vault Contract</h1>
+<p><a name="Vault Contract"></a></p>
+<p><a
+href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/Vault.sol">合约源码</a></p>
+<h2 id="background">Background</h2>
+<p>Alpaca
+Finance里最重要的一个操作是通过vaults达成的，注意是vaults而非vault，vault被设计成连接存款者和借款者的中间体，存款者把资产储存进vault，借款者可以借出来一些用于流动性挖矿。
+存储token的同时，vault会给用户ibToken，用户可以用这个在Alpaca
+Finance中进行更多操作，比如获得FairLaunch里的Alpaca激励，获得合作Token激励，以后还有更多。
+借出token的同时，用户也可以获得debtToken，这也可以自动获得FairLuanch给的激励。</p>
+<h2 id="abstract">Abstract</h2>
+<ul>
+<li>Vault会给用户分配ibToken，用来标记用户在此vault里所占的份额(share)。随着时间推移，利息会进入份额，1份份额(share)的实际价值会增加。</li>
+<li>当用户开仓时，他们先需要在vault里放质押物。这使得vault的债务价值(debt
+value)根据借款量增加。</li>
+<li>一旦vault收获借款人的利息，vault的债务价值(debt
+value)会随着利息增加。这意味着随着时间推移，取出资产需要用到的量要比存款时更大。</li>
+<li>当用户平仓时，初始抵押品债务会从总债务中去除，流动性挖矿的利息会完整地还给lender。</li>
+<li>部分利息会被项目组留下，放在保留金池子里。</li>
+<li>由于用户是在不同的时间存款的，我们要用债务份额价值(debt share
+value)保持记录用户从哪里进入vault。</li>
+<li>债务份额(debt share)也被表示成vault铸造的生息token。</li>
+<li>债务份额的计算方法：<span
+class="math inline">\(\frac{DebtValue}{TotalDebtValue} \times
+ExistingDebtShare\)</span></li>
+</ul>
+<h2 id="structs">Structs</h2>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">struct Position &#123;</span><br><span class="line">    address worker;</span><br><span class="line">    address owner;</span><br><span class="line">    uint256 debtShare;</span><br><span class="line">  &#125;</span><br><span class="line">mapping(uint256 =&gt; Position) public positions;</span><br></pre></td></tr></table></figure>
+<h2 id="main-function">Main Function</h2>
+<p>Vault 主要业务逻辑有： 1.质押token获得ibToken (deposit)
+2.赎回token燃烧ibToken (withdraw)
+3.执行借贷+DEX流动性挖矿操作，调用worker.work，根据Position里worker的不同具体执行逻辑也不一样
+(work)
+4.清算，调用worker.liquidate，根据Position里worker的不同具体执行逻辑也不一样
+(kill)</p>
+<h1 id="worker-contract">Worker Contract</h1>
+<p><a name="Worker Contract"></a></p>
+<p><a
+href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/interfaces/IWorker02.sol">源码地址</a></p>
+<h2 id="background-1">BackGround</h2>
+<p>borrowers从vault申请款项唯一的办法就是从vault借出钱来做一些操作，特别是加杠杆的流动性挖矿。
+每一个worker根据配置比如其连接的DEX和LP token pair
+来进行不一样的操作，但是所有的Worker共用一个接口。
+然而worker并不一定要做流动性挖矿，也可能就只是做一些简单的操作，比如Syrup
+Pool。 这部分我们只讲一下所有worker共通的Interface。</p>
+<h2 id="abstract-1">Abstract</h2>
+<ul>
+<li>在整个系统里有多个worker</li>
+<li>一个worker可以根据实际情况使用不同的strategy</li>
+<li>worker会把特定的token对当成整体处理，即使他们在不同的仓里</li>
+<li>worker和底层资产服务强关联，比如Pancake的BNB-BUSD
+worker处理不了Wault的BNB-BUSD</li>
+<li>Base
+token是ERC20标准，是worker的主要资产，通常与借款，本金挂钩。</li>
+<li>Farm token是ERC20标准，与base token结对可以给DEX提供流动性</li>
+<li>worker把Fram token和Base token成对处理，如果我们需要将现在的farm
+token作为base
+token就需要另一个worker，反之亦然。因为在DEX中，Pancake的BNB-BUSD 也与
+Pancake的BUSD- BNB不一样。</li>
+<li>Worker Config作为一个分离出来的合约，存放着worker们的配置信息</li>
+</ul>
+<p>worker可以被两种角色调用： 1.Operator: 大多数情况是一个Vault合约
+2.Reinvestor: 白名单EOA，取出LP收益再复投</p>
+<h2 id="main-function-1">Main Function</h2>
+<p>1.利息复投(_reinvest) 2.调用Strategy的excute方法，并将返回的LP
+token质押，根据Strategy种类不同具体实现不一样 (work)
+3.计算某个position换算成baseToken的价值，用来做清算判断 (health)</p>
+<h1 id="strategy-contract">Strategy Contract</h1>
+<p><a name="Strategy Contract"></a></p>
+<p><a
+href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/interfaces/IStrategy.sol">合约源码</a></p>
+<h2 id="background-2">Background</h2>
+<p>顾名思义，这类合约只做一件事，那就是制定交易策略，根据DEX，token和需求不同分配不同的Strategy。这一节我们详细介绍策略逻辑和公式。值得注意的是，这个合约是一个耦合度极低的合约，只负责把传给该合约的资产在DEX中操作，再转账，几乎没有存储任何信息，也就是不参与借贷相关的任何逻辑。借贷/还账的逻辑应该在它的上层实现。</p>
+<h2 id="abstract-2">Abstract</h2>
+<p>根据用户的操作，前端会提供一个strategy，比如一个用户想借BUSD在Pancake开一个BUSD-
+USDT的仓，前端会用PancakeswapV2RestrictedStrategyAddBaseTokenOnly(一种Strategy合约)调用Vault.work，这样Vault将会调用USDT-
+BUSD PancakeSwap
+的worker。worker随后调用PancakeswapV2RestrictedStrategyAddBaseTokenOnly.</p>
+<h2 id="main-function-2">Main Function</h2>
+<p>有六种Strategy都只有一个主要方法,excute：</p>
+<h3 id="addbasetokenonly">AddBaseTokenOnly:</h3>
+<p>提供base token，根据最佳方案兑换farming
+token，再提供流动性拿LP，推导过程：
+balance为托管处理的baseToken总量，aIn为swap为farming token的base
+token，rIn，rOut是池子里的量</p>
+<p><span class="math inline">\(\begin{cases} rIn\times rOut = (rIn +
+aIn)\times(rOut - aOut)\\ \frac{rIn}{rOut} = \frac{balance - aIn}{ aOut
+}\\ \end{cases}\)</span></p>
+<p>得出<span class="math inline">\(aIn^{2} + 2rIn\times aIn - rIn\times
+balance = 0\)</span>，即<span
+class="math inline">\(aIn=\frac{\sqrt{rIn\times (4balance +
+4rIn)}-2rIn}{2}\)</span> 与代码吻合：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">uint256 aIn = AlpacaMath.sqrt(rIn.mul(balance.mul(399000000).add(rIn.mul(399000625)))).sub(rIn.mul(19975)) / 19950;</span><br></pre></td></tr></table></figure>
+<h3 id="addtwosideoptimal">AddTwoSideOptimal</h3>
+<p>同时提供base token和farming
+token，合约转换成正好的比例提供流动性，推导过程:
+bIn,bOut是用户提供的两种token量，aIn是打算换成另一种的多余Token量，aOut是换出的token量，
+<span class="math inline">\(\begin{cases} rIn\times rOut = (rIn +
+aIn)\times(rOut - aOut)\\ \frac{rIn + bIn }{rOut - bOut} =
+\frac{bIn-aIn}{bOut+aOut}\\ \end{cases}\)</span></p>
+<p>得出<span class="math inline">\(aIn^{2} + 2rIn\times aIn + \frac
+{rIn\times bOut - rOut \times bIn}{rOut+bOut} \times rIn = 0\)</span>
+即<span class="math inline">\(aIn = \frac{\sqrt{4rIn^{2}-4\times (\frac
+{rIn\times bOut - rOut \times bIn}{rOut+bOut} \times
+rIn)}-2rIn}{2}\)</span> 与代码吻合：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/// @dev Compute optimal deposit amount helper</span><br><span class="line">  /// @param amtA amount of token A desired to deposit</span><br><span class="line">  /// @param amtB amonut of token B desired to deposit</span><br><span class="line">  /// @param resA amount of token A in reserve</span><br><span class="line">  /// @param resB amount of token B in reserve</span><br><span class="line">  function _optimalDepositA(</span><br><span class="line">    uint256 amtA,</span><br><span class="line">    uint256 amtB,</span><br><span class="line">    uint256 resA,</span><br><span class="line">    uint256 resB</span><br><span class="line">  ) internal pure returns (uint256) &#123;</span><br><span class="line">    require(amtA.mul(resB) &gt;= amtB.mul(resA), &quot;Reversed&quot;);</span><br><span class="line"></span><br><span class="line">    uint256 a = 9975;</span><br><span class="line">    uint256 b = uint256(19975).mul(resA);</span><br><span class="line">    uint256 _c = (amtA.mul(resB)).sub(amtB.mul(resA));</span><br><span class="line">    uint256 c = _c.mul(10000).div(amtB.add(resB)).mul(resA);</span><br><span class="line"></span><br><span class="line">    uint256 d = a.mul(c).mul(4);</span><br><span class="line">    uint256 e = AlpacaMath.sqrt(b.mul(b).add(d));</span><br><span class="line"></span><br><span class="line">    uint256 numerator = e.sub(b);</span><br><span class="line">    uint256 denominator = a.mul(2);</span><br><span class="line"></span><br><span class="line">    return numerator.div(denominator);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="liquidate">Liquidate</h3>
+<p>提供LPToken，取消所有流动性，之后所有farming token 兑换成base token
+返还给用户。</p>
+<h3 id="partialcloseliquidate">PartialCloseLiquidate</h3>
+<p>前面和Liquidate一样，也是把一定量的LP取消流动性，再全兑成base
+token提出来，最后留下一部分baseToken(数目是入参，一般做平账用，由合约传入)，剩下的返还给用户。</p>
+<h3 id="partialcloseminimizetrading">PartialCloseMinimizeTrading</h3>
+<p>提供一定量LPToken，取消流动性，返还base token和farming
+token，如果base
+token不够lessDebt值(数目是入参，一般做平账用，由合约传入)，用farming
+token兑换至足额，并将base token和剩余的farming token返还。</p>
+<h3 id="withdrawminimizetrading">WithdrawMinimizeTrading</h3>
+<p>把所有的LPToken取消流动性,返还base token和farming token，如果base
+token不够lessDebt值(数目是入参，一般做平账用，由合约传入)，用farming
+token兑换至足额，并将base token和剩余的farming token返还。</p>
+<h1 id="后记">后记</h1>
+<p>Alpaca小弟也是最近刚刚接触，如果有前辈研究过这个项目还请指路一下更多的资料，谢谢大家了。</p>
+]]></content>
+      <tags>
+        <tag>DeFi</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>深入理解EVM - Part 1</title>
+    <url>/2022/06/17/Digging-Deep-EVM-Part/</url>
+    <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?s=r
+译者博客: <a href="alvan.coffee">Alvan的Blog</a></p>
+<h3
+id="digging-deep-into-the-evm-mechanics-during-contract-function-calls">Digging
+deep into the EVM mechanics during contract function calls</h3>
+<p>第一性原理我们经常听说，就是着重于理解事物的基本概念从而更好地理解构建与其之上的组件。</p>
+<p>在智能合约的世界里，EVM和它的算法与数据结构就是第一性原理，我们写的智能合约就是建立在其之上的组件。要想成为一个优秀的solidity开发，必须要对EVM有深刻了解。</p>
+<p>这系列文章的第一要义就是深入理解EVM，构建成为“shadowy super
+coder”的基础知识。</p>
+<h2 id="the-basics-solidity-bytecode-opcode">The Basics: Solidity →
+Bytecode → Opcode</h2>
+<p>开始之前，本文嘉定读者是掌握了solidity的基本用法以及怎么部署到以太坊的，后边只会简单提到，如果你想复习一下这部分知识的话请看<a
+href="https://medium.com/@eiki1212/explaining-ethereum-contract-abi-evm-bytecode-6afa6e917c3b">这篇文章</a>。</p>
+<p>solidity在部署到以太坊网络之前是需要被编译成字节码的，这些字节码又和一系列opcode匹配，这些opcode可以被EVM解释。</p>
+<p>这一个系列会着眼于编译后字节码的特定部分并阐释他们的工作机制。在每一篇文章的结尾，你都可以对这些函数更清晰的认知。一路下来，你会学到有关EVM的许多概念。</p>
+<p>今天我们就看一个基础的solidity合约，从它的字节码/opcode片段里解释一下EVM是怎么选择函数的。</p>
+<p>solidity创造的运行时字节码对应着一整个合约，合约部署之后，其中可能存在多个可以被调用的函数。这里边一个基础问题是EVM怎么根据合约调用的函数知道执行哪些字节码。</p>
+<h3 id="storage.sol-breakdown">1_Storage.sol Breakdown</h3>
+<p>在demo里我们使用了一个Storage.sol的合约，这是remix生成的默认合约之一。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F3400bba6-f870-4b68-8ba8-118562b08aef_489x538.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>在这个合约里有两个函数，store(uint256) 和 retrieve()
+，当函数调用的时候EVM就必须进行区分，下边就是此合约编译出的字节码。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">608060405234801561001057600080fd5b50600436106100365760003560e01c80632e64cec11461003b5780636057361d14610059575b600080fd5b610043610075565b60405161005091906100d9565b60405180910390f35b610073600480360381019061006e919061009d565b61007e565b005b60008054905090565b8060008190555050565b60008135905061009781610103565b92915050565b6000602082840312156100b3576100b26100fe565b5b60006100c184828501610088565b91505092915050565b6100d3816100f4565b82525050565b60006020820190506100ee60008301846100ca565b92915050565b6000819050919050565b600080fd5b61010c816100f4565b811461011757600080fd5b5056fea2646970667358221220404e37f487a89a932dca5e77faaf6ca2de3b991f93d230604b1b8daaef64766264736f6c63430008070033 </span><br></pre></td></tr></table></figure>
+<p>我们看一下下面的片段，这个片段就是函数选择器的逻辑，可以用ctrl + f
+验证一下它是否在上述字节码中。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">60003560e01c80632e64cec11461003b5780636057361d1461005957</span><br></pre></td></tr></table></figure>
+<p>这段字节码对应一系列的opcode与其输入值，你可以在<a
+href="https://www.ethervm.io/">这里</a>查看EVM的opcode列表。opcode的长度为1个字节也就是最多支持256种opcode，现在EVM已使用140种。</p>
+<p>下边展示了字节码所对应的opcode，它们会在EVM的调用战(call
+stack)中逐条执行。比如你可以从上边的链接里找到字节码 60 代表着opcode
+PUSH1等等。在这篇文章的结尾，你会对它们有一个全面的认知。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">60 00                       =   PUSH1 0x00 </span><br><span class="line">35                          =   CALLDATALOAD</span><br><span class="line">60 e0                       =   PUSH1 0xe0</span><br><span class="line">1c                          =   SHR</span><br><span class="line">80                          =   DUP1  </span><br><span class="line">63 2e64cec1                 =   PUSH4 0x2e64cec1</span><br><span class="line">14                          =   EQ</span><br><span class="line">61 003b                     =   PUSH2 0x003b</span><br><span class="line">57                          =   JUMPI</span><br><span class="line">80                          =   DUP1 </span><br><span class="line">63 6057361d                 =   PUSH4 0x6057361d     </span><br><span class="line">14                          =   EQ</span><br><span class="line">61 0059                     =   PUSH2 0x0059</span><br><span class="line">57                          =   JUMPI  </span><br></pre></td></tr></table></figure>
+<h3 id="smart-contract-function-calls-calldata">Smart Contract Function
+Calls &amp; Calldata</h3>
+<p>在深挖opcode之前需要快速过一遍我们究竟是怎么调用函数的。当我们调用一个合约函数时，需要包含有函数签名和所需参数的calldata。可以在solidity里完成:</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fa9957ce1-945b-4afa-a395-c9d2563d2094_1614x670.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>这里我们调用了合约的store函数，参数为10。我们使用abi.encodeWithSignature()获得calldata，emit会记录用于测试的calldata。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0x6057361d000000000000000000000000000000000000000000000000000000000000000a</span><br></pre></td></tr></table></figure>
+<p>上边就是abi.encodeWithSignature("store(uint256)", 10)
+返回的字节码</p>
+<p>之前提到了函数签名，现在我们再明确一下：</p>
+<blockquote>
+<p>函数签名就是函数规范化表示的Keccak Hash的前四个字节。</p>
+</blockquote>
+<p>函数标准化表示其实就是函数名+参数类型，就像 “store(uint256)” 和
+“retrieve()”。你可以在<a
+href="https://emn178.github.io/online-tools/keccak_256.html">这里</a>验证一下store(uint256)的hash。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">keccak256(“store(uint256)”) →  first 4 bytes = 6057361d</span><br><span class="line"></span><br><span class="line">keccak256(“retrieve()”) → first 4 bytes = 2e64cec1</span><br></pre></td></tr></table></figure>
+<p>我们可以看到calldata有36个字节)，前四字节对应着我们刚刚计算出来的
+store(uint256)
+函数签名，剩下的32个字节对应着传入的uint256参数，一个16进制的a，也就是10进制的10.</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">6057361d = function signature (4 bytes)</span><br><span class="line"></span><br><span class="line">000000000000000000000000000000000000000000000000000000000000000a = uint256 input (32 bytes)</span><br></pre></td></tr></table></figure>
+<p>我们获得了函数选择器 6057361d，你可以ctrf +
+f去opcode那一段确认一下。</p>
+<h3 id="opcodes-the-call-stack">Opcodes &amp; The Call Stack</h3>
+<p>现在关于EVM的函数选择器的前置知识已经学完了，现在正式开始。首先要过一遍每一个opcode和它们对调用栈的操作。如果你不熟悉栈的话可以看一下这个<a
+href="https://www.youtube.com/watch?v=FNZ5o9S9prU">视频</a>。</p>
+<p>PUSH1代表着把下一个字节(0x00也就是十进制0)的数据压入调用栈中，下一个opcode我们可以知道这么做的理由。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F52e45eff-44b3-4028-a075-9f5591fd2e7e_900x151.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>接下来用CALLDATALOAD弹出栈顶元素stack(0)作为该命令的输入值。</p>
+<p>这个opcode要把calldata载入调用栈，而输入值(也就是上边弹出的值)是偏移量(offset)，我们设为i。栈元素是32字节，而calldata是36字节，要压入的数据就是msg.data[i:i+32]
+(译者注:msg.data就是完整的calldata)，这既保证了只有32字节压栈，又允许我们访问calldata的任何一部分。</p>
+<p>在这种情况下，我们并没有偏移量，因为offset =
+0x00，所以我们把calldata前32字节压栈。之前我们记录过整个的call
+data为“0x6057361d000000000000000000000000000000000000000000000000000000000000000a”。这意味着我们丢失了后边四个字节(“0000000a”)，如果我们想访问这个uint256变量则需要使用4字节的偏移量，忽视前四字节的函数签名，而得到完整的变量。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe6f79343-c4c4-4ee6-a29f-f1923fea5b9e_901x150.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>这次又有一个PUSH1，它想压一个0xe0，也就是十进制224。224是这么来的:
+函数签名有4字节或者说32位，载入的calldata有32字节256位，256 - 32 =
+224。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F161dea9b-d35b-4eb1-aac5-7adecb6cc17d_901x149.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>下一步，SHR操作意味着右移一位，而栈顶弹出的224则是移位次数，栈的下一个元素0x6057361d0…0a便是执行移位操作的主题。现在我们可以在调用栈里看到4字节的函数选择器了。如果你不了解移位操作的话请看这个<a
+href="https://youtu.be/fDKUq38H2jk?t=176">视频</a>。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F8db5bd19-2271-44b3-99ed-0eec2731be5c_893x144.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>下一个是DUP1，一个复制栈顶元素的简单操作。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F40b72e9d-6e80-4232-9099-8718604542a8_896x146.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>PUSH4压入了
+retrieve()的4字节函数签名(2e64cec1)，你可能疑惑evm是怎么知道这个值的，请记住字节码由solidity编译而来，它有函数名和参数类型等所有信息。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F23dc9994-e360-4205-bf5d-af92aaba42e5_899x189.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>EQ 操作会弹出两个元素去判断是否相等，在这里0x2e64cec1 != 0x6057361d
+，如果他们相等则压1，不相等则压0。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F7cfc3f88-d5eb-4b03-b4c3-eb605bdeb283_895x144.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>PUSH2压入两字节的 0x003b 也就是十进制59。</p>
+<p>调用栈有一个称为程序计数器的东西，它会确认字节码下一个要执行的指令在哪里，现在我们设置59是因为这是
+retrieve() 函数的起始位置是59。(看下边EVM Playground
+部分可以清楚这里具体是怎么实现的)。你可以看到程序字节码定位方式类似solidity代码行数，如果这个函数在59行声明，你可以使用行数来告诉机器怎么找到这个函数。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F67596d4e-054d-4cd7-b516-64b4789ee01f_900x190.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>JUMPI 表示 “jump if”
+，它会弹出两个值作为参数，59表示跳转地址而第二个元素作为布尔值代表是否跳转。</p>
+<p>如果真值为true，程序计数器将更新然后执行跳转到指定位置，而在我们这个例子里真值为false，程序计数器并没有改变，程序继续顺序执行。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F1357763b-4150-4e14-8a8c-583ee74572aa_896x146.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>再次DUP1</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F40b72e9d-6e80-4232-9099-8718604542a8_896x146.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>PUSH4把store(uint256) (0x6057361d)压栈</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff937657d-dbb3-4133-95bb-1b3f5b8117cd_897x188.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>EQ判断，此次为真</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F9c0617f7-2181-427e-9dca-917be7847f0a_898x145.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>PUSH2把 store(uint256) 的定位0x0059也就是89压栈</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F44dea0e0-9e0c-4459-bd1e-4af814c89203_898x186.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>JUMPI，这次执行跳转了，程序计数器更新为89然后到字节码的其他部分运行去了。在目的地会有一个JUMPDEST，如果目的地没有这个opcode，跳转将会失败。(
+译者注: 我们可以在两个函数跳转的目的地可以找到JUMPDEST的字节码 5b )</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F9f3a7f3c-a5f6-4e29-888f-60708e8863dc_896x146.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>我们可以到store(uint156)的字节码处依照此法继续执行了。虽然这个合约只有2个函数，但是原理和20+函数的合约是一样的。你现在知道EVM如何基于函数调用找到函数的字节码了，这其实就是对合约里所有函数的位址进行if-else判断实现的。</p>
+<h3 id="evm-playground">EVM Playground</h3>
+<p>我强烈建议大家看看<a
+href="https://www.evm.codes/playground%5D">这个</a>,这是一个EVM运行环境，你可以设置字节码然后在上边执行。在这里可以看到调用栈的变化，我也添加了JUMPDEST，所以你也可以看到JUMPI后发生了什么</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F86591a6b-ee71-4590-8462-4ebb38f5cb80_1503x887.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>这个EVM运行环境也可以帮你理解程序计数器，在这份代码里，可以看到每个命令的注释，其偏移量代表程序计数器标记的位置。</p>
+<p>你也可以看到Run按钮左边的calldata输入，去试试把它改成retrieve()
+0x2e64cec1看看有什么变化吧！只需要点击Run然后step
+into按钮(就是那个弯箭头)，一步一步运行opcode。</p>
+<p>本系列下一节我们会研究一下内存 <a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?s=r">EVM
+Deep Dives - Part 2</a>。</p>
+]]></content>
+      <tags>
+        <tag>ethereum</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hello</title>
+    <url>/2022/06/09/hello-world/</url>
+    <content><![CDATA[<p>你好呀，我是张钰Alvan，主业是区块链/智能合约开发，了解一些defi项目，喜欢芥川龙之介和卡夫卡，希望能和更多的人交朋友！qq1541115709</p>
+]]></content>
+  </entry>
+  <entry>
+    <title>入门Defi第一步，初识DEX,AMM与LP token</title>
+    <url>/2022/06/13/Intro-DEX-AMM-LP-Token/</url>
+    <content><![CDATA[<h2 id="dex是什么">DEX是什么？</h2>
+<p>​ DEX(Decentralized
+Exchange)，即去中心化交易所，不依赖券商、银行等金融机构提供金融工具，而是利用区块链上的智能合约就可以提供交易服务的交易所。例如Uniswap，Curve，Pancake等等。</p>
+<h2 id="dex与传统交易所">DEX与传统交易所</h2>
+<p>​
+DEX和传统交易所的区别并不只在于数据存储的方式和所有权不同，在交易方式和原理上也有着本质的区别。我们以最常见的DEX框架即AMM模型与传统交易所挂单模型对比：</p>
+<h3 id="两种交易所订单簿模型的区别">两种交易所订单簿模型的区别：</h3>
+<p>中心化交易所：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.18-1024x887.png" alt="img" style="zoom:30%;" />DEX：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.24-1024x500.png" alt="img" style="zoom:33%;" />
+中心化交易所的卖方在交易所挂单，买方通过交易所自动撮合下单购买。
+DEX的不存在买方和卖方的差异，其本质也不是购兑换对方的资产，而是直接从流动性资产池中换取需要的资产。
+<small>流动性资金池(liquidity
+pools)：用户交易使用的资产池，其中的资金由用户提供，提供资金的行为被称为提供流动性(add
+liquidity)。为了保证交易稳定、流动性充足，提供流动性的用户(liquidity
+provider)可以从每笔交易的手续费里提取分成作为奖励。</small></p>
+<h3 id="两种方案的优劣比较">两种方案的优劣比较：</h3>
+<table>
+<thead>
+<tr class="header">
+<th>中心化交易所</th>
+<th>DEX</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>审查身份</td>
+<td>不审查身份</td>
+</tr>
+<tr class="even">
+<td>手续费只存在于执行交易时</td>
+<td>每一步操作都需要手续费</td>
+</tr>
+<tr class="odd">
+<td>数据中心化，放在服务器</td>
+<td>数据去中心化，放在区块链</td>
+</tr>
+<tr class="even">
+<td>交易迅速</td>
+<td>交易缓慢</td>
+</tr>
+<tr class="odd">
+<td>巨鲸操盘，交易所黑幕</td>
+<td>套利机器人日夜巡逻</td>
+</tr>
+</tbody>
+</table>
+<p>​
+<small>存在DEX像0x协议这样使用零知识证明原理，实现“链上+链下”结合的方式实现挂单模型，在下文中DEX特指使用AMM的去中心化交易所</small></p>
+<h2 id="amm和lp-token是什么">AMM和LP token是什么？</h2>
+<h3 id="amm">AMM:</h3>
+<p>​ AMM即Automated Market
+Maker，自动化做市商。AMM应用在DEX中，使得买方和卖方之间不需要任何信任关系以及第三方就可以安全完成交易。AMM用户的买/卖本质上是在对相应资产的流动性资金池做兑换，而非买卖双方的动作。所以AMM天生适合去中心化交易所使用，只要资金池和定价模式完全依托去中心化平台，就没有任何单独实体可以操纵这个系统，同时每个人都可以在这个基础上建立新的应用。</p>
+<h3 id="lp-token">LP token:</h3>
+<p>​ LP token即(Liquidity Provider Token)，对于AMM来说，x -
+y两种资产的兑换需要一个x - y
+的资金池，而x，y两种资产由用户提供。用户把x和y资产质押进流动性以获取流动性挖矿(yield
+farming )奖励，而质押的凭证就是AMM给流动性提供者签发的一种新代币，称为LP
+token。 ​ 在DeFi飞速发展的过程中，DeFi的术语也在不断。很多情况下LP
+token具体叫什么是随着项目变化的。比如在Balancer中，通常被称为BPT或者pools
+tokens；在Uniswap里被称为liquidity tokens或者pool
+tokens，在Curve中被称为LP token。</p>
+<h2 id="amm的原理">AMM的原理</h2>
+<p>​
+AMM发展至今已经落地在不少应用中，虽然具体实现方法和应用场景略有差别，但很多以简单模型为基础改进，本节将以其代表项目UniswapV2为例讲解。各种改进算法将不做讨论
+AMM实现功能靠以下两个核心功能：</p>
+<h3 id="swaps">Swaps:</h3>
+<p>​ AMM的token交换基于流动性资金池和恒定乘积公式算法：<span
+class="math inline">\(x \times y = k\)</span>，即交易发生在 （卖出资产-
+买入资产）交易对的流动性资金池中，交易价格由恒定乘积公式决定。
+x，y为资金池中两种资产的量：
+<img src="https://lh3.googleusercontent.com/DlgPwa6IlYeRgPkAPdwHPY7P0UCGMSiiESzvhCpUUSFuJ0HhFWG3rV1FSxEb_RFyV1JfdBQ1MUjVkzO8yDmJQXf-O0Ym0UWj-CM5xla9hARaA0kY6D6tSDhsYVhVkhbDrOj2-WHv" alt="img" style="zoom:50%;" /></p>
+<p>​ 例如在一个<span class="math inline">\(x = 200\)</span>, <span
+class="math inline">\(y =
+300\)</span>的资金池内想用100个y来兑换x，那么有<span
+class="math inline">\((y+100)\times (x- \delta x) = x \times
+y\)</span>，可解兑换出50个x资产。一个池子内，x越少，就可以用x换取更多的y，反之亦然，套利者会自发将两者价格与全链同步，这就是swap的基本原理。
+​
+那么K值是否能够改变呢？答案是肯定的，因为手续费和流动性的原因，几乎每一笔交易成功实际发生后，k都会改变。所谓的固定乘积，是交易发生前计算价格的方法。</p>
+<h3 id="liquidity-pools">Liquidity Pools:</h3>
+<p>​ AMM的用户不直接与另一个用户发生交易，他们的交易要通过liquidity
+pools实现，而且因为在AMM的恒定乘积公式算法中，当流动性池内资金量少时，很容易出现x，y有一个非常小导致价格离谱的情况。
+​流动性资金池由用户质押资产提供，用户质押资产进入liquidity
+pools，然后获得质押凭证LP
+token，而提供流动性的用户也会获得手续费收益，即LP
+token分红和对应交易所的治理代币。用户也可以使用LP
+token赎回其质押的资产，被称为移除流动性(remove liquidity)。</p>
+<h2 id="流动性挖矿与lp-tokens">流动性挖矿与LP Tokens</h2>
+<p>​ LP Tokens的一个很引人注目的应用领域就是流动性挖矿(Yield
+Farming)，将他们两个结合起来，是一种向多个不同合约组合操作以达到收益最大化的挖矿方式，下面举一个Curve中的例子：</p>
+<ol type="1">
+<li>向Curve 的liquidity pool质押DAI</li>
+<li>获得LP tokens</li>
+<li>将LP tokens质押进Curve的质押池</li>
+<li>获得Curve利息</li>
+</ol>
+<h2 id="引用">引用：</h2>
+<p><a
+href="https://fintechruminations.com/2021/07/09/uniswap-and-the-amm-model/">UNISWAP
+AND THE AMM MODEL</a> <a
+href="https://www.gemini.com/cryptopedia/liquidity-provider-amm-tokens">How
+Liquidity Provider (LP) Tokens Work</a></p>
+]]></content>
+      <tags>
+        <tag>DeFi</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>defi-compound经济模型</title>
+    <url>/2022/06/09/test-blog/</url>
+    <content><![CDATA[<p><u>注：本篇文章适合初步了解区块链以及去中心化知识的Defi初学者/合约开发者，仅供学习参考，作者不推荐中国大陆居民购买任何加密货币与其理财产品</u></p>
+<h2 id="前言">前言</h2>
+<p>作者在fork一份compound的项目之后，觉得其中有不少值得一说的思想，比如激励comp的分配模式，利率模型等等。这篇文章会主要从业务逻辑和合约代码来讲解其经济模型，其治理模式，预言机与其他组件不做讲解，争取做到Defi初学者看完可以理解模型，开发者看完可以直接复现(不是，compound的代码本身也出现过一些漏洞，copy需谨慎)。</p>
+<h2 id="项目简介">项目简介</h2>
+<h3 id="背景介绍">背景介绍</h3>
+<p>compound是一个借贷合约，想想通常情况下在中心化的机构例如银行里进行质押
+- 借贷的程序是：</p>
+<p>小张 存入 100元 到 某银行的资金池</p>
+<p>小李 抵押 价值150元的资产 从 某银行的资金池 借出 100元</p>
+<p>一个月后</p>
+<p>小李 还账 100元本金+1元(借款利息) 给 某银行</p>
+<p>小张 取钱时 某银行按照利率 返还 100元本金和0.02元(存款利息)</p>
+<p>如果小李资不抵债，银行清算小李的抵押资产，小张的借款利息不变</p>
+<p>看到什么问题了吗，借款利息和存款利息受银行调控，放贷的利息远比存款利息要高。随之出现的就是P2P借贷，P2P借贷的模式繁杂，大致是以下程序：</p>
+<p>小李 发布 100元借款的需求(自定义利率) 到 P2P平台</p>
+<p>P2P平台 对 小李 资质审查 判断风险与是否上架</p>
+<p>小张 选择 小李的借款单子 出借 100元 给 小李</p>
+<p>小李 按照单子约定 还款 100元(本金) + 10元(借款利息)</p>
+<p>P2P平台 中间收取 一定比例的手续费与管理费1元</p>
+<p>小张 拿走其余9元利息和100元本金</p>
+<p>如果小李逾期未还，看P2P平台的心情平账</p>
+<p>P2P的问题依然明显，用户为了取得更高的收益承担了更多的风险，P2P平台的诚信和公正也无法保证。去中心化想要解决的就是大平台的高抽成和垄断问题和小平台的信任问题，把分账，风险评估，清算全部交给不可更改的程序，这就是co
+mpound与其他Defi项目所做的事情。</p>
+<h3 id="基本结构">基本结构</h3>
+<p>compound提供了借款，还款，存款，取款，清算等功能，它的质押资产和借出资产都是虚拟货币。</p>
+<p>其中每一种虚拟货币的资金池称为一个market，所有质押A货币的用户共同构成一个A
+market。同理，所有借出A货币的用户都从这个market借款，还款。他们共同使用A
+market的借款利率和抵押利率。这让风险和收益平分到了每个使用者的身上，一个人不用因为借出某个坏人而坏账，因为他们共用这个market。</p>
+<p>-------这就是CToken合约做的事情</p>
+<p>我们这样做的前提是可以判断质押物和借出的价值和数量。例如小李想要借走1个eth，那么他的质押物总值应该大于等于value(1
+eth) / factor
+，此处的factor为质押率，我们需要一个中间系统来整合每个market的情况和用户在每个market里的存款和借款。我们把CToken和用户信息登记到这个comptroller合约内，这样可以整合每个用户的资/债情况，
+再由comptroller合约来对接预言机，获得虚拟货币的单价。这样通过使用每个虚拟货币的单价和用户在每个market里的质押/借出值，算出用户目前的财务状态，帮助CToken判断是否同意用户的借款/取款操作</p>
+<p>-------这就是comptroller合约做的事情</p>
+<p>我们在上边两个合约里解决了信任问题，使用固定利率明显不符合大开大合的加密货币市场，我们要添加一个市场调节的利率模型和利息计算模式，这也是compound的核心经济模型。我将在下一节
+业务逻辑 详细介绍。</p>
+<p>-------这就是InterestModel合约做的事情</p>
+<p>作为一个Defi项目自然要自己发行一个新币啦，它会给每个market的用户的几乎每次财产操作发放激励，它也作为compound项目的治理代币，可以参与修改预言机或者市场的利率模型等，其激励机制我也会在下一节
+业务逻辑 详细介绍。</p>
+<p>-------这就是Comp合约做的事情</p>
+<h2 id="业务逻辑">业务逻辑</h2>
+<h3 id="业务流程">业务流程</h3>
+<p>首先，我们需要一个标记用户质押资产和借款的方法，而质押资产的价值和借款的数目与价值会随着利息改变，这时引入一个概念
+cToken。cToken是CToken合约发行的货币，在用户存入底层资产时，发给用户作为资产凭证。</p>
+<p>比如小张存入100A币，则A market对应的CToken合约会给用户发放
+100/exchangeRate 个
+cA币。exchange的初始值由管理员设定，之后的公式为：</p>
+<p><span class="math inline">\(exchangeRate =
+\frac{totalCash+totalBorrow-totalReserves}{totalSupply}\)</span></p>
+<p>其中totalSupply为发行的所有cA
+币总量，totalCash为存入该market且没被借走的A币总值，totalBorrow为从market里借走的A币总量，totalReserves为CToken自己收取的中介费。</p>
+<p>小李想借出一些A币，那么他向market发起借款申请：借100个A币。comptroller查询了他在所有market里的资/债情况，也就是借款记录和cB,cC,cD.......等等的持有量，判断该次操作是否会造成资不抵债，如果不会，则给小李的账户发送100A币，并在A
+market里更新小李的A 借款额。</p>
+<p>在小李借走100A的时间里，每一个用户的每次资产操作都会 “刷新利息/利率”
+，会更新一些系数，控制exchangeRate和每个人的借款额。</p>
+<p>如果小李借走100A的期间里，A币价格暴跌，套利机器人将把小李的其他资产贱卖进行平账。</p>
+<p>因为一个用户的资产凭证只有cA，相同的cA在不同的时间可以兑换不同数量的A币，这就是该项目产生收益和亏损的直接原因。</p>
+<h3 id="利率模型">利率模型</h3>
+<h4 id="利息的产生">利息的产生</h4>
+<p>每一个资产操作前都要进行的刷新利率/利息，合约内的数据变动是这样的：</p>
+<p>$interestAccmulated = totalBorrow borrowRate deltaBlock $</p>
+<p><span class="math inline">\(totalBorrowNew = totalBorrow +
+interestAccmulated\)</span></p>
+<p>$totalReservesNew = totalReserves + reservesFactor interestAccmulated
+$</p>
+<p><span class="math inline">\(borrowIndexNew = borrowIndex +
+borrowIndex \times borrowRate \times deltaBlock\)</span></p>
+<p>borrowRate是借款利率(后面细说来源)，reservesFactor是market设置的中介费系数，通常比较低。</p>
+<p>borrowIndex是用来调节借款者利息的标记位，初始值为1。</p>
+<p>我们可以看到如果不动任何资产，</p>
+<p>对于cA持有者，也就是A的存款者来说，每一次刷新之后totalBorrow -
+totalReserves 就会变大，exchangeRate就会变大，那么每一个A兑换的cA
+变少了，持有cA 的人在取款时可以收到比存取时更加多的A币。</p>
+<p>对于A的借款者来说，他的利息通过borrowIndex控制，每次还款和借款都会更新，具体如下：</p>
+<p><span class="math inline">\(borrowAmount = \frac {principal \times
+borrowIndexA} {borrowIndexB}\)</span></p>
+<p>其中，principal为该账户借款的目前更新前记账数值数值，borowIndexA为整个A
+market现在的borrowIndex，borrowIndexB是上一次借款时的borrowIndexA，他的借款额也就更新到账户上了。需要还掉的借款变多了。</p>
+<h4 id="利率的计算">利率的计算</h4>
+<p>compound的利率模型其实就是一个核心观念：市场使用率(utilizationRate)</p>
+<p><span class="math inline">\(utilizationRate =
+\frac{borrows}{cash+borrows-reserves}\)</span></p>
+<p>使用率越高，我们的意愿是引入更多的存款者，限制更多的借款者，也就是利息越高，这时我们看借款利率：</p>
+<p><span class="math inline">\(borrowRatePerBlock = baseRatePerBlock +
+utilizationRate \times multiplierPerBlock\)</span></p>
+<p>baseRatePerBlock和multiplierPerBlock，都由模型自己指定，作为配合市场利用率的参数。</p>
+<p>实际上compound并不需要一个计算存款利率的函数，只是通过记录exchangeRate来获利，但是我们依然可以算出来</p>
+<p><span class="math inline">\(supplyRatePerBlock = borrowRatePerBlock
+\times utilizationRate \times (1 - reserversFactor)\)</span></p>
+<h3 id="激励模型">激励模型</h3>
+<p>compound的激励代币称为Comp，激励发生在每次资产交易中，分为两种，一种发放给存款人，一种发放给借款人，量的大小由该用户的持有量/借款和总量的比例决定，每一个market在一个区块里发放的激励comp是固定的，存款激励和借款激励的比例也是固定的，分别称为supplySpeed和borrowSpeed，先从这两个式子讲起</p>
+<p><span class="math inline">\(SupplyIndexNew = SupplyIndex +
+\frac{deltaBlocks \times SupplySpeed} {totalSupply}\)</span></p>
+<p><span class="math inline">\(BorrowIndexNew = BorrowIndex +
+\frac{deltablock \times
+BorrowSpeed}{\frac{totalBorrows}{borrowIndex}}\)</span></p>
+<p><small>在此模块里，BorrowIndex和BorrowIndex指在激励系统中标记借款激励的参数，而borrowIndex是指前文提到的利息参数。</small></p>
+<p>这是每个market共用的激励记录公式，每一次激励都会刷新的两个参数，分别是SupplyIndex和BorrowIndex，每一组绑定一个market，表示该market的整体激励状态。看起来有点抽象是吧，我们再看下边两个给用户分配激励的公式：</p>
+<p><span class="math inline">\(SupplierAccruedNew = SupplierAccrued +
+cToken.balanceOf(user) \times (SupplyIndex - SupplierIndex)\)</span></p>
+<p><span class="math inline">\(BorrowerAccruedNew = BorrowerAccruced +
+\frac{cToken.borrowBalance(user) } {borrowIndex} \times (BorrowIndex -
+BorrowerIndex)\)</span></p>
+<p>SupplierIndex和BorrowerIndex是上次user做出对应交易时，该market的SupplyIndex和BorrowIndex。</p>
+<p>SupplyIndex -
+SupplierIndex则代表着这次操作中，每持有一个cToken，获得的激励量。</p>
+<p>举个例子在某区块totalSuppy =
+10000，小张操作资产得到激励，此时距离上次刷新的x区块又产生了100个区块，speed
+= v，小张持有量为100，现在开始刷新SupplyIndex，</p>
+<p><span class="math inline">\(SupplyIndex1 = SupplyIndex +
+\frac{100v}{10000}\)</span></p>
+<p>又过了100个区块，小张操作资产再次获得激励，其余均不变，这时的</p>
+<p><span class="math inline">\(SupplyIndex2 = SupplyIndex1 +
+\frac{100v}{10000}\)</span></p>
+<p><span class="math inline">\(SupplierIndex = SupplyIndex1\)</span></p>
+<p><span class="math inline">\(SupplierAccruedNew = SupplierAccrued +
+100 \times \frac{100v}{10000}\)</span></p>
+<p>这次获得的新激励是<span
+class="math inline">\(\frac{balance}{totalSupply} \times speed \times
+deltaBlock\)</span>，确实和我们预想的一样。</p>
+<p>就是这样，完成了激励的分配，不多不少，刚好分完。</p>
+<h2 id="结语">结语</h2>
+<p>compound的经济模型大概就是这样了，新人初稿，大家海涵，如有错漏请多指教小弟。下一篇可能是compound源码解析或者是AMM模型，最后祝大家财运昌隆！</p>
+]]></content>
+  </entry>
+</search>

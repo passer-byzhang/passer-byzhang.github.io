@@ -2,12 +2,23 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>http://example.com/2022/06/17/Digging-Deep-EVM-Part/</loc>
+    <loc>http://example.com/2022/06/21/Digging-Deep-EVM-Part2/</loc>
     
-    <lastmod>2022-06-18T14:47:47.344Z</lastmod>
+    <lastmod>2022-06-20T17:00:37.486Z</lastmod>
+    
+    <date>1655744258000</date>
+    <title>深入理解EVM - Part2 - 内存 | Alvan's Blog</title>
+    
+    <desc>从opcode角度讲解EVM的内存机制，包括数据结构，空闲内存指针与变量赋值等</desc>
+  </url>
+  
+  <url>
+    <loc>http://example.com/2022/06/17/Digging-Deep-EVM-Part1/</loc>
+    
+    <lastmod>2022-06-20T16:59:41.774Z</lastmod>
     
     <date>1655462362000</date>
-    <title>深入理解EVM - Part 1 | Alvan's Blog</title>
+    <title>深入理解EVM - Part1 - 初识opcode | Alvan's Blog</title>
     
     <desc>翻译深入理解EVM系列文章，第一篇是关于函数选择器与字节码/opcode</desc>
   </url>

@@ -22,18 +22,18 @@
 
   <meta name="description" content="翻译深入理解EVM系列文章，第一篇是关于函数选择器与字节码&#x2F;opcode">
 <meta property="og:type" content="article">
-<meta property="og:title" content="深入理解EVM - Part 1">
-<meta property="og:url" content="http://example.com/2022/06/17/Digging-Deep-EVM-Part/index.html">
+<meta property="og:title" content="深入理解EVM - Part1 - 初识opcode">
+<meta property="og:url" content="http://example.com/2022/06/17/Digging-Deep-EVM-Part1/index.html">
 <meta property="og:site_name" content="Alvan&#39;s Blog">
 <meta property="og:description" content="翻译深入理解EVM系列文章，第一篇是关于函数选择器与字节码&#x2F;opcode">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2022-06-17T10:39:22.000Z">
-<meta property="article:modified_time" content="2022-06-18T14:47:47.344Z">
+<meta property="article:modified_time" content="2022-06-20T16:59:41.774Z">
 <meta property="article:author" content="张钰Alvan">
 <meta property="article:tag" content="ethereum">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://example.com/2022/06/17/Digging-Deep-EVM-Part/">
+<link rel="canonical" href="http://example.com/2022/06/17/Digging-Deep-EVM-Part1/">
 
 
 <script id="page-configurations">
@@ -46,7 +46,7 @@
   };
 </script>
 
-  <title>深入理解EVM - Part 1 | Alvan's Blog</title>
+  <title>深入理解EVM - Part1 - 初识opcode | Alvan's Blog</title>
   
 
 
@@ -194,7 +194,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/17/Digging-Deep-EVM-Part/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/17/Digging-Deep-EVM-Part1/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/Alvan.png">
@@ -207,7 +207,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          深入理解EVM - Part 1
+          深入理解EVM - Part1 - 初识opcode
         </h1>
 
         <div class="post-meta">
@@ -224,7 +224,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2022-06-18 22:47:47" itemprop="dateModified" datetime="2022-06-18T22:47:47+08:00">2022-06-18</time>
+                <time title="Modified: 2022-06-21 00:59:41" itemprop="dateModified" datetime="2022-06-21T00:59:41+08:00">2022-06-21</time>
               </span>
 
           
@@ -458,7 +458,10 @@ Deep Dives - Part 2</a>。</p>
     <a href="/2022/06/13/Alpaca-docs/" rel="prev" title="Alpaca文档翻译">
       <i class="fa fa-chevron-left"></i> Alpaca文档翻译
     </a></div>
-      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2022/06/21/Digging-Deep-EVM-Part2/" rel="next" title="深入理解EVM - Part2 - 内存">
+      深入理解EVM - Part2 - 内存 <i class="fa fa-chevron-right"></i>
+    </a></div>
     </div>
       </footer>
     
@@ -537,7 +540,7 @@ Calls &amp; Calldata</span></a></li><li class="nav-item nav-level-3"><a class="n
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-count">6</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -654,7 +657,7 @@ NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
       repo        : 'passer-byzhang.github.io',
       owner       : 'passer-byzhang',
       admin       : ['passer-byzhang'],
-      id          : '6bae3281371277e493c257f78d0b4a7b',
+      id          : '178e4f285fb1d4c9bf29cc02f0be195b',
         language: 'zh-CN',
       distractionFreeMode: false
     });

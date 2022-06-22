@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Alvan's Blog">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="翻译深入理解EVM系列文章，第一篇是关于函数选择器与字节码&#x2F;opcode">
+<meta property="og:type" content="article">
+<meta property="og:title" content="深入理解EVM - Part1 - 存储区">
+<meta property="og:url" content="http://example.com/2022/06/22/Digging-Deep-EVM-Part3/index.html">
+<meta property="og:site_name" content="Alvan&#39;s Blog">
+<meta property="og:description" content="翻译深入理解EVM系列文章，第一篇是关于函数选择器与字节码&#x2F;opcode">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-06-22T10:36:49.000Z">
+<meta property="article:modified_time" content="2022-06-22T10:38:41.025Z">
+<meta property="article:author" content="张钰Alvan">
+<meta property="article:tag" content="ethereum">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2022/06/22/Digging-Deep-EVM-Part3/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>深入理解EVM - Part1 - 存储区 | Alvan's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Alvan's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/22/Digging-Deep-EVM-Part3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/Alvan.png">
+      <meta itemprop="name" content="张钰Alvan">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Alvan's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          深入理解EVM - Part1 - 存储区
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2022-06-22 18:36:49 / Modified: 18:38:41" itemprop="dateCreated datePublished" datetime="2022-06-22T18:36:49+08:00">2022-06-22</time>
+            </span>
+
+          
+            <div class="post-description">翻译深入理解EVM系列文章，第一篇是关于函数选择器与字节码/opcode</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?s=
+译者：<a href="alvan.coffe">Alvan's Blog</a></p>
+<p>这是“深入理解EVM”系列的第三篇文章，需要<a
+target="_blank" rel="noopener" href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>
+和<a
+target="_blank" rel="noopener" href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?s=r">第二篇</a>的前置知识，因此如果您没读过的话建议先读一下。在这一篇里，我们会仔细研究合约存储区是怎么工作的，提供一些有助于理解插槽包装(slot
+packing)的思维方式，如果对装填插槽很陌生也不必担心，插槽包装的知识对EVM的骇客们至关重要，你也可以在本文结束时深刻了解它。</p>
+<p>如果你玩过<a target="_blank" rel="noopener" href="https://ethernaut.openzeppelin.com/">Ethernaut
+Solidity Wargame Series</a>
+或者其他Solidity的CTF赛事，就会知道装填插槽的知识经常是解决难题的关键。(译者注:
+CTF全称Capture The
+Flag，中文名夺旗赛，一般指网络安全领域的技术竞赛)。</p>
+<h2 id="基础知识">基础知识</h2>
+<p>在<a
+target="_blank" rel="noopener" href="https://programtheblockchain.com/posts/2018/03/09/understanding-ethereum-smart-contract-storage/">“Program
+the Blockchain”</a>
+里对合约存储基础知识有一个相当完整的概述，我将回顾一下这篇文章里的关键知识点，当然也很推荐看一下这个全文。</p>
+<h3 id="数据结构">数据结构</h3>
+<p>我们先从合约存储的数据结构说起，这是我们理解其他知识的坚实基础。</p>
+<p>合约存储就是一个简单的 k-v
+map结构。32字节的key，32字节的value。key有32字节让我们可以拿到0到(2^256)-1的key值。</p>
+<p>所有的value都会初始化为0，0不会显式写入。还挺有道理的，可观测宇宙里也是有
+2^256 个原子。没有计算机能存储这个多的数据。存储区 value 置 0
+返还gas，因为节点不用存储这些数据了。</p>
+<p>你可以把存储区视为一个宇宙级的大数组，二进制 0 对应的 key
+代表数组的第 0 个元素，二进制1对应的 key
+代表数组的第一个元素，以此类推。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F13728261-0af4-4581-b03f-04057bdbb5dc_744x370.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F13728261-0af4-4581-b03f-04057bdbb5dc_744x370.png"
+alt="img" /></a></p>
+<h2 id="定长变量">定长变量</h2>
+<p>声明为存储(storage)的的合约变量分为两种，定长变量和不定长变量。我们着重研究一下前者，看看EVM是怎么把定长便利那个装进32字节的插槽里的。关于不定长变量可以看一下<a
+target="_blank" rel="noopener" href="https://programtheblockchain.com/posts/2018/03/09/understanding-ethereum-smart-contract-storage/">“Program
+the Blockchain”</a> 这篇文章。</p>
+<p>现在我们知道存储区是一个map，那么下一个问题就是怎么给key分配value。假设我们有以下代码。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F211a6f5d-9a81-41b9-9643-e31c141d0827_335x298.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F211a6f5d-9a81-41b9-9643-e31c141d0827_335x298.png"
+alt="img" /></a></p>
+<p>给定的变量都是定长的，EVM可以从 0 开始挨个装填，装完 0 装 1，装完 1
+装
+2，以此类推。排列顺序基于合约里变量声明的顺序，第一个被声明的变量会在0插槽。在这个例子里插槽0存储
+value1，value2 是一个长度为 2 的数组，所以存在插槽1 和插槽2，value3
+存储在插槽3，如下图所示：</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F46352903-1395-49d0-a3a8-36b1bf5a3000_744x288.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F46352903-1395-49d0-a3a8-36b1bf5a3000_744x288.png"
+alt="img" /></a></p>
+<p>现在我们看一个类似的合约，猜下是怎么存的。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F48a5cb06-c390-4b92-8a20-39053f40d54c_335x316.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F48a5cb06-c390-4b92-8a20-39053f40d54c_335x316.png"
+alt="img" /></a>注意变量类型不是 uint256</p>
+<p>根据上一个例子你可能猜测我们会占用 0 到 3
+插槽，因为有4个变量。但其实这个例子只占用了插槽0。这是变量类型不同造成的，之前我们用的都是
+uint256 类型也就是32字节，在这里我们用的是 uint32，uint64 和
+uint128，分别代表4字节，8字节和16字节的数据。</p>
+<p>这就是插槽包装一词的由来。Solidity编译器知道一个插槽能装
+32字节的数据， uint32 value1
+装填在插槽0里只占用了4字节，等读到下一个可以装填的变量时，就会装进这个插槽。</p>
+<p>(译者注：不知道你记不记得上一篇文章里有一个无法写入的0值插槽，它和插槽0是两个不同的东西，前者英文写作
+zero slot，后者是 slot[0]，具体可见官方文档)</p>
+<p>根据上边的例子我们开始从插槽0开始装填：</p>
+<ul>
+<li>value1 装进插槽0，占用4字节</li>
+<li>插槽0剩余28字节</li>
+<li>value2长4字节，小于等于28，装进插槽0</li>
+<li>插槽0剩余24字节</li>
+<li>value3长8字节，小于等于24，装进插槽0</li>
+<li>插槽0剩余16字节</li>
+<li>value4长16字节，小于等于16，装进插槽0</li>
+<li>插槽0剩余0字节</li>
+</ul>
+<blockquote>
+<p><em>注意uint8是solidity的最小类型，因此包装不能小于1字节(8位)</em></p>
+</blockquote>
+<p>下图展示了插槽0里存放的共32字节的4个变量。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fdeb707da-60db-465d-a7c2-e45befefe3ff_744x434.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fdeb707da-60db-465d-a7c2-e45befefe3ff_744x434.png"
+alt="img" /></a></p>
+<h2 id="evm-storage-opcodes">EVM Storage Opcodes</h2>
+<p>了解了存储区数据结构和插槽包装的原理只有我们看两个相关的opcode，SSTORE
+和 SLOAD。</p>
+<h3 id="sstore">SSTORE</h3>
+<p>SSTORE 从调用栈取两个值，一个是32字节的 key，一个是32字节的
+value。然后把 value 存在 key 值对应的插槽上，可以在<a
+target="_blank" rel="noopener" href="https://www.evm.codes/playground?unit=Wei&amp;codeType=Mnemonic&amp;code=&#39;z1uFFv1%200w~z2uy8965w&#39;~\nz%2F%2F%20Example%20yv2%20w~SSTORE~v~PUSHuy0xFFuvwyz~_">这里</a>看到他是怎么工作的。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">//Example 1</span><br><span class="line">PUSH2 0xFFFF</span><br><span class="line">PUSH1 0</span><br><span class="line">SSTORE</span><br><span class="line"></span><br><span class="line">//Example 2</span><br><span class="line">PUSH2 0xFF</span><br><span class="line">PUSH2 8965</span><br><span class="line">SSTORE</span><br></pre></td></tr></table></figure>
+<h3 id="sload">SLOAD</h3>
+<p>SLOAD 从调用栈拿32字节的 key 值，然后把 key 值插槽的 value
+拿出来压到调用栈上，可以在<a
+target="_blank" rel="noopener" href="https://www.evm.codes/playground?unit=Wei&amp;codeType=Mnemonic&amp;code=&#39;wSet%20up%20thrstatez46z0~SSTOREy1z0vy2z1v~&#39;~\nz~PUSH1%20y~~wExamplrw%2F%2F%20v~SLOADre%20rvwyz~_">这里</a>看到他是怎么工作的。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">// Set up the state</span><br><span class="line">PUSH1 46</span><br><span class="line">PUSH1 0</span><br><span class="line">SSTORE</span><br><span class="line"></span><br><span class="line">// Example 1</span><br><span class="line">PUSH1 0</span><br><span class="line">SLOAD</span><br><span class="line"></span><br><span class="line">//Example 2</span><br><span class="line">PUSH1 1</span><br><span class="line">SLOAD</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>这时候你就要问了，如果 SSTORE 和 SLOAD
+都是处理32字节的数据，那不足32字节被包装进插槽的怎么办呢？那上边的例子来说，我们
+SLOAD 插槽0之后，拿到32字节数据，里边有 value1 到 value4
+四个变量，EVM怎么知道要返回什么呢？SSTORE
+也有同样的问题，如果我们每次都写32字节，那怎么确保 value2 不会覆盖
+value1 呢，怎么确保 value3 不会覆盖 value2
+呢？接下来我们将找出答案：</p>
+<h2 id="存取被包装slot-packing的变量">存取被包装(slot
+packing)的变量</h2>
+<p>下边是一个仿照上个例子的合约，加上了一个方法，功能是存储然后读一个值去做算术操作。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F53bfa82f-b889-40c8-a407-3157f2e31385_457x452.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F53bfa82f-b889-40c8-a407-3157f2e31385_457x452.png"
+alt="img" /></a></p>
+<p>这个store()函数将会执行上边那些我们有疑问的操作：在不覆盖原有数据的情况下，将多个变量写进同一插槽，以及从插槽的32字节数据中取出我们想要的那个变量。</p>
+<p>让我们看一看执行结束后，插槽0的最终状态，牢记十六进制数被机器识别为二进制码，它会在slot
+packing中作为位运算的操作数。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F3ce409fd-b942-42d7-b7ea-02c18c4a8993_782x338.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F3ce409fd-b942-42d7-b7ea-02c18c4a8993_782x338.png"
+alt="img" /></a></p>
+<p>记下 0x115c 为十进制 444，0x14d 为十进制 333，0x16 为十进制
+22，0x01为十进制 1，与代码里的赋值相符，一个插槽持有 4 个变量。</p>
+<h3 id="位运算">位运算</h3>
+<p>Slot packing使用 AND，OR 和 NOT 三个位运算，对应 EVM 的 opcode
+与之同名。让我们快速过一遍。</p>
+<h4 id="and">AND</h4>
+<p>下看下边的两个 8 位二进制数，AND
+操作第一个数的第一位和第二个数的第一位，如果都是 1 的话结果的第一位就是
+1 。否则为 0。之后算两个操作数的第二位，以此类推。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F50496d7f-3e74-404c-b71c-472cf2440c2c_466x302.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F50496d7f-3e74-404c-b71c-472cf2440c2c_466x302.png"
+alt="img" /></a></p>
+<h4 id="or">OR</h4>
+<p>OR就是两个操作数中，每位只要有一个 1 值，结果的对应位就是 1，否则为
+0。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F42a806e1-3da7-4a11-901d-47d40a85ba3f_466x302.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F42a806e1-3da7-4a11-901d-47d40a85ba3f_466x302.png"
+alt="img" /></a></p>
+<h4 id="not">NOT</h4>
+<p>NOT 有些不一样，因为他只有一个操作数，效果就是对着每一位取反。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fed511be0-14bd-4f0e-adf5-e464e8cd7b4d_466x276.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fed511be0-14bd-4f0e-adf5-e464e8cd7b4d_466x276.png"
+alt="img" /></a></p>
+<p>现在看看他们是怎么应用于上边solidity例子里的。</p>
+<h3 id="插槽操作存储包装变量sstore">插槽操作：存储包装变量SSTORE</h3>
+<p>看一下solidity代码第18行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">value2 = 22;</span><br></pre></td></tr></table></figure>
+<p>在这时 value1
+已经存进插槽0了，现在我们需要pack一些额外数据放进这个插槽。value3 和
+value4
+存储的时候也是一样的逻辑。我们来看一下理论上是怎么做的，也会提供一个EVM
+playground强化理解。</p>
+<p>我们从以下变量开始讲起</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F4fdcbc53-b6a6-4d10-892e-ff2d3b159f53_778x244.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F4fdcbc53-b6a6-4d10-892e-ff2d3b159f53_778x244.png"
+alt="img" /></a></p>
+<p>注意0xffffffff 是二进制 11111111111111111111111111111111。</p>
+<p>EVM干的第一件事就是用 EXP
+，输入一个基数一个指数返回计算结果。我们现在使用 0x100
+作为基数，代表一个字节的偏移量，之后指数为 0x04，代表 value2
+的起始位置。下图展示了这个返回值的作用：</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff33571de-7414-4e29-9681-d2f9f5693550_1058x284.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff33571de-7414-4e29-9681-d2f9f5693550_1058x284.png"
+alt="img" /></a></p>
+<p>我们得到了EXP函数的返回值，现在可以把0x16写在正确的位置上，即4字节的位置。
+(译者注：0x100 的 0x04 次幂，算出来是2 ^
+8，也就是0x100000000，插槽从右往左装填，相当于从右到左偏移八位)</p>
+<p>我们现在还不能写进去，因为已经存储的 value1
+会被覆盖，这时候掩码就发挥作用了。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F71f004c0-6d1d-40b9-a83c-3355832e3138_1058x706.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F71f004c0-6d1d-40b9-a83c-3355832e3138_1058x706.png"
+alt="img" /></a></p>
+<p>上图展示了掩码是怎么发挥作用的，怎么拿数据可以把待写入那个区域单独无视，其他部分正常提取。在这个情况下
+value2 想占用的区域已经都置零了，如果没置零，我们将看到数据被清除。</p>
+<p>(译者注：掩码的原理很简单，就是用AND命令制造一个某区域为0，其它区域数值不变的方法，比如给定一个数
+0x1010，我想把从左到右第三位隐藏，那么我可以制造一个数
+0x1101，即待隐藏位置为 0 其它为 1，那么由于 0 和任何数and都是0，1
+和任何数and结果都与该数一致，用0x1101 AND
+0x1010，我们得到了一个0x1000，第三位被抹去了，其它位数不变。用在这里就是为了抹去对应位的原值)</p>
+<p>这有另一个例子是我们把4个变量全部存进去的情况下把 value2 值从 22 改成
+99。看到0x016 值被清除了。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F5c1522f7-9467-4116-9c3a-a076d0bc0fcd_1058x414.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F5c1522f7-9467-4116-9c3a-a076d0bc0fcd_1058x414.png"
+alt="img" /></a></p>
+<p>你可能正在想 OR 是怎么用上的，这张图会展示下一个步骤：</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fb9ff9609-0488-4684-848b-5d4245b0d966_1058x880.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fb9ff9609-0488-4684-848b-5d4245b0d966_1058x880.png"
+alt="img" /></a></p>
+<p>(译者注：就是把第一步计算的“只有
+value2”的32字节数据与第二步计算的“隐藏了value2位置的32位数据”做OR操作，即可得到最终结果)</p>
+<p>我们现在可以把包含 value1 和 value2 的
+32字节数据写入插槽0了，他们都在正确的位置。</p>
+<h3
+id="插槽操作取出被包装的变量sload">插槽操作：取出被包装的变量SLOAD</h3>
+<p>关于提取我们看一下solidity带么的22行</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">uint96 value5 = value3 + uint32(666)</span><br></pre></td></tr></table></figure>
+<p>我们只关心 value3
+是怎么拿出来的，对它的算术计算不感兴趣。下面就是取出 value3
+需要的数据，跟上边的不太一样。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fc8dffd1d-bcd2-461d-90c7-97287d7f0d2e_1148x204.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fc8dffd1d-bcd2-461d-90c7-97287d7f0d2e_1148x204.png"
+alt="img" /></a></p>
+<p>经过了一些修改，他们将会用于检索。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff55711ab-e05f-46a3-9291-c472409a7276_1058x672.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff55711ab-e05f-46a3-9291-c472409a7276_1058x672.png"
+alt="img" /></a></p>
+<p>我们现在从插槽0 里提取出了 value3，0x14d也就是十进制
+333，跟solidity里看到的一样。
+(译者注：就是和存储反过来了，先取出slot，再根据除法把待取一直右移到插槽最低位，最后用掩码把其它数据匿藏)</p>
+<p>再次使用掩码和位操作和以帮助我们从32字节的插槽里准确提取数据，现在它放在栈上，可以执行
+“value3 + uint32(666)” 了。</p>
+<h2 id="evm-playground">EVM Playground</h2>
+<p>这是store()的所有opcode了，你可以把它放在 <a
+target="_blank" rel="noopener" href="https://www.evm.codes/playground">EVM
+playground</a>里跑一跑交互一下，会有一个直观的感受，可以看到调用栈和合约存储在你一步一步执行的时候是怎么变化的。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br></pre></td><td class="code"><pre><span class="line">// --------------------------------</span><br><span class="line">// Solidity Line 17 - &quot;value1 = 1;&quot;</span><br><span class="line">// --------------------------------</span><br><span class="line"></span><br><span class="line">PUSH1 0x01</span><br><span class="line">PUSH1 0x00</span><br><span class="line">DUP1</span><br><span class="line">PUSH2 0x0100</span><br><span class="line">EXP</span><br><span class="line">DUP2</span><br><span class="line">SLOAD</span><br><span class="line">DUP2</span><br><span class="line">PUSH4 0xffffffff</span><br><span class="line">MUL</span><br><span class="line">NOT</span><br><span class="line">AND</span><br><span class="line">SWAP1</span><br><span class="line">DUP4</span><br><span class="line">PUSH4 0xffffffff</span><br><span class="line">AND</span><br><span class="line">MUL</span><br><span class="line">OR</span><br><span class="line">SWAP1</span><br><span class="line">SSTORE</span><br><span class="line">POP</span><br><span class="line"></span><br><span class="line">// ---------------------------------</span><br><span class="line">// Solidity Line 18 - &quot;value2 = 22;&quot;</span><br><span class="line">// ---------------------------------</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">PUSH1 0x16 // value2 = 22 decimal = 0x16 in hex</span><br><span class="line"></span><br><span class="line">PUSH1 0x00 // slot 0 - storage location for &quot;value2&quot;</span><br><span class="line"></span><br><span class="line">PUSH1 0x04 // 4 bytes in - start position for &quot;value2&quot;</span><br><span class="line"></span><br><span class="line">PUSH2 0x0100 // 0x100 in hex = 256 in decimal, 256 bits in 1 byte </span><br><span class="line"></span><br><span class="line">EXP // exponent of 0x0100 &amp; 0x04 = 0x100000000       </span><br><span class="line">    </span><br><span class="line">DUP2 // duplicate 0x00 to top of stack</span><br><span class="line"></span><br><span class="line">SLOAD // load data at slot 0</span><br><span class="line"></span><br><span class="line">DUP2 // duplicate exponent of 0x0100 &amp; 0x04 = 0x100000000</span><br><span class="line"></span><br><span class="line">PUSH4 0xffffffff // bitmask 4 bytes length      </span><br><span class="line"></span><br><span class="line">MUL // multiply to get bitmask for the 8 bytes assigned to &quot;value2&quot;</span><br><span class="line"></span><br><span class="line">NOT // NOT operation to get bitmask for all bytes except the 8 bytes assigned to &quot;value2&quot;</span><br><span class="line"></span><br><span class="line">AND // AND of bitmask and slot 0 value to zero out values in the 8 bytes assigned to &quot;value2&quot; and retain all other values</span><br><span class="line"></span><br><span class="line">SWAP1 // bring 0x100000000 to top of the stack</span><br><span class="line"></span><br><span class="line">DUP4 // duplicate value2 value = 22 = 0x16</span><br><span class="line"></span><br><span class="line">PUSH4 0xffffffff // bitmask 4 bytes length </span><br><span class="line"></span><br><span class="line">AND // AND to ensure the value is no more than 4 bytes in length</span><br><span class="line"></span><br><span class="line">MUL // returns value2 at the correct position - 4 bytes in</span><br><span class="line"></span><br><span class="line">OR // OR with previous value and the value AND yielded on line 38 gives us the 32 bytes that need to be stored</span><br><span class="line"></span><br><span class="line">SWAP1 // slot 0 to top of the stack</span><br><span class="line"></span><br><span class="line">SSTORE // store the 32 byte value at slot 0</span><br><span class="line"></span><br><span class="line">POP // pop 0x16 off the stack</span><br><span class="line"></span><br><span class="line">// ----------------------------------</span><br><span class="line">// Solidity Line 19 - &quot;value3 = 333;&quot;</span><br><span class="line">// ----------------------------------</span><br><span class="line"></span><br><span class="line">PUSH2 0x014d</span><br><span class="line">PUSH1 0x00</span><br><span class="line">PUSH1 0x08</span><br><span class="line">PUSH2 0x0100</span><br><span class="line">EXP</span><br><span class="line">DUP2</span><br><span class="line">SLOAD</span><br><span class="line">DUP2</span><br><span class="line">PUSH8 0xffffffffffffffff</span><br><span class="line">MUL</span><br><span class="line">NOT</span><br><span class="line">AND</span><br><span class="line">SWAP1</span><br><span class="line">DUP4</span><br><span class="line">PUSH8 0xffffffffffffffff</span><br><span class="line">AND</span><br><span class="line">MUL</span><br><span class="line">OR</span><br><span class="line">SWAP1</span><br><span class="line">SSTORE</span><br><span class="line">POP</span><br><span class="line"></span><br><span class="line">// -----------------------------------</span><br><span class="line">// Solidity Line 20 - &quot;value4 = 4444;&quot;</span><br><span class="line">// -----------------------------------</span><br><span class="line"></span><br><span class="line">PUSH2 0x115c</span><br><span class="line">PUSH1 0x00</span><br><span class="line">PUSH1 0x10</span><br><span class="line">PUSH2 0x0100</span><br><span class="line">EXP</span><br><span class="line">DUP2</span><br><span class="line">SLOAD</span><br><span class="line">DUP2</span><br><span class="line">PUSH16 0xffffffffffffffffffffffffffffffff</span><br><span class="line">MUL</span><br><span class="line">NOT</span><br><span class="line">AND</span><br><span class="line">SWAP1</span><br><span class="line">DUP4</span><br><span class="line">PUSH16 0xffffffffffffffffffffffffffffffff</span><br><span class="line">AND</span><br><span class="line">MUL</span><br><span class="line">OR</span><br><span class="line">SWAP1</span><br><span class="line">SSTORE</span><br><span class="line">POP</span><br><span class="line"></span><br><span class="line">// ----------------------------------------------------------</span><br><span class="line">// Solidity Line 22 - &quot;uint64 value5 = value3 + uint32(666);&quot;</span><br><span class="line">// ----------------------------------------------------------</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">PUSH1 0x00</span><br><span class="line"></span><br><span class="line">PUSH2 0x029a // uint32(666)</span><br><span class="line"></span><br><span class="line">PUSH4 0xffffffff // bitmask 4 bytes length</span><br><span class="line"></span><br><span class="line">AND // ensure uint32(666) does not exceed 8 bytes, trim if it does </span><br><span class="line"></span><br><span class="line">PUSH1 0x00 // slot 0 - location of value3</span><br><span class="line"></span><br><span class="line">PUSH1 0x08 // 8 bytes in - start position for &quot;value3&quot;</span><br><span class="line"></span><br><span class="line">SWAP1 // bring 0x00 to top of stack for SLOAD of slot 0</span><br><span class="line"></span><br><span class="line">SLOAD // load data at slot 0</span><br><span class="line"></span><br><span class="line">SWAP1 // bring 0x08 to top of stack for EXP</span><br><span class="line"></span><br><span class="line">PUSH2 0x0100 // 256 bits in 1 byte </span><br><span class="line"></span><br><span class="line">EXP // exponent of 0x0100 &amp; 0x08 = 0x10000000000000000</span><br><span class="line"></span><br><span class="line">SWAP1 // get slot 0 value to top of stack</span><br><span class="line"></span><br><span class="line">DIV // DIV of slot 0 value with 0x10000000000000000 remove bottom 8 bytes  </span><br><span class="line"></span><br><span class="line">PUSH8 0xffffffffffffffff // bitmask 8 bytes length </span><br><span class="line"></span><br><span class="line">AND // Zero out bytes outside of the 8 byte mask to return variable &quot;value3&quot;</span><br><span class="line"></span><br><span class="line">// To see the rest of the opcodes for this calculation recreate the contract in remix and enter debugging mode</span><br></pre></td></tr></table></figure>
+<p>在我们文章里提到的两个部分(solidity18行和22行)写了注释，强烈建议把这份代码拍一遍加深理解。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F2f0f0e5d-fd10-41d6-ad63-aa2b719f98d5_1497x847.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F2f0f0e5d-fd10-41d6-ad63-aa2b719f98d5_1497x847.png"
+alt="img" /></a></p>
+<p>你现在应该对存储插槽的工作原理和EVM存取插槽内特定位置数据有一定了解了，尽管SLOAD
+和 SSTORE
+两个opcode只能操作32字节数据，但是我们可以使用掩码和位运算存取想要的数据。</p>
+<p>在这个系列的<a
+target="_blank" rel="noopener" href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-5a5?s=r">第四篇</a>，我们会学习Geth是怎么实现
+SSTORE 和 SLOAD 操作码的。</p>
+<p>希望对您有帮助！</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/ethereum/" rel="tag"># ethereum</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/06/21/Digging-Deep-EVM-Part2/" rel="prev" title="深入理解EVM - Part2 - 内存">
+      <i class="fa fa-chevron-left"></i> 深入理解EVM - Part2 - 内存
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86"><span class="nav-number">1.</span> <span class="nav-text">基础知识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-number">1.1.</span> <span class="nav-text">数据结构</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9A%E9%95%BF%E5%8F%98%E9%87%8F"><span class="nav-number">2.</span> <span class="nav-text">定长变量</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#evm-storage-opcodes"><span class="nav-number">3.</span> <span class="nav-text">EVM Storage Opcodes</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#sstore"><span class="nav-number">3.1.</span> <span class="nav-text">SSTORE</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sload"><span class="nav-number">3.2.</span> <span class="nav-text">SLOAD</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AD%98%E5%8F%96%E8%A2%AB%E5%8C%85%E8%A3%85slot-packing%E7%9A%84%E5%8F%98%E9%87%8F"><span class="nav-number">4.</span> <span class="nav-text">存取被包装(slot
+packing)的变量</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%8D%E8%BF%90%E7%AE%97"><span class="nav-number">4.1.</span> <span class="nav-text">位运算</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#and"><span class="nav-number">4.1.1.</span> <span class="nav-text">AND</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#or"><span class="nav-number">4.1.2.</span> <span class="nav-text">OR</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#not"><span class="nav-number">4.1.3.</span> <span class="nav-text">NOT</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%92%E6%A7%BD%E6%93%8D%E4%BD%9C%E5%AD%98%E5%82%A8%E5%8C%85%E8%A3%85%E5%8F%98%E9%87%8Fsstore"><span class="nav-number">4.2.</span> <span class="nav-text">插槽操作：存储包装变量SSTORE</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8F%92%E6%A7%BD%E6%93%8D%E4%BD%9C%E5%8F%96%E5%87%BA%E8%A2%AB%E5%8C%85%E8%A3%85%E7%9A%84%E5%8F%98%E9%87%8Fsload"><span class="nav-number">4.3.</span> <span class="nav-text">插槽操作：取出被包装的变量SLOAD</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#evm-playground"><span class="nav-number">5.</span> <span class="nav-text">EVM Playground</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="张钰Alvan"
+      src="/images/Alvan.png">
+  <p class="site-author-name" itemprop="name">张钰Alvan</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      <a href="https://github.com/passer-byzhang" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;passer-byzhang" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+      <a href="mailto:alvanzhang@skiff.com" rel="alternate" title="E-Mail" rel="noopener" target="_blank"> <i class="fa fa-fw fa-envelope"></i> E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">张钰Alvan</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '7be3591b434db5b63b24',
+      clientSecret: 'f0904467341de11c96d8a9f6a3c6e8d9754bba82',
+      repo        : 'passer-byzhang.github.io',
+      owner       : 'passer-byzhang',
+      admin       : ['passer-byzhang'],
+      id          : '17583b7a9d32dfab35cb26d29578d822',
+        language: 'zh-CN',
+      distractionFreeMode: false
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

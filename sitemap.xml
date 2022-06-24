@@ -2,6 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2022/06/22/Digging-Deep-EVM-Part3/</loc>
+    
+    <lastmod>2022-06-24T05:13:34.055Z</lastmod>
+    
+    <date>1655894209000</date>
+    <title>深入理解EVM - Part3 - 存储区 | Alvan's Blog</title>
+    
+    <desc>合约存储区相关知识，SSTORE和SLOAD</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/baidu_verify_code-Zf9tb5KVkj.html</loc>
     
     <lastmod>2022-06-24T03:18:54.399Z</lastmod>
@@ -10,17 +21,6 @@
     <title> | Alvan's Blog</title>
     
     <desc></desc>
-  </url>
-  
-  <url>
-    <loc>http://example.com/2022/06/22/Digging-Deep-EVM-Part3/</loc>
-    
-    <lastmod>2022-06-23T02:24:18.351Z</lastmod>
-    
-    <date>1655894209000</date>
-    <title>深入理解EVM - Part3 - 存储区 | Alvan's Blog</title>
-    
-    <desc>翻译深入理解EVM系列文章，第一篇是关于函数选择器与字节码/opcode</desc>
   </url>
   
   <url>

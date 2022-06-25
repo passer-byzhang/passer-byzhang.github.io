@@ -2,6 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2022/06/25/Digging-Deep-EVM-Part4/</loc>
+    
+    <lastmod>2022-06-25T04:47:49.573Z</lastmod>
+    
+    <date>1656132365000</date>
+    <title>深入理解EVM - Part 4 - Geth中存储区的实现 | Alvan's Blog</title>
+    
+    <desc>以Geth代码为基础，从区块结构讲到账户状态/合约存储，最后是SSTORE和SLOAD两个操作码的具体实现</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/2022/06/22/Digging-Deep-EVM-Part3/</loc>
     
     <lastmod>2022-06-24T05:13:34.055Z</lastmod>

@@ -2,6 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2022/07/02/vscode-rust-extension-bug/</loc>
+    
+    <lastmod>2022-07-01T17:54:39.756Z</lastmod>
+    
+    <date>1656696066000</date>
+    <title>使用vscode中运行rust单元测试找不到cargo的解决方法 | Alvan's Blog</title>
+    
+    <desc>vscode找不到cargo的问题，应该是插件的锅</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/about/index.html</loc>
     
     <lastmod>2022-07-01T02:07:05.520Z</lastmod>

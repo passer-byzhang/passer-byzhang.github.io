@@ -27,24 +27,11 @@
 <meta property="og:site_name" content="Alvan&#39;s Blog">
 <meta property="og:description" content="以Geth代码为基础，从区块结构讲到账户状态&#x2F;合约存储，最后是SSTORE和SLOAD两个操作码的具体实现">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff6f48734-3cd7-42a0-a2dd-8f09fdd8a90e_1048x728.png">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F1e081473-12c5-4b01-ab0b-5f1ec1db106d_482x231.png">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F35765b7d-a78d-4350-86b7-02925e25b35a_3226x1178.png">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fd1cf36d8-9880-4aa1-9b7b-a4176273d210_178x258.png">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f0b898c-8fb1-469a-9fb1-0346ccbae601_409x57.png">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F630df44e-bdab-41b9-8894-f09be4a09ea7_2122x574.png">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F18d30b84-5853-4505-9466-a8c2804be40e_196x260.png">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fc0e579c8-adb2-4679-9744-03c4bd3c1182_2002x1572.png">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F5b2cc945-1634-4315-9adc-f5a2a147406e_3296x1104.png">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F8b9e61f6-7a74-48db-9c07-b2a3717bd3b5_2882x1762.png">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe62db976-b29d-4803-af46-22bc577d5755_2210x1794.png">
-<meta property="og:image" content="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F991e7cec-54bd-41b2-afe4-247144fea091_3430x1316.png">
 <meta property="article:published_time" content="2022-06-25T04:46:05.000Z">
 <meta property="article:modified_time" content="2022-06-30T15:31:07.558Z">
 <meta property="article:author" content="张钰Alvan">
 <meta property="article:tag" content="ethereum">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff6f48734-3cd7-42a0-a2dd-8f09fdd8a90e_1048x728.png">
 
 <link rel="canonical" href="http://example.com/2022/06/25/Digging-Deep-EVM-Part4/">
 
@@ -261,14 +248,26 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>原文链接：<a target="_blank" rel="noopener" href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-5a5?s=r">https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-5a5?s=r</a></p>
-<p>这是“深入理解EVM”系列的第四期。在<a target="_blank" rel="noopener" href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?s=">第三期</a>中我们了解了合约存储相关的知识，这期会说明以太链的“世界状态”是怎么容纳单个合约的存储区的。为此我们需要审视以太链的体系结构和数据结构，一探Geth客户端深处的秘密。</p>
+        <p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-5a5?s=r</p>
+<p>这是“深入理解EVM”系列的第四期。在<a
+target="_blank" rel="noopener" href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?s=">第三期</a>中我们了解了合约存储相关的知识，这期会说明以太链的“世界状态”是怎么容纳单个合约的存储区的。为此我们需要审视以太链的体系结构和数据结构，一探Geth客户端深处的秘密。</p>
 <p>我们从以太区块的数据开始，反推回特定合约存储区。再用Geth如何实现SSTORE与SLOAD收尾。需要了解的知识有很多，我们会介绍Geth代码库，讲讲以太坊的世界状态，让你对EVM有一个更深的了解。</p>
-<h2 id="以太坊体系结构"><a href="#以太坊体系结构" class="headerlink" title="以太坊体系结构"></a>以太坊体系结构</h2><p>我们从下图开始，不要有恐惧心理，在文章的结尾你会对它有一个全面的认识，这里画出了以太坊的体系结构和以太链的数据。</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff6f48734-3cd7-42a0-a2dd-8f09fdd8a90e_1048x728.png"><img src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff6f48734-3cd7-42a0-a2dd-8f09fdd8a90e_1048x728.png" alt="img"></a>以太坊体系结构 - 来源： <a target="_blank" rel="noopener" href="https://ethereum.stackexchange.com/questions/268/ethereum-block-architecture">Zanzu</a></p>
+<h2 id="以太坊体系结构">以太坊体系结构</h2>
+<p>我们从下图开始，不要有恐惧心理，在文章的结尾你会对它有一个全面的认识，这里画出了以太坊的体系结构和以太链的数据。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff6f48734-3cd7-42a0-a2dd-8f09fdd8a90e_1048x728.png"><img
+src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff6f48734-3cd7-42a0-a2dd-8f09fdd8a90e_1048x728.png"
+alt="img" /></a>以太坊体系结构 - 来源： <a
+target="_blank" rel="noopener" href="https://ethereum.stackexchange.com/questions/268/ethereum-block-architecture">Zanzu</a></p>
 <p>相比看整个的图，我们不如一块一块看。现在我们看一下第N块的区块头和它包含的字段。</p>
-<h3 id="区块头"><a href="#区块头" class="headerlink" title="区块头"></a>区块头</h3><p>区块头包含以太区块的关键信息，下边的第N块区块头就划分出了这些信息。看看以太坊<a target="_blank" rel="noopener" href="https://etherscan.io/block/14698834">第14698834块</a> 是否有下图的字段吧。</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F1e081473-12c5-4b01-ab0b-5f1ec1db106d_482x231.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F1e081473-12c5-4b01-ab0b-5f1ec1db106d_482x231.png" alt="img"></a></p>
+<h3 id="区块头">区块头</h3>
+<p>区块头包含以太区块的关键信息，下边的第N块区块头就划分出了这些信息。看看以太坊<a
+target="_blank" rel="noopener" href="https://etherscan.io/block/14698834">第14698834块</a>
+是否有下图的字段吧。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F1e081473-12c5-4b01-ab0b-5f1ec1db106d_482x231.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F1e081473-12c5-4b01-ab0b-5f1ec1db106d_482x231.png"
+alt="img" /></a></p>
 <p>区块头包含以下字段：</p>
 <ul>
 <li>Prev Hash - 父区块的Keccak 哈希</li>
@@ -276,109 +275,203 @@
 <li>Timestamp - UNIX时间戳</li>
 <li>Uncles Hash - 叔叔节点的Keccak 哈希</li>
 <li>Beneficiary - 收款人地址，矿工费接收者</li>
-<li>LogsBloom - 布隆过滤器，提取自receipt，用于查找交易回执中的智能合约事件信息。</li>
+<li>LogsBloom -
+布隆过滤器，提取自receipt，用于查找交易回执中的智能合约事件信息。</li>
 <li>Difficulty - 表示当前区块的挖出难度</li>
 <li>Extra Data - 最长32字节的自定义信息，由矿工自定义</li>
 <li>Block Num - 区块高度</li>
 <li>Gas Limit - 每个区块允许的最大gas量</li>
 <li>Gas Used - 该区块实际消耗的gas量</li>
 <li>Mix Hash - PoW验证时使用，代表区块不含nonce时的哈希值</li>
-<li><em><strong>State Root - 执行完此区块中的所有交易后以太坊中，所有账户状态的默克尔树根哈希值</strong></em></li>
+<li><strong><em>State Root -
+执行完此区块中的所有交易后以太坊中，所有账户状态的默克尔树根哈希值</em></strong></li>
 <li>Transaction Root - 交易生成的梅克尔树的根节点哈希值。</li>
 <li>Receipt Root - 交易回执生成的梅克尔树的根节点哈希值。</li>
 </ul>
-<p>让我们看看这些和Geth代码的对应关系，<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/types/block.go#L70">block.go</a>里定义的“Header”结构体就代表一个区块头。</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F35765b7d-a78d-4350-86b7-02925e25b35a_3226x1178.png"><img src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F35765b7d-a78d-4350-86b7-02925e25b35a_3226x1178.png" alt="img"></a>代码地址： <a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/types/block.go">go-ethereum&#x2F;core&#x2F;types&#x2F;block.go</a></p>
-<p>我们可以看到代码里声明的变量是和上边的概念图匹配的，我们的目标是从从区块头一路找到合约存储区。为此我们要关注被标红的“State Root”字段</p>
-<h3 id="状态根"><a href="#状态根" class="headerlink" title="状态根"></a>状态根</h3><p>“状态根(State Root)”是一个梅克尔根，它取决于其下所有的数据块，任何一块数据的变动都会改变它。这个状态树的数据结构是MPT，叶子结点存储这网络上每一个以太坊账户的数据。该数据为k-v结构，key是地址，value是账户信息。</p>
+<p>让我们看看这些和Geth代码的对应关系，<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/types/block.go#L70">block.go</a>里定义的“Header”结构体就代表一个区块头。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F35765b7d-a78d-4350-86b7-02925e25b35a_3226x1178.png"><img
+src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F35765b7d-a78d-4350-86b7-02925e25b35a_3226x1178.png"
+alt="img" /></a>代码地址： <a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/types/block.go">go-ethereum/core/types/block.go</a></p>
+<p>我们可以看到代码里声明的变量是和上边的概念图匹配的，我们的目标是从从区块头一路找到合约存储区。为此我们要关注被标红的“State
+Root”字段</p>
+<h3 id="状态根">状态根</h3>
+<p>“状态根(State
+Root)”是一个梅克尔根，它取决于其下所有的数据块，任何一块数据的变动都会改变它。这个状态树的数据结构是MPT，叶子结点存储这网络上每一个以太坊账户的数据。该数据为k-v结构，key是地址，value是账户信息。</p>
 <p><em>实际上key是地址的哈希值而value是账户信息的RLP编码，但是我们可以暂时忽略这件事</em></p>
 <p>以太坊体系结构图的这一部分正是代表了状态根的MRT。</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fd1cf36d8-9880-4aa1-9b7b-a4176273d210_178x258.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fd1cf36d8-9880-4aa1-9b7b-a4176273d210_178x258.png" alt="img"></a></p>
-<p>MPT是一种复杂的数据结构，我们这篇文章不做深究。如果你对MPT感兴趣的话建议看<a target="_blank" rel="noopener" href="https://medium.com/shyft-network-media/understanding-trie-databases-in-ethereum-9f03d2c3325d">这篇文章</a>。接下来我们重点看看以太坊的账户信息是如何映射到地址的。</p>
-<h3 id="以太坊账户"><a href="#以太坊账户" class="headerlink" title="以太坊账户"></a>以太坊账户</h3><p>以太坊账户由以下四项构成：</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fd1cf36d8-9880-4aa1-9b7b-a4176273d210_178x258.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fd1cf36d8-9880-4aa1-9b7b-a4176273d210_178x258.png"
+alt="img" /></a></p>
+<p>MPT是一种复杂的数据结构，我们这篇文章不做深究。如果你对MPT感兴趣的话建议看<a
+target="_blank" rel="noopener" href="https://medium.com/shyft-network-media/understanding-trie-databases-in-ethereum-9f03d2c3325d">这篇文章</a>。接下来我们重点看看以太坊的账户信息是如何映射到地址的。</p>
+<h3 id="以太坊账户">以太坊账户</h3>
+<p>以太坊账户由以下四项构成：</p>
 <ul>
 <li>Nonce - 账户的交易数</li>
 <li>Balance - 账户余额</li>
 <li>Code Hash - 合约账户的所执行的代码，一旦被初始化就是只读的。</li>
-<li>Storage Root - 存储根，该值随着合约的存储区的增加、删除、改动而不断变更</li>
+<li>Storage Root -
+存储根，该值随着合约的存储区的增加、删除、改动而不断变更</li>
 </ul>
 <p>(译者注：后两项是合约账户拥有的数据段，普通账户并没有)</p>
 <p>我们在之前以太坊体系结构图的这一段可以看到：</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f0b898c-8fb1-469a-9fb1-0346ccbae601_409x57.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f0b898c-8fb1-469a-9fb1-0346ccbae601_409x57.png" alt="img"></a></p>
-<p>现在我们去看看Geth的代码，找到对应的 <a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/b1e72f7ea998ad662166bcf23705ca59cf81e925/core/types/state_account.go#L27">state_account.go</a> ，这个StateAccount结构体就是“以太坊账户”。</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F630df44e-bdab-41b9-8894-f09be4a09ea7_2122x574.png"><img src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F630df44e-bdab-41b9-8894-f09be4a09ea7_2122x574.png" alt="img"></a>代码地址： <a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/b1e72f7ea998ad662166bcf23705ca59cf81e925/core/types/state_account.go">go-ethereum&#x2F;core&#x2F;types&#x2F;state_account.go</a></p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f0b898c-8fb1-469a-9fb1-0346ccbae601_409x57.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f0b898c-8fb1-469a-9fb1-0346ccbae601_409x57.png"
+alt="img" /></a></p>
+<p>现在我们去看看Geth的代码，找到对应的 <a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/b1e72f7ea998ad662166bcf23705ca59cf81e925/core/types/state_account.go#L27">state_account.go</a>
+，这个StateAccount结构体就是“以太坊账户”。</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F630df44e-bdab-41b9-8894-f09be4a09ea7_2122x574.png"><img
+src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F630df44e-bdab-41b9-8894-f09be4a09ea7_2122x574.png"
+alt="img" /></a>代码地址： <a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/b1e72f7ea998ad662166bcf23705ca59cf81e925/core/types/state_account.go">go-ethereum/core/types/state_account.go</a></p>
 <p>可以看到代码里声明的变量与概念图对应上了。接下来我们需要探讨以太坊账户的存储根。</p>
-<h3 id="存储根"><a href="#存储根" class="headerlink" title="存储根"></a>存储根</h3><p>存储根(storage root)很像状态根，在它的下面是另一棵MPT。区别就是这次的key是存储插槽，而value是插槽里的数据。</p>
+<h3 id="存储根">存储根</h3>
+<p>存储根(storage
+root)很像状态根，在它的下面是另一棵MPT。区别就是这次的key是存储插槽，而value是插槽里的数据。</p>
 <p><em>跟状态根一样，key其实是哈希值而value是RLP编码</em></p>
 <p>以太坊体系结构图的这一部分正是代表了存储根的MRT。</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F18d30b84-5853-4505-9466-a8c2804be40e_196x260.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F18d30b84-5853-4505-9466-a8c2804be40e_196x260.png" alt="img"></a></p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F18d30b84-5853-4505-9466-a8c2804be40e_196x260.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F18d30b84-5853-4505-9466-a8c2804be40e_196x260.png"
+alt="img" /></a></p>
 <p>存储根是一个梅克尔根，任何合约存储区的数据的改变都会改变存储根的值，从而影响区块头的值。现在我们知道怎么从区块找到合约存储区了。下一步我们继续研究Geth的代码，看看存储区是怎么初始化的，以及调用SSTORE和SLOAD是会发生什么。这会帮助你找到底层opcode和solidity代码之间的联系。</p>
-<h3 id="StateDB-→-stateObject-→-StateAccount"><a href="#StateDB-→-stateObject-→-StateAccount" class="headerlink" title="StateDB → stateObject → StateAccount"></a>StateDB → stateObject → StateAccount</h3><p>我们需要一个全新的合约，全新的合约意味着StateAccount也是全新的。</p>
+<h3 id="statedb-stateobject-stateaccount">StateDB → stateObject →
+StateAccount</h3>
+<p>我们需要一个全新的合约，全新的合约意味着StateAccount也是全新的。</p>
 <p>开始之前我们看三个结构：</p>
 <ul>
-<li>StateAccount<ul>
+<li>StateAccount
+<ul>
 <li>StateAccount 是以太坊账户的一致化表达</li>
-</ul>
-</li>
-<li>stateObject<ul>
+</ul></li>
+<li>stateObject
+<ul>
 <li>stateObject 代表着尚未被修改的以太坊账户</li>
-</ul>
-</li>
-<li>StateDB<ul>
-<li>StateDB 存储梅克尔树的所有数据，用于检索合约和以太坊账户的查询接口</li>
-</ul>
-</li>
+</ul></li>
+<li>StateDB
+<ul>
+<li>StateDB
+存储梅克尔树的所有数据，用于检索合约和以太坊账户的查询接口</li>
+</ul></li>
 </ul>
 <p>我们看看这三个结构的内在关系：</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fc0e579c8-adb2-4679-9744-03c4bd3c1182_2002x1572.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fc0e579c8-adb2-4679-9744-03c4bd3c1182_2002x1572.png" alt="img"></a>StateDB → stateObject → StateAccount</p>
-<ol>
-<li><a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/statedb.go#L64">StateDB struct</a>, 我们可以看到它有一个stateObjects字段，是地址到stateObject的映射集(牢记状态根的MPT是地址到以太坊账户的映射，而stateObject是尚未修改的以太坊账户)。</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L66">stateObject struct</a>, 我们可以看到它包含一个StateAccount字段，这是一个代码实现里的中间态。</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/types/state_account.go#L29">StateAccount struct</a>, 现在我们终于看到这个代表以太坊账户的结构了，它的Root字段就是我们之前讨论的存储根。</li>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fc0e579c8-adb2-4679-9744-03c4bd3c1182_2002x1572.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fc0e579c8-adb2-4679-9744-03c4bd3c1182_2002x1572.png"
+alt="img" /></a>StateDB → stateObject → StateAccount</p>
+<ol type="1">
+<li><a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/statedb.go#L64">StateDB
+struct</a>,
+我们可以看到它有一个stateObjects字段，是地址到stateObject的映射集(牢记状态根的MPT是地址到以太坊账户的映射，而stateObject是尚未修改的以太坊账户)。</li>
+<li><a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L66">stateObject
+struct</a>,
+我们可以看到它包含一个StateAccount字段，这是一个代码实现里的中间态。</li>
+<li><a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/types/state_account.go#L29">StateAccount
+struct</a>,
+现在我们终于看到这个代表以太坊账户的结构了，它的Root字段就是我们之前讨论的存储根。</li>
 </ol>
 <p>现在一些令人疑惑的东西逐渐明晰了起来，我们看一看新的以太坊账户，或者说StateAccount是怎么初始化的。</p>
-<h3 id="Initalising-A-New-Ethereum-Account-StateAccount"><a href="#Initalising-A-New-Ethereum-Account-StateAccount" class="headerlink" title="Initalising A New Ethereum Account (StateAccount)"></a>Initalising A New Ethereum Account (StateAccount)</h3><p>我们需要操作<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/statedb.go">statedb.go</a>以及它的StateDB结构体去创建新的StateAccount。StateDB有一个名为createObject的函数，它会创建一个新的stateObject然后放进去一个空的StateAccount。</p>
+<h3 id="initalising-a-new-ethereum-account-stateaccount">Initalising A
+New Ethereum Account (StateAccount)</h3>
+<p>我们需要操作<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/statedb.go">statedb.go</a>以及它的StateDB结构体去创建新的StateAccount。StateDB有一个名为createObject的函数，它会创建一个新的stateObject然后放进去一个空的StateAccount。</p>
 <p>下图是代码细节：</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F5b2cc945-1634-4315-9adc-f5a2a147406e_3296x1104.png"><img src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F5b2cc945-1634-4315-9adc-f5a2a147406e_3296x1104.png" alt="img"></a></p>
-<ol>
-<li>StateDB有一个 <a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/statedb.go#L575">createObject 函数</a> ，传入一个地址返回一个stateObject。(重申stateObject是一个未修改的以太坊账户)。</li>
-<li>这个createObject函数调用<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L102">newObject 函数</a> ，它传入stateDB，地址和一个空的StateAccount，返回一个stateObject。</li>
-<li>在newObject函数的返回语句中，我们可以看到有许多字段与stateObject, address, data, dirtyStorage等相关</li>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F5b2cc945-1634-4315-9adc-f5a2a147406e_3296x1104.png"><img
+src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F5b2cc945-1634-4315-9adc-f5a2a147406e_3296x1104.png"
+alt="img" /></a></p>
+<ol type="1">
+<li>StateDB有一个 <a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/statedb.go#L575">createObject
+函数</a>
+，传入一个地址返回一个stateObject。(重申stateObject是一个未修改的以太坊账户)。</li>
+<li>这个createObject函数调用<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L102">newObject
+函数</a>
+，它传入stateDB，地址和一个空的StateAccount，返回一个stateObject。</li>
+<li>在newObject函数的返回语句中，我们可以看到有许多字段与stateObject,
+address, data, dirtyStorage等相关</li>
 <li>tateObject的data映射到空的StateAccount，可以在103-111行看到从nil值转变为初始化空值的过程。</li>
 <li>stateObject被成功创建并带着已经初始化完成的StateAccount(也就是data字段)返回了。</li>
 </ol>
 <p>现在我们有了一个空stateAccount，下一步我们存些数据吧，用SSTORE。</p>
-<h2 id="SSTORE"><a href="#SSTORE" class="headerlink" title="SSTORE"></a>SSTORE</h2><p>在深入了解SSTORE的Geth实现之前我们先回忆一下SSTORE是干什么的。</p>
+<h2 id="sstore">SSTORE</h2>
+<p>在深入了解SSTORE的Geth实现之前我们先回忆一下SSTORE是干什么的。</p>
 <p>SSTORE会从栈上弹出两个值，一个32字节的key，一个32字节的value。key决定了value存在哪个插槽里。</p>
 <p>下面就是Geth的SSTORE操作的源码，我们看看他做了什么：</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F8b9e61f6-7a74-48db-9c07-b2a3717bd3b5_2882x1762.png"><img src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F8b9e61f6-7a74-48db-9c07-b2a3717bd3b5_2882x1762.png" alt="img"></a></p>
-<ol>
-<li>我们从 <a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go#L524">instructions.go</a>开始看，它定义了所有的opcode，在这个文件里我们可以看到opSstore函数。</li>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F8b9e61f6-7a74-48db-9c07-b2a3717bd3b5_2882x1762.png"><img
+src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F8b9e61f6-7a74-48db-9c07-b2a3717bd3b5_2882x1762.png"
+alt="img" /></a></p>
+<ol type="1">
+<li>我们从 <a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go#L524">instructions.go</a>开始看，它定义了所有的opcode，在这个文件里我们可以看到opSstore函数。</li>
 <li>这个函数的入参包括合约上下文信息，例如栈，内存等，我们把两个值弹出栈，标记成loc(location)和val(value)。</li>
-<li>这两个值被弹出来后作为入参和合约地址一起传进<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/statedb.go#L414">StateDB的SetState 函数</a>，SetState会用合约地址检验合约里是否有stateObject如果没有就创建一个。之后调用stateObject的SetState，传进StateDB，key和value。</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L245">stateObject的SetState 函数</a>对fakeStorage做了检查，看看value是否被改变过，之后运行journal的append函数。</li>
-<li>如果你阅读<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/journal.go#L38">journal struct</a>的注释会看到journal是用来跟踪状态的改变(就是保存中间变量)，这样它们就可以在执行异常或撤销请求的情况下恢复。</li>
-<li>journal更新之后，调用<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L245">stateObject的SetState 函数</a>。更新stateObject.dirtyStorage。</li>
+<li>这两个值被弹出来后作为入参和合约地址一起传进<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/statedb.go#L414">StateDB的SetState
+函数</a>，SetState会用合约地址检验合约里是否有stateObject如果没有就创建一个。之后调用stateObject的SetState，传进StateDB，key和value。</li>
+<li><a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L245">stateObject的SetState
+函数</a>对fakeStorage做了检查，看看value是否被改变过，之后运行journal的append函数。</li>
+<li>如果你阅读<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/journal.go#L38">journal
+struct</a>的注释会看到journal是用来跟踪状态的改变(就是保存中间变量)，这样它们就可以在执行异常或撤销请求的情况下恢复。</li>
+<li>journal更新之后，调用<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L245">stateObject的SetState
+函数</a>。更新stateObject.dirtyStorage。</li>
 </ol>
-<p>现在我们已经更新了stateObject 的 dirtyStorage。而这究竟意味着什么呢？与我们学的东西有什么关系吗？</p>
+<p>现在我们已经更新了stateObject 的
+dirtyStorage。而这究竟意味着什么呢？与我们学的东西有什么关系吗？</p>
 <p>让我们看看定义dirtyStorage的代码</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe62db976-b29d-4803-af46-22bc577d5755_2210x1794.png"><img src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe62db976-b29d-4803-af46-22bc577d5755_2210x1794.png" alt="img"></a>dirtyStorage → Storage → Hash → 32-byte</p>
-<ol>
-<li>dirtyStorage是在<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L66">stateObject</a>里定义的，被描述为”在当前事务执行中被修改的存储项”。</li>
-<li>dirtyStorage的类型<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L41">Storage type</a>是一种从common.Hash到common.Hash的映射。</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/common/types.go#L49">Hash type</a> 就是一个长度为HashLength的字节数组</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/common/types.go#L36">HashLength</a>是常量，值是32。</li>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe62db976-b29d-4803-af46-22bc577d5755_2210x1794.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe62db976-b29d-4803-af46-22bc577d5755_2210x1794.png"
+alt="img" /></a>dirtyStorage → Storage → Hash → 32-byte</p>
+<ol type="1">
+<li>dirtyStorage是在<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L66">stateObject</a>里定义的，被描述为"在当前事务执行中被修改的存储项"。</li>
+<li>dirtyStorage的类型<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L41">Storage
+type</a>是一种从common.Hash到common.Hash的映射。</li>
+<li><a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/common/types.go#L49">Hash
+type</a> 就是一个长度为HashLength的字节数组</li>
+<li><a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/common/types.go#L36">HashLength</a>是常量，值是32。</li>
 </ol>
-<p>32字节key到32字节value的映射对你来说应该很熟悉，这完全就是<a target="_blank" rel="noopener" href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?utm_source=/profile/80455042-noxx&utm_medium=reader2&s=r">第三篇</a>我们提到过的合约存储区的概念。你现在可能注意到dirtyStorage字段上边的pendingStorage和originStorage了。他们是有相关性的，dirtyStorage在确定写入的过程中，会复制到pendingStorage，然后在MPT更新时复制到originStorage。MPT更新了之后，StateDB的commit过程中StateAccount的状态根也会更新。会将新的状态写进MPT的底层数据库。</p>
+<p>32字节key到32字节value的映射对你来说应该很熟悉，这完全就是<a
+target="_blank" rel="noopener" href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第三篇</a>我们提到过的合约存储区的概念。你现在可能注意到dirtyStorage字段上边的pendingStorage和originStorage了。他们是有相关性的，dirtyStorage在确定写入的过程中，会复制到pendingStorage，然后在MPT更新时复制到originStorage。MPT更新了之后，StateDB的commit过程中StateAccount的状态根也会更新。会将新的状态写进MPT的底层数据库。</p>
 <p>下面轮到最后一个难点，SLOAD。</p>
-<h2 id="SLOAD"><a href="#SLOAD" class="headerlink" title="SLOAD"></a>SLOAD</h2><p>我们快速回忆一下SLOAD是干什么的：它会把一个32字节的key从栈里弹出来，然后返回key对应的插槽里的值。下面看一下Geth实现SLOAD的代码：</p>
-<p><a target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F991e7cec-54bd-41b2-afe4-247144fea091_3430x1316.png"><img src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F991e7cec-54bd-41b2-afe4-247144fea091_3430x1316.png" alt="img"></a></p>
-<ol>
-<li>我们依然从<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go#L516">instructions.go file</a> 开始，找到opSload函数，我们从栈顶获取到了存储插槽。也就是临时变量loc。</li>
-<li>调用<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/statedb.go#L308">StateDB的GetState函数</a>传入合约地址和存储位置，GetState获得了合约地址对应的stateObject，如果它不为空，则调用<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L172">stateObject的GetState函数</a>。</li>
-<li><a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L172">stateObject的GetState函数</a>对fakeStorage和dirtyStorage做检查。</li>
+<h2 id="sload">SLOAD</h2>
+<p>我们快速回忆一下SLOAD是干什么的：它会把一个32字节的key从栈里弹出来，然后返回key对应的插槽里的值。下面看一下Geth实现SLOAD的代码：</p>
+<p><a
+target="_blank" rel="noopener" href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F991e7cec-54bd-41b2-afe4-247144fea091_3430x1316.png"><img
+src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F991e7cec-54bd-41b2-afe4-247144fea091_3430x1316.png"
+alt="img" /></a></p>
+<ol type="1">
+<li>我们依然从<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go#L516">instructions.go
+file</a>
+开始，找到opSload函数，我们从栈顶获取到了存储插槽。也就是临时变量loc。</li>
+<li>调用<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/statedb.go#L308">StateDB的GetState函数</a>传入合约地址和存储位置，GetState获得了合约地址对应的stateObject，如果它不为空，则调用<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L172">stateObject的GetState函数</a>。</li>
+<li><a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L172">stateObject的GetState函数</a>对fakeStorage和dirtyStorage做检查。</li>
 <li>如果dirtyStorage存在，则返回key在dirtyStorage映射里的值(dirtyStorage代表着合约的最新状态，所以要最先返回它)。</li>
-<li>否则将调用<a target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L187">GetCommitedState 函数</a>里查询数据，再次检验fakeStorage。在这个函数里完成下面两步。</li>
+<li>否则将调用<a
+target="_blank" rel="noopener" href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/state/state_object.go#L187">GetCommitedState
+函数</a>里查询数据，再次检验fakeStorage。在这个函数里完成下面两步。</li>
 <li>如果pendingStorage存在，则返回key在pendingStorage映射里的值。</li>
 <li>如果上边的都没有，就检索originStorage里的值并返回。</li>
 </ol>
@@ -471,7 +564,9 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A5%E5%A4%AA%E5%9D%8A%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84"><span class="nav-number">1.</span> <span class="nav-text">以太坊体系结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8C%BA%E5%9D%97%E5%A4%B4"><span class="nav-number">1.1.</span> <span class="nav-text">区块头</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8A%B6%E6%80%81%E6%A0%B9"><span class="nav-number">1.2.</span> <span class="nav-text">状态根</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A5%E5%A4%AA%E5%9D%8A%E8%B4%A6%E6%88%B7"><span class="nav-number">1.3.</span> <span class="nav-text">以太坊账户</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%98%E5%82%A8%E6%A0%B9"><span class="nav-number">1.4.</span> <span class="nav-text">存储根</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#StateDB-%E2%86%92-stateObject-%E2%86%92-StateAccount"><span class="nav-number">1.5.</span> <span class="nav-text">StateDB → stateObject → StateAccount</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Initalising-A-New-Ethereum-Account-StateAccount"><span class="nav-number">1.6.</span> <span class="nav-text">Initalising A New Ethereum Account (StateAccount)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSTORE"><span class="nav-number">2.</span> <span class="nav-text">SSTORE</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SLOAD"><span class="nav-number">3.</span> <span class="nav-text">SLOAD</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A5%E5%A4%AA%E5%9D%8A%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84"><span class="nav-number">1.</span> <span class="nav-text">以太坊体系结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8C%BA%E5%9D%97%E5%A4%B4"><span class="nav-number">1.1.</span> <span class="nav-text">区块头</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8A%B6%E6%80%81%E6%A0%B9"><span class="nav-number">1.2.</span> <span class="nav-text">状态根</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A5%E5%A4%AA%E5%9D%8A%E8%B4%A6%E6%88%B7"><span class="nav-number">1.3.</span> <span class="nav-text">以太坊账户</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%98%E5%82%A8%E6%A0%B9"><span class="nav-number">1.4.</span> <span class="nav-text">存储根</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#statedb-stateobject-stateaccount"><span class="nav-number">1.5.</span> <span class="nav-text">StateDB → stateObject →
+StateAccount</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#initalising-a-new-ethereum-account-stateaccount"><span class="nav-number">1.6.</span> <span class="nav-text">Initalising A
+New Ethereum Account (StateAccount)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#sstore"><span class="nav-number">2.</span> <span class="nav-text">SSTORE</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#sload"><span class="nav-number">3.</span> <span class="nav-text">SLOAD</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -500,7 +595,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-count">4</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

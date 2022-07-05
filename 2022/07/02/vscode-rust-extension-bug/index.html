@@ -245,20 +245,16 @@
 
       
         <p>最近在vscode上写rust代码时，插件自带的运行和调试用不了了，说是读不到cargo:</p>
-<p><img src="/2022/07/02/vscode-rust-extension-bug/vscode-runtest.png"></p>
+<p><img src="vscode-runtest.png" /></p>
 <p>一点就会报错：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Executing task: cargo test -- --nocapture test_add</span><br><span class="line">&lt; zsh:1: command not found: cargo</span><br></pre></td></tr></table></figure>
-
 <p>我们找到这个插件的位置，再修改一下这个文件，路径里的版本号换成当前使用的：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim ~/.vscode/extensions/rust-lang.rust-0.7.8/out/src/tasks.js</span><br></pre></td></tr></table></figure>
-
 <p>找到掌管shell初始化的createShellExecution函数：</p>
 <p>把这句</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> cmdLine = <span class="string">`<span class="subst">$&#123;command || binary&#125;</span> <span class="subst">$&#123;args.join(<span class="string">&#x27; &#x27;</span>)&#125;</span>`</span>;</span><br></pre></td></tr></table></figure>
-
 <p>加上加载cargo环境变量，变成：</p>
 <figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> cmdLine = <span class="string">`source $HOME/.cargo/env; <span class="subst">$&#123;command || binary&#125;</span> <span class="subst">$&#123;args.join(<span class="string">&#x27; &#x27;</span>)&#125;</span>`</span>;</span><br></pre></td></tr></table></figure>
-
 <p>就ok了，重启一下就好。</p>
 
     </div>
@@ -372,7 +368,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-count">4</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

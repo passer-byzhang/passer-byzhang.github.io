@@ -27,13 +27,11 @@
 <meta property="og:site_name" content="Alvan&#39;s Blog">
 <meta property="og:description" content="在学Alpaca的时候发现最重要的合约介绍没有中文版本，就把它搬过来了。">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="https://alpaca-doc.s3.ap-southeast-1.amazonaws.com/lyf/Export-3aa4ff3c-20f2-4868-95ee-96a4da364889/Contract%20Documentation%204c48a0c0db7442c6aa0268dd110e6b80/Screen_Shot_2564-09-29_at_12.03.52.png">
 <meta property="article:published_time" content="2022-06-13T07:01:30.000Z">
 <meta property="article:modified_time" content="2022-06-30T15:32:03.701Z">
 <meta property="article:author" content="张钰Alvan">
 <meta property="article:tag" content="DeFi">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://alpaca-doc.s3.ap-southeast-1.amazonaws.com/lyf/Export-3aa4ff3c-20f2-4868-95ee-96a4da364889/Contract%20Documentation%204c48a0c0db7442c6aa0268dd110e6b80/Screen_Shot_2564-09-29_at_12.03.52.png">
 
 <link rel="canonical" href="http://example.com/2022/06/13/Alpaca-docs/">
 
@@ -250,72 +248,168 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="Overview"><a href="#Overview" class="headerlink" title="Overview"></a>Overview</h2><p>Alpaca Finance是一个借贷协议，但它和Compound，Aave等单纯等待别人从池子里借款从而分红利息的项目不一样，在这里你不仅可以加上杠杆，还可以主动选择一些心仪的流动性挖矿项目并质押进去，吃到多次利润。</p>
-<p>Alpaca Leverage Farming 主要有四个组成部分<br>    1.Vault<br>    2.Worker<br>    3.Strategy<br>    4.Fairlaunch(此模块另行介绍)</p>
-<h2 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h2><ul>
+        <h2 id="overview">Overview</h2>
+<p>Alpaca
+Finance是一个借贷协议，但它和Compound，Aave等单纯等待别人从池子里借款从而分红利息的项目不一样，在这里你不仅可以加上杠杆，还可以主动选择一些心仪的流动性挖矿项目并质押进去，吃到多次利润。</p>
+<p>Alpaca Leverage Farming 主要有四个组成部分 1.Vault 2.Worker
+3.Strategy 4.Fairlaunch(此模块另行介绍)</p>
+<h2 id="architecture">Architecture</h2>
+<ul>
 <li>前端(Frontend) - Alpaca 前端接口</li>
-<li>清算机器人(Liquidator) - 观察仓位状态，一旦出现资不抵债就进行清算的机器人</li>
+<li>清算机器人(Liquidator) -
+观察仓位状态，一旦出现资不抵债就进行清算的机器人</li>
 <li>复投机器人(Reinvestor) - 自动收获利润又复投的机器人</li>
 </ul>
-<p><img src="https://alpaca-doc.s3.ap-southeast-1.amazonaws.com/lyf/Export-3aa4ff3c-20f2-4868-95ee-96a4da364889/Contract%20Documentation%204c48a0c0db7442c6aa0268dd110e6b80/Screen_Shot_2564-09-29_at_12.03.52.png"></p>
-<h2 id="Vault"><a href="#Vault" class="headerlink" title="Vault"></a>Vault</h2><p>顾名思义，这个合约用处是存放借款者的抵押物。作为在此时贡献资金池使用率的回报，借款者还可以向Vault申请资金。一个底层资产对应一个Vault合约。</p>
-<h2 id="Worker"><a href="#Worker" class="headerlink" title="Worker"></a>Worker</h2><p>worker是一个管理仓位使用方法的合约，使用方法包括但不限于<br>在一个DEX里开启一个流动性挖矿的仓位<br>平掉这个仓位<br>调节这个仓位<br>每一个worker都对应特定的一些代币和一个特定的DEX，不同的ERC20代币&#x2F;DEX会使用不同的worker。</p>
-<h2 id="Strategy"><a href="#Strategy" class="headerlink" title="Strategy"></a>Strategy</h2><p>strategy合约是具体操作DEX的合约，每次只处理一个特定场景。可以对动态指定的不同的token做出童谣的DEX操作。</p>
-<h2 id="FairLaunch"><a href="#FairLaunch" class="headerlink" title="FairLaunch"></a>FairLaunch</h2><p>这是Alpaca的激励组件，可以接收ERC20然后给各个token池生成Alpaca代币，每个池子的发放量存在差异</p>
-<h2 id="Contract-Document"><a href="#Contract-Document" class="headerlink" title="Contract Document"></a>Contract Document</h2><p>[Vault Contract](#Vault Contract)<br>[Worker Contract](#Worker Contract)<br>[Strategy Contract](#Strategy Contract)</p>
-<h2 id="DEX-Integration"><a href="#DEX-Integration" class="headerlink" title="DEX Integration"></a>DEX Integration</h2><p>尽管Alpaca集成了不少不同的DEX，他们之间也在细节上有差别，但是大部分DEX都是基于uniswapV2的机制，在这版文档里我们只讨论与PancakeSwap对接的Worker和Strategy。即以下具体实现：</p>
-<h3 id="Worker-1"><a href="#Worker-1" class="headerlink" title="Worker"></a>Worker</h3><p>PancakeSwap Worker</p>
-<h3 id="Strategy-1"><a href="#Strategy-1" class="headerlink" title="Strategy"></a>Strategy</h3><p>PancakeswapV2RestrictedStrategyAddBaseTokenOnly Strategy<br>PancakeswapV2RestrictedStrategyAddTwoSidesOptimal Strategy<br>PancakeswapV2RestrictedStrategyLiquidate Strategy<br>PancakeswapV2RestrictedStrategyPartialCloseLiquidateStrategy<br>PancakeswapV2RestrictedStrategyPartialCloseMinimizeTrading Strategy<br>PancakeswapV2RestrictedStrategyWithdrawMinimizeTrading Strategy</p>
-<h1 id="Vault-Contract"><a href="#Vault-Contract" class="headerlink" title="Vault Contract"></a>Vault Contract</h1><p><a name="Vault Contract"></a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/Vault.sol">合约源码</a></p>
-<h2 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h2><p>Alpaca Finance里最重要的一个操作是通过vaults达成的，注意是vaults而非vault，vault被设计成连接存款者和借款者的中间体，存款者把资产储存进vault，借款者可以借出来一些用于流动性挖矿。<br>存储token的同时，vault会给用户ibToken，用户可以用这个在Alpaca Finance中进行更多操作，比如获得FairLaunch里的Alpaca激励，获得合作Token激励，以后还有更多。<br>借出token的同时，用户也可以获得debtToken，这也可以自动获得FairLuanch给的激励。</p>
-<h2 id="Abstract"><a href="#Abstract" class="headerlink" title="Abstract"></a>Abstract</h2><ul>
+<p><img
+src="https://alpaca-doc.s3.ap-southeast-1.amazonaws.com/lyf/Export-3aa4ff3c-20f2-4868-95ee-96a4da364889/Contract%20Documentation%204c48a0c0db7442c6aa0268dd110e6b80/Screen_Shot_2564-09-29_at_12.03.52.png" /></p>
+<h2 id="vault">Vault</h2>
+<p>顾名思义，这个合约用处是存放借款者的抵押物。作为在此时贡献资金池使用率的回报，借款者还可以向Vault申请资金。一个底层资产对应一个Vault合约。</p>
+<h2 id="worker">Worker</h2>
+<p>worker是一个管理仓位使用方法的合约，使用方法包括但不限于
+在一个DEX里开启一个流动性挖矿的仓位 平掉这个仓位 调节这个仓位
+每一个worker都对应特定的一些代币和一个特定的DEX，不同的ERC20代币/DEX会使用不同的worker。</p>
+<h2 id="strategy">Strategy</h2>
+<p>strategy合约是具体操作DEX的合约，每次只处理一个特定场景。可以对动态指定的不同的token做出童谣的DEX操作。</p>
+<h2 id="fairlaunch">FairLaunch</h2>
+<p>这是Alpaca的激励组件，可以接收ERC20然后给各个token池生成Alpaca代币，每个池子的发放量存在差异</p>
+<h2 id="contract-document">Contract Document</h2>
+<p><a href="#Vault%20Contract">Vault Contract</a> <a
+href="#Worker%20Contract">Worker Contract</a> <a
+href="#Strategy%20Contract">Strategy Contract</a></p>
+<h2 id="dex-integration">DEX Integration</h2>
+<p>尽管Alpaca集成了不少不同的DEX，他们之间也在细节上有差别，但是大部分DEX都是基于uniswapV2的机制，在这版文档里我们只讨论与PancakeSwap对接的Worker和Strategy。即以下具体实现：</p>
+<h3 id="worker-1">Worker</h3>
+<p>PancakeSwap Worker</p>
+<h3 id="strategy-1">Strategy</h3>
+<p>PancakeswapV2RestrictedStrategyAddBaseTokenOnly Strategy
+PancakeswapV2RestrictedStrategyAddTwoSidesOptimal Strategy
+PancakeswapV2RestrictedStrategyLiquidate Strategy
+PancakeswapV2RestrictedStrategyPartialCloseLiquidateStrategy
+PancakeswapV2RestrictedStrategyPartialCloseMinimizeTrading Strategy
+PancakeswapV2RestrictedStrategyWithdrawMinimizeTrading Strategy</p>
+<h1 id="vault-contract">Vault Contract</h1>
+<p><a name="Vault Contract"></a></p>
+<p><a
+target="_blank" rel="noopener" href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/Vault.sol">合约源码</a></p>
+<h2 id="background">Background</h2>
+<p>Alpaca
+Finance里最重要的一个操作是通过vaults达成的，注意是vaults而非vault，vault被设计成连接存款者和借款者的中间体，存款者把资产储存进vault，借款者可以借出来一些用于流动性挖矿。
+存储token的同时，vault会给用户ibToken，用户可以用这个在Alpaca
+Finance中进行更多操作，比如获得FairLaunch里的Alpaca激励，获得合作Token激励，以后还有更多。
+借出token的同时，用户也可以获得debtToken，这也可以自动获得FairLuanch给的激励。</p>
+<h2 id="abstract">Abstract</h2>
+<ul>
 <li>Vault会给用户分配ibToken，用来标记用户在此vault里所占的份额(share)。随着时间推移，利息会进入份额，1份份额(share)的实际价值会增加。</li>
-<li>当用户开仓时，他们先需要在vault里放质押物。这使得vault的债务价值(debt value)根据借款量增加。</li>
-<li>一旦vault收获借款人的利息，vault的债务价值(debt value)会随着利息增加。这意味着随着时间推移，取出资产需要用到的量要比存款时更大。</li>
+<li>当用户开仓时，他们先需要在vault里放质押物。这使得vault的债务价值(debt
+value)根据借款量增加。</li>
+<li>一旦vault收获借款人的利息，vault的债务价值(debt
+value)会随着利息增加。这意味着随着时间推移，取出资产需要用到的量要比存款时更大。</li>
 <li>当用户平仓时，初始抵押品债务会从总债务中去除，流动性挖矿的利息会完整地还给lender。</li>
 <li>部分利息会被项目组留下，放在保留金池子里。</li>
-<li>由于用户是在不同的时间存款的，我们要用债务份额价值(debt share value)保持记录用户从哪里进入vault。</li>
+<li>由于用户是在不同的时间存款的，我们要用债务份额价值(debt share
+value)保持记录用户从哪里进入vault。</li>
 <li>债务份额(debt share)也被表示成vault铸造的生息token。</li>
-<li>债务份额的计算方法：$\frac{DebtValue}{TotalDebtValue} \times ExistingDebtShare$</li>
+<li>债务份额的计算方法：<span
+class="math inline">\(\frac{DebtValue}{TotalDebtValue} \times
+ExistingDebtShare\)</span></li>
 </ul>
-<h2 id="Structs"><a href="#Structs" class="headerlink" title="Structs"></a>Structs</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">struct Position &#123;</span><br><span class="line">    address worker;</span><br><span class="line">    address owner;</span><br><span class="line">    uint256 debtShare;</span><br><span class="line">  &#125;</span><br><span class="line">mapping(uint256 =&gt; Position) public positions;</span><br></pre></td></tr></table></figure>
-
-<h2 id="Main-Function"><a href="#Main-Function" class="headerlink" title="Main Function"></a>Main Function</h2><p>Vault 主要业务逻辑有：<br>1.质押token获得ibToken (deposit)<br>2.赎回token燃烧ibToken (withdraw)<br>3.执行借贷+DEX流动性挖矿操作，调用worker.work，根据Position里worker的不同具体执行逻辑也不一样 (work)<br>4.清算，调用worker.liquidate，根据Position里worker的不同具体执行逻辑也不一样 (kill)</p>
-<h1 id="Worker-Contract"><a href="#Worker-Contract" class="headerlink" title="Worker Contract"></a>Worker Contract</h1><p><a name="Worker Contract"></a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/interfaces/IWorker02.sol">源码地址</a></p>
-<h2 id="BackGround"><a href="#BackGround" class="headerlink" title="BackGround"></a>BackGround</h2><p>borrowers从vault申请款项唯一的办法就是从vault借出钱来做一些操作，特别是加杠杆的流动性挖矿。<br>每一个worker根据配置比如其连接的DEX和LP token pair 来进行不一样的操作，但是所有的Worker共用一个接口。<br>然而worker并不一定要做流动性挖矿，也可能就只是做一些简单的操作，比如Syrup Pool。<br>这部分我们只讲一下所有worker共通的Interface。</p>
-<h2 id="Abstract-1"><a href="#Abstract-1" class="headerlink" title="Abstract"></a>Abstract</h2><ul>
+<h2 id="structs">Structs</h2>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">struct Position &#123;</span><br><span class="line">    address worker;</span><br><span class="line">    address owner;</span><br><span class="line">    uint256 debtShare;</span><br><span class="line">  &#125;</span><br><span class="line">mapping(uint256 =&gt; Position) public positions;</span><br></pre></td></tr></table></figure>
+<h2 id="main-function">Main Function</h2>
+<p>Vault 主要业务逻辑有： 1.质押token获得ibToken (deposit)
+2.赎回token燃烧ibToken (withdraw)
+3.执行借贷+DEX流动性挖矿操作，调用worker.work，根据Position里worker的不同具体执行逻辑也不一样
+(work)
+4.清算，调用worker.liquidate，根据Position里worker的不同具体执行逻辑也不一样
+(kill)</p>
+<h1 id="worker-contract">Worker Contract</h1>
+<p><a name="Worker Contract"></a></p>
+<p><a
+target="_blank" rel="noopener" href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/interfaces/IWorker02.sol">源码地址</a></p>
+<h2 id="background-1">BackGround</h2>
+<p>borrowers从vault申请款项唯一的办法就是从vault借出钱来做一些操作，特别是加杠杆的流动性挖矿。
+每一个worker根据配置比如其连接的DEX和LP token pair
+来进行不一样的操作，但是所有的Worker共用一个接口。
+然而worker并不一定要做流动性挖矿，也可能就只是做一些简单的操作，比如Syrup
+Pool。 这部分我们只讲一下所有worker共通的Interface。</p>
+<h2 id="abstract-1">Abstract</h2>
+<ul>
 <li>在整个系统里有多个worker</li>
 <li>一个worker可以根据实际情况使用不同的strategy</li>
 <li>worker会把特定的token对当成整体处理，即使他们在不同的仓里</li>
-<li>worker和底层资产服务强关联，比如Pancake的BNB-BUSD worker处理不了Wault的BNB-BUSD</li>
-<li>Base token是ERC20标准，是worker的主要资产，通常与借款，本金挂钩。</li>
+<li>worker和底层资产服务强关联，比如Pancake的BNB-BUSD
+worker处理不了Wault的BNB-BUSD</li>
+<li>Base
+token是ERC20标准，是worker的主要资产，通常与借款，本金挂钩。</li>
 <li>Farm token是ERC20标准，与base token结对可以给DEX提供流动性</li>
-<li>worker把Fram token和Base token成对处理，如果我们需要将现在的farm token作为base token就需要另一个worker，反之亦然。因为在DEX中，Pancake的BNB-BUSD 也与 Pancake的BUSD- BNB不一样。</li>
+<li>worker把Fram token和Base token成对处理，如果我们需要将现在的farm
+token作为base
+token就需要另一个worker，反之亦然。因为在DEX中，Pancake的BNB-BUSD 也与
+Pancake的BUSD- BNB不一样。</li>
 <li>Worker Config作为一个分离出来的合约，存放着worker们的配置信息</li>
 </ul>
-<p>worker可以被两种角色调用：<br>1.Operator: 大多数情况是一个Vault合约<br>2.Reinvestor: 白名单EOA，取出LP收益再复投</p>
-<h2 id="Main-Function-1"><a href="#Main-Function-1" class="headerlink" title="Main Function"></a>Main Function</h2><p>1.利息复投(_reinvest)<br>2.调用Strategy的excute方法，并将返回的LP token质押，根据Strategy种类不同具体实现不一样 (work)<br>3.计算某个position换算成baseToken的价值，用来做清算判断 (health)</p>
-<h1 id="Strategy-Contract"><a href="#Strategy-Contract" class="headerlink" title="Strategy Contract"></a>Strategy Contract</h1><p><a name="Strategy Contract"></a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/interfaces/IStrategy.sol">合约源码</a></p>
-<h2 id="Background-1"><a href="#Background-1" class="headerlink" title="Background"></a>Background</h2><p>顾名思义，这类合约只做一件事，那就是制定交易策略，根据DEX，token和需求不同分配不同的Strategy。这一节我们详细介绍策略逻辑和公式。值得注意的是，这个合约是一个耦合度极低的合约，只负责把传给该合约的资产在DEX中操作，再转账，几乎没有存储任何信息，也就是不参与借贷相关的任何逻辑。借贷&#x2F;还账的逻辑应该在它的上层实现。</p>
-<h2 id="Abstract-2"><a href="#Abstract-2" class="headerlink" title="Abstract"></a>Abstract</h2><p>根据用户的操作，前端会提供一个strategy，比如一个用户想借BUSD在Pancake开一个BUSD- USDT的仓，前端会用PancakeswapV2RestrictedStrategyAddBaseTokenOnly(一种Strategy合约)调用Vault.work，这样Vault将会调用USDT- BUSD PancakeSwap 的worker。worker随后调用PancakeswapV2RestrictedStrategyAddBaseTokenOnly.</p>
-<h2 id="Main-Function-2"><a href="#Main-Function-2" class="headerlink" title="Main Function"></a>Main Function</h2><p>有六种Strategy都只有一个主要方法,excute：</p>
-<h3 id="AddBaseTokenOnly"><a href="#AddBaseTokenOnly" class="headerlink" title="AddBaseTokenOnly:"></a>AddBaseTokenOnly:</h3><p>提供base token，根据最佳方案兑换farming token，再提供流动性拿LP，推导过程：<br>balance为托管处理的baseToken总量，aIn为swap为farming token的base token，rIn，rOut是池子里的量</p>
-<p>$\begin{cases}<br>rIn\times rOut &#x3D; (rIn + aIn)\times(rOut - aOut)\<br>\frac{rIn}{rOut} &#x3D; \frac{balance - aIn}{ aOut }\<br>\end{cases}$</p>
-<p>得出$aIn^{2} + 2rIn\times aIn - rIn\times balance &#x3D; 0$，即$aIn&#x3D;\frac{\sqrt{rIn\times (4balance + 4rIn)}-2rIn}{2}$<br>与代码吻合：</p>
+<p>worker可以被两种角色调用： 1.Operator: 大多数情况是一个Vault合约
+2.Reinvestor: 白名单EOA，取出LP收益再复投</p>
+<h2 id="main-function-1">Main Function</h2>
+<p>1.利息复投(_reinvest) 2.调用Strategy的excute方法，并将返回的LP
+token质押，根据Strategy种类不同具体实现不一样 (work)
+3.计算某个position换算成baseToken的价值，用来做清算判断 (health)</p>
+<h1 id="strategy-contract">Strategy Contract</h1>
+<p><a name="Strategy Contract"></a></p>
+<p><a
+target="_blank" rel="noopener" href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/interfaces/IStrategy.sol">合约源码</a></p>
+<h2 id="background-2">Background</h2>
+<p>顾名思义，这类合约只做一件事，那就是制定交易策略，根据DEX，token和需求不同分配不同的Strategy。这一节我们详细介绍策略逻辑和公式。值得注意的是，这个合约是一个耦合度极低的合约，只负责把传给该合约的资产在DEX中操作，再转账，几乎没有存储任何信息，也就是不参与借贷相关的任何逻辑。借贷/还账的逻辑应该在它的上层实现。</p>
+<h2 id="abstract-2">Abstract</h2>
+<p>根据用户的操作，前端会提供一个strategy，比如一个用户想借BUSD在Pancake开一个BUSD-
+USDT的仓，前端会用PancakeswapV2RestrictedStrategyAddBaseTokenOnly(一种Strategy合约)调用Vault.work，这样Vault将会调用USDT-
+BUSD PancakeSwap
+的worker。worker随后调用PancakeswapV2RestrictedStrategyAddBaseTokenOnly.</p>
+<h2 id="main-function-2">Main Function</h2>
+<p>有六种Strategy都只有一个主要方法,excute：</p>
+<h3 id="addbasetokenonly">AddBaseTokenOnly:</h3>
+<p>提供base token，根据最佳方案兑换farming
+token，再提供流动性拿LP，推导过程：
+balance为托管处理的baseToken总量，aIn为swap为farming token的base
+token，rIn，rOut是池子里的量</p>
+<p><span class="math inline">\(\begin{cases} rIn\times rOut = (rIn +
+aIn)\times(rOut - aOut)\\ \frac{rIn}{rOut} = \frac{balance - aIn}{ aOut
+}\\ \end{cases}\)</span></p>
+<p>得出<span class="math inline">\(aIn^{2} + 2rIn\times aIn - rIn\times
+balance = 0\)</span>，即<span
+class="math inline">\(aIn=\frac{\sqrt{rIn\times (4balance +
+4rIn)}-2rIn}{2}\)</span> 与代码吻合：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">uint256 aIn = AlpacaMath.sqrt(rIn.mul(balance.mul(399000000).add(rIn.mul(399000625)))).sub(rIn.mul(19975)) / 19950;</span><br></pre></td></tr></table></figure>
-
-<h3 id="AddTwoSideOptimal"><a href="#AddTwoSideOptimal" class="headerlink" title="AddTwoSideOptimal"></a>AddTwoSideOptimal</h3><p>同时提供base token和farming token，合约转换成正好的比例提供流动性，推导过程:<br>bIn,bOut是用户提供的两种token量，aIn是打算换成另一种的多余Token量，aOut是换出的token量，<br>$\begin{cases}<br>rIn\times rOut &#x3D; (rIn + aIn)\times(rOut - aOut)\<br>\frac{rIn + bIn }{rOut - bOut} &#x3D; \frac{bIn-aIn}{bOut+aOut}\<br>\end{cases}$</p>
-<p>得出$aIn^{2} + 2rIn\times aIn + \frac {rIn\times bOut - rOut \times bIn}{rOut+bOut} \times rIn &#x3D; 0$<br>即$aIn &#x3D; \frac{\sqrt{4rIn^{2}-4\times (\frac {rIn\times bOut - rOut \times bIn}{rOut+bOut} \times rIn)}-2rIn}{2}$<br>与代码吻合：</p>
+<h3 id="addtwosideoptimal">AddTwoSideOptimal</h3>
+<p>同时提供base token和farming
+token，合约转换成正好的比例提供流动性，推导过程:
+bIn,bOut是用户提供的两种token量，aIn是打算换成另一种的多余Token量，aOut是换出的token量，
+<span class="math inline">\(\begin{cases} rIn\times rOut = (rIn +
+aIn)\times(rOut - aOut)\\ \frac{rIn + bIn }{rOut - bOut} =
+\frac{bIn-aIn}{bOut+aOut}\\ \end{cases}\)</span></p>
+<p>得出<span class="math inline">\(aIn^{2} + 2rIn\times aIn + \frac
+{rIn\times bOut - rOut \times bIn}{rOut+bOut} \times rIn = 0\)</span>
+即<span class="math inline">\(aIn = \frac{\sqrt{4rIn^{2}-4\times (\frac
+{rIn\times bOut - rOut \times bIn}{rOut+bOut} \times
+rIn)}-2rIn}{2}\)</span> 与代码吻合：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">/// @dev Compute optimal deposit amount helper</span><br><span class="line">  /// @param amtA amount of token A desired to deposit</span><br><span class="line">  /// @param amtB amonut of token B desired to deposit</span><br><span class="line">  /// @param resA amount of token A in reserve</span><br><span class="line">  /// @param resB amount of token B in reserve</span><br><span class="line">  function _optimalDepositA(</span><br><span class="line">    uint256 amtA,</span><br><span class="line">    uint256 amtB,</span><br><span class="line">    uint256 resA,</span><br><span class="line">    uint256 resB</span><br><span class="line">  ) internal pure returns (uint256) &#123;</span><br><span class="line">    require(amtA.mul(resB) &gt;= amtB.mul(resA), &quot;Reversed&quot;);</span><br><span class="line"></span><br><span class="line">    uint256 a = 9975;</span><br><span class="line">    uint256 b = uint256(19975).mul(resA);</span><br><span class="line">    uint256 _c = (amtA.mul(resB)).sub(amtB.mul(resA));</span><br><span class="line">    uint256 c = _c.mul(10000).div(amtB.add(resB)).mul(resA);</span><br><span class="line"></span><br><span class="line">    uint256 d = a.mul(c).mul(4);</span><br><span class="line">    uint256 e = AlpacaMath.sqrt(b.mul(b).add(d));</span><br><span class="line"></span><br><span class="line">    uint256 numerator = e.sub(b);</span><br><span class="line">    uint256 denominator = a.mul(2);</span><br><span class="line"></span><br><span class="line">    return numerator.div(denominator);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="Liquidate"><a href="#Liquidate" class="headerlink" title="Liquidate"></a>Liquidate</h3><p>提供LPToken，取消所有流动性，之后所有farming token 兑换成base token 返还给用户。</p>
-<h3 id="PartialCloseLiquidate"><a href="#PartialCloseLiquidate" class="headerlink" title="PartialCloseLiquidate"></a>PartialCloseLiquidate</h3><p>前面和Liquidate一样，也是把一定量的LP取消流动性，再全兑成base token提出来，最后留下一部分baseToken(数目是入参，一般做平账用，由合约传入)，剩下的返还给用户。</p>
-<h3 id="PartialCloseMinimizeTrading"><a href="#PartialCloseMinimizeTrading" class="headerlink" title="PartialCloseMinimizeTrading"></a>PartialCloseMinimizeTrading</h3><p>提供一定量LPToken，取消流动性，返还base token和farming token，如果base token不够lessDebt值(数目是入参，一般做平账用，由合约传入)，用farming token兑换至足额，并将base token和剩余的farming token返还。</p>
-<h3 id="WithdrawMinimizeTrading"><a href="#WithdrawMinimizeTrading" class="headerlink" title="WithdrawMinimizeTrading"></a>WithdrawMinimizeTrading</h3><p>把所有的LPToken取消流动性,返还base token和farming token，如果base token不够lessDebt值(数目是入参，一般做平账用，由合约传入)，用farming token兑换至足额，并将base token和剩余的farming token返还。</p>
-<h1 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h1><p>Alpaca小弟也是最近刚刚接触，如果有前辈研究过这个项目还请指路一下更多的资料，谢谢大家了。</p>
+<h3 id="liquidate">Liquidate</h3>
+<p>提供LPToken，取消所有流动性，之后所有farming token 兑换成base token
+返还给用户。</p>
+<h3 id="partialcloseliquidate">PartialCloseLiquidate</h3>
+<p>前面和Liquidate一样，也是把一定量的LP取消流动性，再全兑成base
+token提出来，最后留下一部分baseToken(数目是入参，一般做平账用，由合约传入)，剩下的返还给用户。</p>
+<h3 id="partialcloseminimizetrading">PartialCloseMinimizeTrading</h3>
+<p>提供一定量LPToken，取消流动性，返还base token和farming
+token，如果base
+token不够lessDebt值(数目是入参，一般做平账用，由合约传入)，用farming
+token兑换至足额，并将base token和剩余的farming token返还。</p>
+<h3 id="withdrawminimizetrading">WithdrawMinimizeTrading</h3>
+<p>把所有的LPToken取消流动性,返还base token和farming token，如果base
+token不够lessDebt值(数目是入参，一般做平账用，由合约传入)，用farming
+token兑换至足额，并将base token和剩余的farming token返还。</p>
+<h1 id="后记">后记</h1>
+<p>Alpaca小弟也是最近刚刚接触，如果有前辈研究过这个项目还请指路一下更多的资料，谢谢大家了。</p>
 
     </div>
 
@@ -400,7 +494,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Overview"><span class="nav-number">1.</span> <span class="nav-text">Overview</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Architecture"><span class="nav-number">2.</span> <span class="nav-text">Architecture</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Vault"><span class="nav-number">3.</span> <span class="nav-text">Vault</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Worker"><span class="nav-number">4.</span> <span class="nav-text">Worker</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Strategy"><span class="nav-number">5.</span> <span class="nav-text">Strategy</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#FairLaunch"><span class="nav-number">6.</span> <span class="nav-text">FairLaunch</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Contract-Document"><span class="nav-number">7.</span> <span class="nav-text">Contract Document</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DEX-Integration"><span class="nav-number">8.</span> <span class="nav-text">DEX Integration</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Worker-1"><span class="nav-number">8.1.</span> <span class="nav-text">Worker</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Strategy-1"><span class="nav-number">8.2.</span> <span class="nav-text">Strategy</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Vault-Contract"><span class="nav-number"></span> <span class="nav-text">Vault Contract</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Background"><span class="nav-number">1.</span> <span class="nav-text">Background</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Abstract"><span class="nav-number">2.</span> <span class="nav-text">Abstract</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Structs"><span class="nav-number">3.</span> <span class="nav-text">Structs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Main-Function"><span class="nav-number">4.</span> <span class="nav-text">Main Function</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Worker-Contract"><span class="nav-number"></span> <span class="nav-text">Worker Contract</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#BackGround"><span class="nav-number">1.</span> <span class="nav-text">BackGround</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Abstract-1"><span class="nav-number">2.</span> <span class="nav-text">Abstract</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Main-Function-1"><span class="nav-number">3.</span> <span class="nav-text">Main Function</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Strategy-Contract"><span class="nav-number"></span> <span class="nav-text">Strategy Contract</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Background-1"><span class="nav-number">1.</span> <span class="nav-text">Background</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Abstract-2"><span class="nav-number">2.</span> <span class="nav-text">Abstract</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Main-Function-2"><span class="nav-number">3.</span> <span class="nav-text">Main Function</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#AddBaseTokenOnly"><span class="nav-number">3.1.</span> <span class="nav-text">AddBaseTokenOnly:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AddTwoSideOptimal"><span class="nav-number">3.2.</span> <span class="nav-text">AddTwoSideOptimal</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Liquidate"><span class="nav-number">3.3.</span> <span class="nav-text">Liquidate</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PartialCloseLiquidate"><span class="nav-number">3.4.</span> <span class="nav-text">PartialCloseLiquidate</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PartialCloseMinimizeTrading"><span class="nav-number">3.5.</span> <span class="nav-text">PartialCloseMinimizeTrading</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#WithdrawMinimizeTrading"><span class="nav-number">3.6.</span> <span class="nav-text">WithdrawMinimizeTrading</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%90%8E%E8%AE%B0"><span class="nav-number"></span> <span class="nav-text">后记</span></a></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#overview"><span class="nav-number">1.</span> <span class="nav-text">Overview</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#architecture"><span class="nav-number">2.</span> <span class="nav-text">Architecture</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#vault"><span class="nav-number">3.</span> <span class="nav-text">Vault</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#worker"><span class="nav-number">4.</span> <span class="nav-text">Worker</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#strategy"><span class="nav-number">5.</span> <span class="nav-text">Strategy</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#fairlaunch"><span class="nav-number">6.</span> <span class="nav-text">FairLaunch</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#contract-document"><span class="nav-number">7.</span> <span class="nav-text">Contract Document</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#dex-integration"><span class="nav-number">8.</span> <span class="nav-text">DEX Integration</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#worker-1"><span class="nav-number">8.1.</span> <span class="nav-text">Worker</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#strategy-1"><span class="nav-number">8.2.</span> <span class="nav-text">Strategy</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#vault-contract"><span class="nav-number"></span> <span class="nav-text">Vault Contract</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#background"><span class="nav-number">1.</span> <span class="nav-text">Background</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#abstract"><span class="nav-number">2.</span> <span class="nav-text">Abstract</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#structs"><span class="nav-number">3.</span> <span class="nav-text">Structs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#main-function"><span class="nav-number">4.</span> <span class="nav-text">Main Function</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#worker-contract"><span class="nav-number"></span> <span class="nav-text">Worker Contract</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#background-1"><span class="nav-number">1.</span> <span class="nav-text">BackGround</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#abstract-1"><span class="nav-number">2.</span> <span class="nav-text">Abstract</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#main-function-1"><span class="nav-number">3.</span> <span class="nav-text">Main Function</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#strategy-contract"><span class="nav-number"></span> <span class="nav-text">Strategy Contract</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#background-2"><span class="nav-number">1.</span> <span class="nav-text">Background</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#abstract-2"><span class="nav-number">2.</span> <span class="nav-text">Abstract</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#main-function-2"><span class="nav-number">3.</span> <span class="nav-text">Main Function</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#addbasetokenonly"><span class="nav-number">3.1.</span> <span class="nav-text">AddBaseTokenOnly:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#addtwosideoptimal"><span class="nav-number">3.2.</span> <span class="nav-text">AddTwoSideOptimal</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#liquidate"><span class="nav-number">3.3.</span> <span class="nav-text">Liquidate</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#partialcloseliquidate"><span class="nav-number">3.4.</span> <span class="nav-text">PartialCloseLiquidate</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#partialcloseminimizetrading"><span class="nav-number">3.5.</span> <span class="nav-text">PartialCloseMinimizeTrading</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#withdrawminimizetrading"><span class="nav-number">3.6.</span> <span class="nav-text">WithdrawMinimizeTrading</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%90%8E%E8%AE%B0"><span class="nav-number"></span> <span class="nav-text">后记</span></a></div>
       </div>
       <!--/noindex-->
 
@@ -429,7 +523,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-count">4</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

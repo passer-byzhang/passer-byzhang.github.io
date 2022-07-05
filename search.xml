@@ -174,262 +174,6 @@ token兑换至足额，并将base token和剩余的farming token返还。</p>
       </tags>
   </entry>
   <entry>
-    <title>深入理解EVM - Part 5 - 调用/委托调用的原理与实现</title>
-    <url>/2022/06/30/Digging-Deep-EVM-Part5/</url>
-    <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-a5f
-译者：<a href="alvan.coffee">Alvan's Blog</a></p>
-<h1 id="深入理解evm---part-5---调用委托调用">深入理解EVM - Part 5 -
-调用/委托调用</h1>
-<p>今天我们详细解读一下 CALL 和 DELEGATECALL 两个操作，如果没看过<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第二篇</a>，<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第三篇</a>
-和<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-5a5?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第四篇</a>的话，建议作为前置知识读一下。</p>
-<p>我们将从solidity，EVM 和 Geth
-三个层面解读这两个opcode，让你对它们有一个全面的认识。然而在深入理解他们之前，我们先确认一下合约执行上下文的概念：</p>
-<h3 id="执行上下文">执行上下文</h3>
-<p><em>当EVM运行合约时，会创造一个<a
-href="https://www.evm.codes/about">上下文</a>，它包含以下几个部分：</em></p>
-<ul>
-<li>Code
-<ul>
-<li>存储在链上的合约的不可变代码。</li>
-</ul></li>
-<li>Call Stack
-<ul>
-<li>前文讲过的合约的调用栈，EVM运行合约时会初始化一个空的。</li>
-</ul></li>
-<li>Memory
-<ul>
-<li>合约的内存，EVM运行合约时会初始化一个空的。</li>
-</ul></li>
-<li>Storage
-<ul>
-<li>存储区在执行过程中持久化，链上存储，根据合约地址和插槽寻址。</li>
-</ul></li>
-<li>The Call Data
-<ul>
-<li>交易的传入数据</li>
-</ul></li>
-<li>The Return Data
-<ul>
-<li>合约调用的返回数据</li>
-</ul></li>
-</ul>
-<p>在阅读下面内容时，时刻记着这几个点。我们先从<a
-href="https://www.youtube.com/watch?v=uawCDnxFJ-0">Smart Contract
-Programmer</a>的DELEGATECALL使用用例开始讲：</p>
-<h3 id="solidity-样例">Solidity 样例</h3>
-<p>下图是同一个合约中的两个调用，一个使用了DELEGATECALL，另一个使用了CALL。现在我们看一下他们之间的区别。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fbd68e45d-6238-483a-bf8f-393db30ac39c_2650x1572.png"><img
-src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fbd68e45d-6238-483a-bf8f-393db30ac39c_2650x1572.png"
-alt="img" /></a></p>
-<p>下边是这次交互的一些信息(如果你在remix里自己执行的话，会是不一样的数据)：</p>
-<p>我们有两个合约，即 Contract A 和 Contract B 还有一个 EOA：</p>
-<ul>
-<li>EOA 地址 = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4</li>
-<li>Contract A 地址 = 0x7b96aF9Bd211cBf6BA5b0dd53aa61Dc5806b6AcE</li>
-<li>Contract B 地址 = 0x3328358128832A260C76A4141e19E2A943CD4B6D</li>
-</ul>
-<p>现在把 Contract B 的地址和一个uint值 12以及 1000000000000000000 Wei
-传入，调用 Contract A 里的两个方法， setVarsDelegateCall 和
-setVarsCall。</p>
-<p><strong><em>Delegate Call</em></strong></p>
-<ol type="1">
-<li>一个 EOA 地址把 Contract B 的地址和一个uint值 12以及
-1000000000000000000 Wei 传入，调用Contract
-A的setVarsDelegateCall，这次是委托调用Contract
-B执行setVars(uint256)，参数是12。</li>
-<li>委托调用运行 Contract B 的 setVars(uint256) 但是更新的是 Contract A
-的存储区，它运行时的存储区，msg.sender 和msg.value
-也都和父调用一样。</li>
-<li>Contract A的存储区写入数据：num=12，sender = EOA Address以及value =
-1000000000000000000。尽管Contract A
-调用的setVars(uint256)不带value，</li>
-</ol>
-<p>执行完这个方法之后我们检查Contract A 和Contract B的num， sender 和
-value状态。我们可以看到Contract B没有被初始化，都设置在Contract
-A里了。</p>
-<p><strong><em>Call</em></strong></p>
-<ol type="1">
-<li>一个 EOA 地址把 Contract B 的地址和一个uint值 12以及
-1000000000000000000 Wei 传入，调用 Contract A
-的setVarsCall，这次是调用Contract B执行setVars(uint256)，参数是12。</li>
-<li>调用运行 Contract B 的setVars(uint256)
-，不改变(本合约的)存储区，msg.sender,和msg.value</li>
-<li>Contract B的存储区写入数据：num=12，sender = Contract A Address
-以及value = 0。(1000000000000000000 Wei被传进了父调用setVarsCall。)</li>
-</ol>
-<p>执行完这个方法之后我们检查Contract A 和Contract B的num， sender 和
-value状态。我们可以看到Contract A没有被初始化，都设置在Contract
-B里了。</p>
-<p>“委托调用”就是允许你从别的合约里复制一个方法粘贴到你的合约里，运行起来就行在你的合约里执行的一样，使用本合约的存储区，msg.sender
-和
-msg.value。而“调用”是进入到另一个合约去执行方法，相当于发了一笔交易，有其自己的value值和sender(也就是调用call的合约)。</p>
-<h3 id="delegate-call-storage-layout委托调用与内存布局">Delegate Call
-&amp; Storage Layout委托调用与内存布局</h3>
-<p>在上述例子里，你肯呢个注意到Contract B 第5行的注释<em>“NOTE: storage
-layout must be the same as contract A”</em>。</p>
-<p>合约里的每一个函数都会经过编译成为一个静态的字节码。当我们理解solidity变量的时候，是看见num，sender和value去理解的。但是字节码不知道这些，它只认存储插槽，而声明变量的时候就把插槽定下来了。</p>
-<p>Contract B 的 setVars(uint256) 函数里，“num = _num”就是说要把 _num
-存进插槽0。当我们看一个DELEGATECALL的时候不要去想num → num，sender →
-sender的映射，因为在字节码的层面不是这样的，我们需要认识到这是slot 0 →
-slot 0, slot 1 → slot 1的映射。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fcf64c77b-f60f-4720-96bb-575dabef8917_1006x306.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fcf64c77b-f60f-4720-96bb-575dabef8917_1006x306.png"
-alt="img" /></a></p>
-<p>试想如果我们改变了声明变量的顺序会怎样。那么他们的插槽位置会改变，同时setVars(uint256)
-的字节码也跟着变了。如果我们把 Contract B 的6行和8行互换位置，先声明
-value 后声明 num 。那就意味着11行的“num = _num”意味着把
-_num存进插槽2里，13行的“value = msg.value”意味着把msg.value
-存进插槽0。这就用意味着两合约中，我们变量之间的映射和插槽之间的映射不匹配了</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f24b3ce-a2ed-4bbe-b87d-6d36b9148640_1006x306.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f24b3ce-a2ed-4bbe-b87d-6d36b9148640_1006x306.png"
-alt="img" /></a></p>
-<p>在这种情况下，当我们运行 DELEGATECALL
-时，num变量会被存在插槽2，而这里在 Contract A 中映射到 value
-变量。反过来也是一样的，两个变量就会存储进预想之外的地方。这就是DELEGATECALL比较危险的原因之一。我们意外地
-value 值把 num 覆盖了，用 num 值把 value
-覆盖了。但是黑客可不会意外，他们会有目的地攻击。</p>
-<p>试想我们知道一个开放 delegatecall 的合约，我们知道那个合约存储
-owner的插槽。现在我们可以做一个相同布局的合约，然后写一个更新owner的方法，这就意味着我们可以通过委托调用这个更新方法来改变该合约的owner。</p>
-<p>如果你对这个黑客攻击感兴趣的话可以在这里深入了解一下：</p>
-<ul>
-<li><a
-href="https://ethernaut.openzeppelin.com/level/0x9451961b7Aea1Df57bc20CC68D72f662241b5493">Ethernaut
-Level 6 - Delegation</a></li>
-<li><a
-href="https://ethernaut.openzeppelin.com/level/0x97E982a15FbB1C28F6B8ee971BEc15C78b3d263F">Ethernaut
-Level 16 - Preservation</a></li>
-</ul>
-<p>下面看一看opcode层面</p>
-<h2 id="opcodes">Opcodes</h2>
-<p>我们现在知道DELEGATECALL怎么工作了，那么深入一下，看看DELEGATECALL和CALL的操作码。</p>
-<p>对于DELEGATECALL我们有以下输入变量</p>
-<ul>
-<li><code>gas</code>: 执行的gas费</li>
-<li><code>address</code>: 执行上下文的account</li>
-<li><code>argsOffset</code>: 输入数据(calldata)的偏移量</li>
-<li><code>argsSize</code>: calldata的大小</li>
-<li><code>retOffset</code>: 输出数据(returndata)的偏移量</li>
-<li><code>retSize</code>: returndata的大小</li>
-</ul>
-<p>CALL比起上边的只多一个value，其它的都一样</p>
-<ul>
-<li><code>value</code>: 发送给account的以太币(CALL only)</li>
-</ul>
-<p>委托调用不需要value输入，它从父调用继承。我们的执行上下文有和父调用一样的存储区，msg.sender
-和 msg.value。</p>
-<p>他们都是有一个返回值布尔值"success"，为0则为执行失败，反之则为1。</p>
-<blockquote>
-<p><em>如果调用位置没有合约或者没有代码，Delegatecall会返回true。这会出现bug，因为它没执行，我们是希望返回False的</em></p>
-</blockquote>
-<h3
-id="delegatecall-opcode-inspection-with-remix利用remix检验delegatecall">DELEGATECALL
-Opcode Inspection With Remix利用Remix检验DELEGATECALL</h3>
-<p>下边是Remix中调用DELEGATECALL操作码的截图。对应Solidity代码的24-26行。</p>
-<p>我们可以看到栈和内存的条目以及它们是怎么传进DELEGATECALL的。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F39945796-94b6-4d6b-8bf6-52b29ac22559_3404x1334.png"><img
-src="https://substackcdn.com/image/fetch/w_5760,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F39945796-94b6-4d6b-8bf6-52b29ac22559_3404x1334.png"
-alt="img" /></a></p>
-<p>我们按照这条路线理解：opcode → stack → memory → calldata</p>
-<ol type="1">
-<li>Solidity代码的24行，使用了delegatecall 调用 Contract B 的
-setVars(unit256)，调用了DELEGATECALL操作码。</li>
-<li>DELEGATECALL从栈上拿6个输入：
-<ol type="1">
-<li>Gas = 0x45eb</li>
-<li>Address = 0x3328358128832A260C76A4141e19E2A943CD4B6D (Address for
-Contract B)</li>
-<li>ArgsOffset = 0xc4</li>
-<li>ArgsSize = 0x24</li>
-<li>RetOffset = 0xc4</li>
-<li>RetSize = 0x00</li>
-</ol></li>
-<li>注意到 argsOffset 和 argsSize 两个代表了传入 Contract B 的
-calldata。这两个变量让我们从内存位置0xc4开始，复制后边的 0x24
-(十进制36)作为calldata。</li>
-<li>我们因此拿到了0x6466414b000000000000000000000000000000000000000000000000000000000000000c，6466414b是setVars(uint256)
-的函数签名，而000000000000000000000000000000000000000000000000000000000000000c是我们传入的数据
-12。</li>
-<li>这对应了Solidity代码的25行，abi.encodeWithSignature("setVars(uint256)",
-_num)。</li>
-</ol>
-<p>因为setVars(uint256)不返回任何值，所以retSize置0。</p>
-<p>如果有返回值的话，就是存在retOffset以后的retOffset以内。这应该让你对这个操作码的底层逻辑了解的深一点，也会和Solidity联系起来了。</p>
-<p>现在我们看一下Geth里的实现。</p>
-<h3 id="geth实现">Geth实现</h3>
-<p>我们看一下Geth里写DELEGATECALL的部分。目标是展现DELEGATECALL和CALL在存储的层面的区别，以及是怎么联系上SLOAD的。</p>
-<p>下边的图有点唬人，但是我们拆解开来一步一步做，在结束的时候你就会对DELEGATECALL和CALL有深刻的认识。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F60abd9bd-475f-4694-8bce-aa4c4b43fadd_4102x3874.png"><img
-src="https://substackcdn.com/image/fetch/w_5760,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F60abd9bd-475f-4694-8bce-aa4c4b43fadd_4102x3874.png"
-alt="img" /></a></p>
-<p>We have the DELEGATECALL &amp; CALL opcodes labeled on the left-hand
-side and the SLOAD opcode labeled bottom right. Let’s see how they’re
-connected.</p>
-<ol type="1">
-<li>这图里有两个 [1]
-号截图，分别对应DELEGATECALL和CALL操作码的代码，在<a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go">instructions.go</a>里。我们可以看到从栈里弹出的那几个变量，之后可以看到调用
-interpreter.evm.DeleagteCall和 interpreter.evm.Call
-这两个函数，传进去了栈里的变量，目标地址和现在的合约上下文</li>
-<li>图里也有两个 [2] 号截图，分别对应 evm.DelegateCall 和 evm.Call
-的代码的代码，在 <a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/evm.go">evm.go</a>里边。中间省略了一些校验和其它函数，我们主要关注执行调用NewContract方法新建上下文的代码，其它的可以忽略掉。</li>
-<li>图里有两个 [3] 号截图。里边主要是evm.DelegateCall和evm.Call
-调用NewContract。它们非常相似，以下两点除外：
-<ol type="1">
-<li>DelegateCall的value参数设为nil，它从之前的上下文继承，所以不写进这个参数里。</li>
-<li>NewContract的第二个参数也不一样。evm.DelegateCall 里caller.Address(
-) 用的是Contract A的地址。evm.Call
-里addrCopy是复制的toAddr，也就是Contract
-B的地址，这一点区别非常大。他俩都是AccountRef类型，这个很重要，后边会提到。</li>
-</ol></li>
-<li>DelegateCall’s的NewContract会返回一个Contract结构体。它又调用了AsDelegate()方法(在<a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)(见图[4])，把msg.sender
-和 msg.value设置成了父调用的样子，也就是EOA地址和1000000000000000000
-Wei。这在Call的实现里是没有的。</li>
-<li>evm.DelegateCall 和 evm.Call 都执行NewContract方法(在<a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)，NewContract方法的第二个入参是“object
-ContractRef”，对应着第三点里提到的AccountRef。</li>
-<li>“object
-ContractRef”和一些其他值被用来初始化合约，对应Contract结构体里的“self”</li>
-<li>Contract结构体( 在<a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)有一个“self”字段，你可以看到也有其他的字段与我们之前提到的执行上下文有关。</li>
-<li>现在我们跳跃一下，去看看Geth里SLOAD(在<a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go">instructions.go</a>里)的实现，它在调用GetState时用的参数就是scope.Contract.Address(
-)。这里的“Contract”就是我们在第7条提到的结构体。</li>
-<li>Contract结构体的Address( ) 返回的是self.Address。</li>
-<li>Self是一个ContractRef类型，ContractRef必然有一个Address( )
-方法。</li>
-<li>ContractRef是一个接口，规定如果一个类型要做ContractRef，那必须有一个返回值类型是common.Address的Address(
-)
-函数。common.Address是一个长度20的字节数组，也就是以太坊地址的长度。</li>
-<li>我们回到第3块看一下evm.DelegateCall和evm.Call
-中AccountRef的区别。我们可以看到AccountRef就是一个有Address( )
-函数的地址，那它也符合ContractRef接口的规则。</li>
-<li>AccountRef 的 Address( ) 函数是把 AccountRef
-转化成common.Address，也就是 evm.DelegateCall 里的 Contract A 地址和
-evm.Call 里的Contract B 地址。这意味着第8部分讲的 SLOAD 会在
-DELEGATECALL 时使用 Contract A 的存储区，在 CALL 时使用 Contract B
-的存储区。</li>
-</ol>
-<p>通过学习Geth的实现你应该对DelegateCall的存储区，
-msg.sender和msg.value的来龙去脉有了深刻了解，对DELEGATECALL也有了一定的认识，很棒！下次再见！</p>
-]]></content>
-      <categories>
-        <category>以太坊</category>
-      </categories>
-      <tags>
-        <tag>ethereum</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>深入理解EVM - Part1 - 初识opcode</title>
     <url>/2022/06/17/Digging-Deep-EVM-Part1/</url>
     <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?s=r
@@ -1342,6 +1086,469 @@ href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a7
       </tags>
   </entry>
   <entry>
+    <title>深入理解EVM - Part 5 - 调用/委托调用的原理与实现</title>
+    <url>/2022/06/30/Digging-Deep-EVM-Part5/</url>
+    <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-a5f
+译者：<a href="alvan.coffee">Alvan's Blog</a></p>
+<h1 id="深入理解evm---part-5---调用委托调用">深入理解EVM - Part 5 -
+调用/委托调用</h1>
+<p>今天我们详细解读一下 CALL 和 DELEGATECALL 两个操作，如果没看过<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第二篇</a>，<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第三篇</a>
+和<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-5a5?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第四篇</a>的话，建议作为前置知识读一下。</p>
+<p>我们将从solidity，EVM 和 Geth
+三个层面解读这两个opcode，让你对它们有一个全面的认识。然而在深入理解他们之前，我们先确认一下合约执行上下文的概念：</p>
+<h3 id="执行上下文">执行上下文</h3>
+<p><em>当EVM运行合约时，会创造一个<a
+href="https://www.evm.codes/about">上下文</a>，它包含以下几个部分：</em></p>
+<ul>
+<li>Code
+<ul>
+<li>存储在链上的合约的不可变代码。</li>
+</ul></li>
+<li>Call Stack
+<ul>
+<li>前文讲过的合约的调用栈，EVM运行合约时会初始化一个空的。</li>
+</ul></li>
+<li>Memory
+<ul>
+<li>合约的内存，EVM运行合约时会初始化一个空的。</li>
+</ul></li>
+<li>Storage
+<ul>
+<li>存储区在执行过程中持久化，链上存储，根据合约地址和插槽寻址。</li>
+</ul></li>
+<li>The Call Data
+<ul>
+<li>交易的传入数据</li>
+</ul></li>
+<li>The Return Data
+<ul>
+<li>合约调用的返回数据</li>
+</ul></li>
+</ul>
+<p>在阅读下面内容时，时刻记着这几个点。我们先从<a
+href="https://www.youtube.com/watch?v=uawCDnxFJ-0">Smart Contract
+Programmer</a>的DELEGATECALL使用用例开始讲：</p>
+<h3 id="solidity-样例">Solidity 样例</h3>
+<p>下图是同一个合约中的两个调用，一个使用了DELEGATECALL，另一个使用了CALL。现在我们看一下他们之间的区别。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fbd68e45d-6238-483a-bf8f-393db30ac39c_2650x1572.png"><img
+src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fbd68e45d-6238-483a-bf8f-393db30ac39c_2650x1572.png"
+alt="img" /></a></p>
+<p>下边是这次交互的一些信息(如果你在remix里自己执行的话，会是不一样的数据)：</p>
+<p>我们有两个合约，即 Contract A 和 Contract B 还有一个 EOA：</p>
+<ul>
+<li>EOA 地址 = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4</li>
+<li>Contract A 地址 = 0x7b96aF9Bd211cBf6BA5b0dd53aa61Dc5806b6AcE</li>
+<li>Contract B 地址 = 0x3328358128832A260C76A4141e19E2A943CD4B6D</li>
+</ul>
+<p>现在把 Contract B 的地址和一个uint值 12以及 1000000000000000000 Wei
+传入，调用 Contract A 里的两个方法， setVarsDelegateCall 和
+setVarsCall。</p>
+<p><strong><em>Delegate Call</em></strong></p>
+<ol type="1">
+<li>一个 EOA 地址把 Contract B 的地址和一个uint值 12以及
+1000000000000000000 Wei 传入，调用Contract
+A的setVarsDelegateCall，这次是委托调用Contract
+B执行setVars(uint256)，参数是12。</li>
+<li>委托调用运行 Contract B 的 setVars(uint256) 但是更新的是 Contract A
+的存储区，它运行时的存储区，msg.sender 和msg.value
+也都和父调用一样。</li>
+<li>Contract A的存储区写入数据：num=12，sender = EOA Address以及value =
+1000000000000000000。尽管Contract A
+调用的setVars(uint256)不带value，</li>
+</ol>
+<p>执行完这个方法之后我们检查Contract A 和Contract B的num， sender 和
+value状态。我们可以看到Contract B没有被初始化，都设置在Contract
+A里了。</p>
+<p><strong><em>Call</em></strong></p>
+<ol type="1">
+<li>一个 EOA 地址把 Contract B 的地址和一个uint值 12以及
+1000000000000000000 Wei 传入，调用 Contract A
+的setVarsCall，这次是调用Contract B执行setVars(uint256)，参数是12。</li>
+<li>调用运行 Contract B 的setVars(uint256)
+，不改变(本合约的)存储区，msg.sender,和msg.value</li>
+<li>Contract B的存储区写入数据：num=12，sender = Contract A Address
+以及value = 0。(1000000000000000000 Wei被传进了父调用setVarsCall。)</li>
+</ol>
+<p>执行完这个方法之后我们检查Contract A 和Contract B的num， sender 和
+value状态。我们可以看到Contract A没有被初始化，都设置在Contract
+B里了。</p>
+<p>“委托调用”就是允许你从别的合约里复制一个方法粘贴到你的合约里，运行起来就行在你的合约里执行的一样，使用本合约的存储区，msg.sender
+和
+msg.value。而“调用”是进入到另一个合约去执行方法，相当于发了一笔交易，有其自己的value值和sender(也就是调用call的合约)。</p>
+<h3 id="delegate-call-storage-layout委托调用与内存布局">Delegate Call
+&amp; Storage Layout委托调用与内存布局</h3>
+<p>在上述例子里，你肯呢个注意到Contract B 第5行的注释<em>“NOTE: storage
+layout must be the same as contract A”</em>。</p>
+<p>合约里的每一个函数都会经过编译成为一个静态的字节码。当我们理解solidity变量的时候，是看见num，sender和value去理解的。但是字节码不知道这些，它只认存储插槽，而声明变量的时候就把插槽定下来了。</p>
+<p>Contract B 的 setVars(uint256) 函数里，“num = _num”就是说要把 _num
+存进插槽0。当我们看一个DELEGATECALL的时候不要去想num → num，sender →
+sender的映射，因为在字节码的层面不是这样的，我们需要认识到这是slot 0 →
+slot 0, slot 1 → slot 1的映射。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fcf64c77b-f60f-4720-96bb-575dabef8917_1006x306.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fcf64c77b-f60f-4720-96bb-575dabef8917_1006x306.png"
+alt="img" /></a></p>
+<p>试想如果我们改变了声明变量的顺序会怎样。那么他们的插槽位置会改变，同时setVars(uint256)
+的字节码也跟着变了。如果我们把 Contract B 的6行和8行互换位置，先声明
+value 后声明 num 。那就意味着11行的“num = _num”意味着把
+_num存进插槽2里，13行的“value = msg.value”意味着把msg.value
+存进插槽0。这就用意味着两合约中，我们变量之间的映射和插槽之间的映射不匹配了</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f24b3ce-a2ed-4bbe-b87d-6d36b9148640_1006x306.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f24b3ce-a2ed-4bbe-b87d-6d36b9148640_1006x306.png"
+alt="img" /></a></p>
+<p>在这种情况下，当我们运行 DELEGATECALL
+时，num变量会被存在插槽2，而这里在 Contract A 中映射到 value
+变量。反过来也是一样的，两个变量就会存储进预想之外的地方。这就是DELEGATECALL比较危险的原因之一。我们意外地
+value 值把 num 覆盖了，用 num 值把 value
+覆盖了。但是黑客可不会意外，他们会有目的地攻击。</p>
+<p>试想我们知道一个开放 delegatecall 的合约，我们知道那个合约存储
+owner的插槽。现在我们可以做一个相同布局的合约，然后写一个更新owner的方法，这就意味着我们可以通过委托调用这个更新方法来改变该合约的owner。</p>
+<p>如果你对这个黑客攻击感兴趣的话可以在这里深入了解一下：</p>
+<ul>
+<li><a
+href="https://ethernaut.openzeppelin.com/level/0x9451961b7Aea1Df57bc20CC68D72f662241b5493">Ethernaut
+Level 6 - Delegation</a></li>
+<li><a
+href="https://ethernaut.openzeppelin.com/level/0x97E982a15FbB1C28F6B8ee971BEc15C78b3d263F">Ethernaut
+Level 16 - Preservation</a></li>
+</ul>
+<p>下面看一看opcode层面</p>
+<h2 id="opcodes">Opcodes</h2>
+<p>我们现在知道DELEGATECALL怎么工作了，那么深入一下，看看DELEGATECALL和CALL的操作码。</p>
+<p>对于DELEGATECALL我们有以下输入变量</p>
+<ul>
+<li><code>gas</code>: 执行的gas费</li>
+<li><code>address</code>: 执行上下文的account</li>
+<li><code>argsOffset</code>: 输入数据(calldata)的偏移量</li>
+<li><code>argsSize</code>: calldata的大小</li>
+<li><code>retOffset</code>: 输出数据(returndata)的偏移量</li>
+<li><code>retSize</code>: returndata的大小</li>
+</ul>
+<p>CALL比起上边的只多一个value，其它的都一样</p>
+<ul>
+<li><code>value</code>: 发送给account的以太币(CALL only)</li>
+</ul>
+<p>委托调用不需要value输入，它从父调用继承。我们的执行上下文有和父调用一样的存储区，msg.sender
+和 msg.value。</p>
+<p>他们都是有一个返回值布尔值"success"，为0则为执行失败，反之则为1。</p>
+<blockquote>
+<p><em>如果调用位置没有合约或者没有代码，Delegatecall会返回true。这会出现bug，因为它没执行，我们是希望返回False的</em></p>
+</blockquote>
+<h3
+id="delegatecall-opcode-inspection-with-remix利用remix检验delegatecall">DELEGATECALL
+Opcode Inspection With Remix利用Remix检验DELEGATECALL</h3>
+<p>下边是Remix中调用DELEGATECALL操作码的截图。对应Solidity代码的24-26行。</p>
+<p>我们可以看到栈和内存的条目以及它们是怎么传进DELEGATECALL的。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F39945796-94b6-4d6b-8bf6-52b29ac22559_3404x1334.png"><img
+src="https://substackcdn.com/image/fetch/w_5760,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F39945796-94b6-4d6b-8bf6-52b29ac22559_3404x1334.png"
+alt="img" /></a></p>
+<p>我们按照这条路线理解：opcode → stack → memory → calldata</p>
+<ol type="1">
+<li>Solidity代码的24行，使用了delegatecall 调用 Contract B 的
+setVars(unit256)，调用了DELEGATECALL操作码。</li>
+<li>DELEGATECALL从栈上拿6个输入：
+<ol type="1">
+<li>Gas = 0x45eb</li>
+<li>Address = 0x3328358128832A260C76A4141e19E2A943CD4B6D (Address for
+Contract B)</li>
+<li>ArgsOffset = 0xc4</li>
+<li>ArgsSize = 0x24</li>
+<li>RetOffset = 0xc4</li>
+<li>RetSize = 0x00</li>
+</ol></li>
+<li>注意到 argsOffset 和 argsSize 两个代表了传入 Contract B 的
+calldata。这两个变量让我们从内存位置0xc4开始，复制后边的 0x24
+(十进制36)作为calldata。</li>
+<li>我们因此拿到了0x6466414b000000000000000000000000000000000000000000000000000000000000000c，6466414b是setVars(uint256)
+的函数签名，而000000000000000000000000000000000000000000000000000000000000000c是我们传入的数据
+12。</li>
+<li>这对应了Solidity代码的25行，abi.encodeWithSignature("setVars(uint256)",
+_num)。</li>
+</ol>
+<p>因为setVars(uint256)不返回任何值，所以retSize置0。</p>
+<p>如果有返回值的话，就是存在retOffset以后的retOffset以内。这应该让你对这个操作码的底层逻辑了解的深一点，也会和Solidity联系起来了。</p>
+<p>现在我们看一下Geth里的实现。</p>
+<h3 id="geth实现">Geth实现</h3>
+<p>我们看一下Geth里写DELEGATECALL的部分。目标是展现DELEGATECALL和CALL在存储的层面的区别，以及是怎么联系上SLOAD的。</p>
+<p>下边的图有点唬人，但是我们拆解开来一步一步做，在结束的时候你就会对DELEGATECALL和CALL有深刻的认识。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F60abd9bd-475f-4694-8bce-aa4c4b43fadd_4102x3874.png"><img
+src="https://substackcdn.com/image/fetch/w_5760,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F60abd9bd-475f-4694-8bce-aa4c4b43fadd_4102x3874.png"
+alt="img" /></a></p>
+<p>We have the DELEGATECALL &amp; CALL opcodes labeled on the left-hand
+side and the SLOAD opcode labeled bottom right. Let’s see how they’re
+connected.</p>
+<ol type="1">
+<li>这图里有两个 [1]
+号截图，分别对应DELEGATECALL和CALL操作码的代码，在<a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go">instructions.go</a>里。我们可以看到从栈里弹出的那几个变量，之后可以看到调用
+interpreter.evm.DeleagteCall和 interpreter.evm.Call
+这两个函数，传进去了栈里的变量，目标地址和现在的合约上下文</li>
+<li>图里也有两个 [2] 号截图，分别对应 evm.DelegateCall 和 evm.Call
+的代码的代码，在 <a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/evm.go">evm.go</a>里边。中间省略了一些校验和其它函数，我们主要关注执行调用NewContract方法新建上下文的代码，其它的可以忽略掉。</li>
+<li>图里有两个 [3] 号截图。里边主要是evm.DelegateCall和evm.Call
+调用NewContract。它们非常相似，以下两点除外：
+<ol type="1">
+<li>DelegateCall的value参数设为nil，它从之前的上下文继承，所以不写进这个参数里。</li>
+<li>NewContract的第二个参数也不一样。evm.DelegateCall 里caller.Address(
+) 用的是Contract A的地址。evm.Call
+里addrCopy是复制的toAddr，也就是Contract
+B的地址，这一点区别非常大。他俩都是AccountRef类型，这个很重要，后边会提到。</li>
+</ol></li>
+<li>DelegateCall’s的NewContract会返回一个Contract结构体。它又调用了AsDelegate()方法(在<a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)(见图[4])，把msg.sender
+和 msg.value设置成了父调用的样子，也就是EOA地址和1000000000000000000
+Wei。这在Call的实现里是没有的。</li>
+<li>evm.DelegateCall 和 evm.Call 都执行NewContract方法(在<a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)，NewContract方法的第二个入参是“object
+ContractRef”，对应着第三点里提到的AccountRef。</li>
+<li>“object
+ContractRef”和一些其他值被用来初始化合约，对应Contract结构体里的“self”</li>
+<li>Contract结构体( 在<a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)有一个“self”字段，你可以看到也有其他的字段与我们之前提到的执行上下文有关。</li>
+<li>现在我们跳跃一下，去看看Geth里SLOAD(在<a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go">instructions.go</a>里)的实现，它在调用GetState时用的参数就是scope.Contract.Address(
+)。这里的“Contract”就是我们在第7条提到的结构体。</li>
+<li>Contract结构体的Address( ) 返回的是self.Address。</li>
+<li>Self是一个ContractRef类型，ContractRef必然有一个Address( )
+方法。</li>
+<li>ContractRef是一个接口，规定如果一个类型要做ContractRef，那必须有一个返回值类型是common.Address的Address(
+)
+函数。common.Address是一个长度20的字节数组，也就是以太坊地址的长度。</li>
+<li>我们回到第3块看一下evm.DelegateCall和evm.Call
+中AccountRef的区别。我们可以看到AccountRef就是一个有Address( )
+函数的地址，那它也符合ContractRef接口的规则。</li>
+<li>AccountRef 的 Address( ) 函数是把 AccountRef
+转化成common.Address，也就是 evm.DelegateCall 里的 Contract A 地址和
+evm.Call 里的Contract B 地址。这意味着第8部分讲的 SLOAD 会在
+DELEGATECALL 时使用 Contract A 的存储区，在 CALL 时使用 Contract B
+的存储区。</li>
+</ol>
+<p>通过学习Geth的实现你应该对DelegateCall的存储区，
+msg.sender和msg.value的来龙去脉有了深刻了解，对DELEGATECALL也有了一定的认识，很棒！下次再见！</p>
+]]></content>
+      <categories>
+        <category>以太坊</category>
+      </categories>
+      <tags>
+        <tag>ethereum</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>入门Defi第一步，初识DEX,AMM与LP token</title>
+    <url>/2022/06/13/Intro-DEX-AMM-LP-Token/</url>
+    <content><![CDATA[<h2 id="dex是什么">DEX是什么？</h2>
+<p>​ DEX(Decentralized
+Exchange)，即去中心化交易所，不依赖券商、银行等金融机构提供金融工具，而是利用区块链上的智能合约就可以提供交易服务的交易所。例如Uniswap，Curve，Pancake等等。</p>
+<h2 id="dex与传统交易所">DEX与传统交易所</h2>
+<p>​
+DEX和传统交易所的区别并不只在于数据存储的方式和所有权不同，在交易方式和原理上也有着本质的区别。我们以最常见的DEX框架即AMM模型与传统交易所挂单模型对比：</p>
+<h3 id="两种交易所订单簿模型的区别">两种交易所订单簿模型的区别：</h3>
+<p>中心化交易所：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.18-1024x887.png" alt="img" style="zoom:30%;" />DEX：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.24-1024x500.png" alt="img" style="zoom:33%;" />
+中心化交易所的卖方在交易所挂单，买方通过交易所自动撮合下单购买。
+DEX的不存在买方和卖方的差异，其本质也不是购兑换对方的资产，而是直接从流动性资产池中换取需要的资产。
+<small>流动性资金池(liquidity
+pools)：用户交易使用的资产池，其中的资金由用户提供，提供资金的行为被称为提供流动性(add
+liquidity)。为了保证交易稳定、流动性充足，提供流动性的用户(liquidity
+provider)可以从每笔交易的手续费里提取分成作为奖励。</small></p>
+<h3 id="两种方案的优劣比较">两种方案的优劣比较：</h3>
+<table>
+<thead>
+<tr class="header">
+<th>中心化交易所</th>
+<th>DEX</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>审查身份</td>
+<td>不审查身份</td>
+</tr>
+<tr class="even">
+<td>手续费只存在于执行交易时</td>
+<td>每一步操作都需要手续费</td>
+</tr>
+<tr class="odd">
+<td>数据中心化，放在服务器</td>
+<td>数据去中心化，放在区块链</td>
+</tr>
+<tr class="even">
+<td>交易迅速</td>
+<td>交易缓慢</td>
+</tr>
+<tr class="odd">
+<td>巨鲸操盘，交易所黑幕</td>
+<td>套利机器人日夜巡逻</td>
+</tr>
+</tbody>
+</table>
+<p>​
+<small>存在DEX像0x协议这样使用零知识证明原理，实现“链上+链下”结合的方式实现挂单模型，在下文中DEX特指使用AMM的去中心化交易所</small></p>
+<h2 id="amm和lp-token是什么">AMM和LP token是什么？</h2>
+<h3 id="amm">AMM:</h3>
+<p>​ AMM即Automated Market
+Maker，自动化做市商。AMM应用在DEX中，使得买方和卖方之间不需要任何信任关系以及第三方就可以安全完成交易。AMM用户的买/卖本质上是在对相应资产的流动性资金池做兑换，而非买卖双方的动作。所以AMM天生适合去中心化交易所使用，只要资金池和定价模式完全依托去中心化平台，就没有任何单独实体可以操纵这个系统，同时每个人都可以在这个基础上建立新的应用。</p>
+<h3 id="lp-token">LP token:</h3>
+<p>​ LP token即(Liquidity Provider Token)，对于AMM来说，x -
+y两种资产的兑换需要一个x - y
+的资金池，而x，y两种资产由用户提供。用户把x和y资产质押进流动性以获取流动性挖矿(yield
+farming )奖励，而质押的凭证就是AMM给流动性提供者签发的一种新代币，称为LP
+token。 ​ 在DeFi飞速发展的过程中，DeFi的术语也在不断。很多情况下LP
+token具体叫什么是随着项目变化的。比如在Balancer中，通常被称为BPT或者pools
+tokens；在Uniswap里被称为liquidity tokens或者pool
+tokens，在Curve中被称为LP token。</p>
+<h2 id="amm的原理">AMM的原理</h2>
+<p>​
+AMM发展至今已经落地在不少应用中，虽然具体实现方法和应用场景略有差别，但很多以简单模型为基础改进，本节将以其代表项目UniswapV2为例讲解。各种改进算法将不做讨论
+AMM实现功能靠以下两个核心功能：</p>
+<h3 id="swaps">Swaps:</h3>
+<p>​ AMM的token交换基于流动性资金池和恒定乘积公式算法：<span
+class="math inline">\(x \times y = k\)</span>，即交易发生在 （卖出资产-
+买入资产）交易对的流动性资金池中，交易价格由恒定乘积公式决定。
+x，y为资金池中两种资产的量：
+<img src="https://lh3.googleusercontent.com/DlgPwa6IlYeRgPkAPdwHPY7P0UCGMSiiESzvhCpUUSFuJ0HhFWG3rV1FSxEb_RFyV1JfdBQ1MUjVkzO8yDmJQXf-O0Ym0UWj-CM5xla9hARaA0kY6D6tSDhsYVhVkhbDrOj2-WHv" alt="img" style="zoom:50%;" /></p>
+<p>​ 例如在一个<span class="math inline">\(x = 200\)</span>, <span
+class="math inline">\(y =
+300\)</span>的资金池内想用100个y来兑换x，那么有<span
+class="math inline">\((y+100)\times (x- \delta x) = x \times
+y\)</span>，可解兑换出50个x资产。一个池子内，x越少，就可以用x换取更多的y，反之亦然，套利者会自发将两者价格与全链同步，这就是swap的基本原理。
+​
+那么K值是否能够改变呢？答案是肯定的，因为手续费和流动性的原因，几乎每一笔交易成功实际发生后，k都会改变。所谓的固定乘积，是交易发生前计算价格的方法。</p>
+<h3 id="liquidity-pools">Liquidity Pools:</h3>
+<p>​ AMM的用户不直接与另一个用户发生交易，他们的交易要通过liquidity
+pools实现，而且因为在AMM的恒定乘积公式算法中，当流动性池内资金量少时，很容易出现x，y有一个非常小导致价格离谱的情况。
+​流动性资金池由用户质押资产提供，用户质押资产进入liquidity
+pools，然后获得质押凭证LP
+token，而提供流动性的用户也会获得手续费收益，即LP
+token分红和对应交易所的治理代币。用户也可以使用LP
+token赎回其质押的资产，被称为移除流动性(remove liquidity)。</p>
+<h2 id="流动性挖矿与lp-tokens">流动性挖矿与LP Tokens</h2>
+<p>​ LP Tokens的一个很引人注目的应用领域就是流动性挖矿(Yield
+Farming)，将他们两个结合起来，是一种向多个不同合约组合操作以达到收益最大化的挖矿方式，下面举一个Curve中的例子：</p>
+<ol type="1">
+<li>向Curve 的liquidity pool质押DAI</li>
+<li>获得LP tokens</li>
+<li>将LP tokens质押进Curve的质押池</li>
+<li>获得Curve利息</li>
+</ol>
+<h2 id="引用">引用：</h2>
+<p><a
+href="https://fintechruminations.com/2021/07/09/uniswap-and-the-amm-model/">UNISWAP
+AND THE AMM MODEL</a> <a
+href="https://www.gemini.com/cryptopedia/liquidity-provider-amm-tokens">How
+Liquidity Provider (LP) Tokens Work</a></p>
+]]></content>
+      <categories>
+        <category>以太坊</category>
+      </categories>
+      <tags>
+        <tag>DeFi</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>基于bls12-381生成秘密随机点</title>
+    <url>/2022/07/05/bls12-381-mpc/</url>
+    <content><![CDATA[<h2 id="背景">背景</h2>
+<p>作者在搬groth16上链的项目里需要用到一些椭圆曲线上的秘密随机点(自然也可以把它当作root生成随机数)，需要用到MPC计算生成。记录一下算法和思路，加密部分使用bls12-381加密库。</p>
+<h2 id="概述">概述</h2>
+<p>因为在Groth16中需要使用到一系列的随机点进行掩藏数据，产生这些随机数的参数绝不能泄漏，比如bls12-381上的一个<span
+class="math inline">\(\alpha\)</span>点来源<span
+class="math inline">\(g_1\times
+a\)</span>，由于陷门函数的特性，我们无法通过<span
+class="math inline">\(\alpha\)</span>来推导出<span
+class="math inline">\(a\)</span>，但是一旦<span
+class="math inline">\(a\)</span>遭到泄漏，就可以直接计算出<span
+class="math inline">\(\alpha\)</span>。</p>
+<p>那么我们就需要一种在运算过程中不可能泄露<span
+class="math inline">\(a\)</span>的方法去生成<span
+class="math inline">\(\alpha\)</span>，这就可以转换成一个多方协同计算的问题：</p>
+<p>假设有n个参与生成计算的节点参与，它们会依次提供<span
+class="math inline">\(a_1，a_2，a_3...a_n\)</span>这n个随机数计算出<span
+class="math inline">\(\alpha_1，\alpha_2...\alpha_n\)</span>，如果先计算<span
+class="math inline">\(a\)</span>再进行隐藏：<span
+class="math inline">\(\alpha=(\prod_{i=1}^n a_i)\times
+g_1\)</span>，那么<span
+class="math inline">\(a\)</span>和传输过程中的<span
+class="math inline">\(a_i\)</span>都有可能泄露。</p>
+<p>要将中间变量加密变成<span class="math inline">\(E(\prod_{i=1}^n
+a_i)\)</span>和<span
+class="math inline">\(E(a_i)\)</span>，才能在运行过程中不泄漏任何一个人提供的信息<span
+class="math inline">\(a_i\)</span>，就可以保证每一个参与提供随机数的节点都不可能的知道最终的<span
+class="math inline">\(a\)</span>，所有人拿到的只有加密后中间值。</p>
+<h2 id="基本思路">基本思路</h2>
+<p>可以预见的一点就是在依次计算的过程中，我们需要防止有人作恶，篡改之前的结果。如果第3个节点收到了加密数据<span
+class="math inline">\(E(a_1\times
+a_2)\)</span>，但是它传给下一个人的却是<span
+class="math inline">\(E(a_3\times a_3 \times
+a_3)\)</span>——擅自修改了内容，我们需要如何验证呢？</p>
+<p>如果我们没有使用加密数据<span class="math inline">\(E(a_1\times
+a_2)\)</span>和<span class="math inline">\(E(a_3\times a_3 \times
+a_3)\)</span>，而是直接存储了<span class="math inline">\(a_1\times
+a_2\)</span>，接受第三个节点的<span class="math inline">\(a_3\times a_3
+\times a_3\)</span>和他自己的<span
+class="math inline">\(a_3\)</span>，那么我们只需要验证上一次的结果<span
+class="math inline">\(a_1\times a_2\)</span>与新节点提供的随机数<span
+class="math inline">\(a_3\)</span>乘积是否等于它传给下一个人的<span
+class="math inline">\(a_3\times a_3 \times a_3\)</span>，就可以了。</p>
+<p>但是<strong>所有人拿到的只有加密后中间值</strong>，我们只要保证中间值的运算结果符合数字运算的规律，也就是“同态”即可。</p>
+<p><strong>如果加密函数E(x)满足以下特性,则认为有同态性</strong> <span
+class="math display">\[ 加法同态:E(a+b)=E(a)+E(b)  \\
+乘法同态:E(ka)=kE(a)
+\\双线性映射:假设有两个群G_1,G_2,G_1*G_1=G_2,g是G_1的生成元,e(g,g)是G_2的生成元,则
+e(g^a,g^b)=e(g,g)^{ab}=e(g^b,g^a)\]</span></p>
+<p>我们的bls12-381中也符条件，既 加法同态：<span
+class="math inline">\((a_1+a_2)\times g_1 = a_1\times g_1 + a_2\times
+g_1\)</span> 乘法同态：<span class="math inline">\(k \times (a_1\times
+g_1) = (k\times a_1)\times g_1\)</span></p>
+<p>双线性映射：<span class="math inline">\(pairing(a_1\times g_1 ,
+a_2\times g_2) = pairing((a_1\times a_2)\times g_1，g_2)\)</span></p>
+<h2 id="实现方法">实现方法</h2>
+<p>我使用双线性映射来进行验证，第i个节点传输的数据为：</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="meta">#[derive(Clone, Copy)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">ParameterPair</span>&lt;E: Engine&gt; &#123;</span><br><span class="line">    <span class="keyword">pub</span> g1_result: <span class="type">Option</span>&lt;E::G1Affine&gt;,<span class="comment">//传给下一个节点的数据,g1上的点,既(a1*a2*..ai * g1)</span></span><br><span class="line">    <span class="keyword">pub</span> g2_result: <span class="type">Option</span>&lt;E::G2Affine&gt;,<span class="comment">//传给下一个节点的数据,g2上的点,既(a1*a2*..ai * g2)</span></span><br><span class="line">    <span class="keyword">pub</span> g1_mine: <span class="type">Option</span>&lt;E::G1Affine&gt;,<span class="comment">//该节点新加入的数据,g1上的点,既(ai * g1)</span></span><br><span class="line">    <span class="keyword">pub</span> g2_mine: <span class="type">Option</span>&lt;E::G2Affine&gt;,<span class="comment">//该节点新加入的数据,g1上的点,既(ai * g2)</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>验证端保存着之前<span
+class="math inline">\(i-1\)</span>个节点传输数据的列表：</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="type">Vec</span>&lt;ParameterPair&lt;E&gt;&gt;;</span><br></pre></td></tr></table></figure>
+<p>需要通过这个列表 的最新数据和节点自己的随机数更新信息：</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">mpc_common_paramters_custom</span>&lt;E&gt;(</span><br><span class="line">    paramter_last: &amp;ParameterPair&lt;E&gt;,</span><br><span class="line">    num: E::Fr,</span><br><span class="line">) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;ParameterPair&lt;E&gt;, SynthesisError&gt;</span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    E: Engine,</span><br><span class="line">    E::G1: WnafGroup,</span><br><span class="line">    E::G2: WnafGroup,</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g1</span> = E::G1::<span class="title function_ invoke__">generator</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g2</span> = E::G2::<span class="title function_ invoke__">generator</span>();<span class="comment">//g1,g2是两个群上的元，类似于自然数中的1。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g1_before</span> = paramter_last.g1_result.<span class="title function_ invoke__">unwrap</span>();<span class="comment">//之前列表的最新值：a1*a2*...a(n-1) * g1</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g1_after</span> = (g1_before * num).<span class="title function_ invoke__">to_affine</span>();<span class="comment">//预期中更新之后的值：a1*a2*...a(n-1)*a(n) * g1</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g2_before</span> = paramter_last.g2_result.<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g2_after</span> = (g2_before * num).<span class="title function_ invoke__">to_affine</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g1_mine</span> = (g1 * num).<span class="title function_ invoke__">to_affine</span>();<span class="comment">//a(n)*g1</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g2_mine</span> = (g2 * num).<span class="title function_ invoke__">to_affine</span>();<span class="comment">//a(n)*g2</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">result</span> = ParameterPair &#123;</span><br><span class="line">        g1_result: <span class="title function_ invoke__">Some</span>(g1_after),</span><br><span class="line">        g2_result: <span class="title function_ invoke__">Some</span>(g2_after),</span><br><span class="line">        g1_mine: <span class="title function_ invoke__">Some</span>(g1_mine),</span><br><span class="line">        g2_mine: <span class="title function_ invoke__">Some</span>(g2_mine),</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="keyword">return</span> <span class="title function_ invoke__">Ok</span>(result);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在新增数据之前，可以通过该列表和新节点传入数据验证：</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">verify_mpc_g1</span>&lt;E&gt;(new_paramter: &amp;ParameterPair&lt;E&gt;, paramters: &amp;<span class="type">Vec</span>&lt;ParameterPair&lt;E&gt;&gt;) <span class="punctuation">-&gt;</span> <span class="type">bool</span></span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    E: Engine,</span><br><span class="line">    E::G1: WnafGroup,</span><br><span class="line">    E::G2: WnafGroup,</span><br><span class="line">&#123;</span><br><span class="line">  	<span class="comment">/**</span></span><br><span class="line"><span class="comment">  	*g1,g2是两个群上的元，类似于自然数中的1。</span></span><br><span class="line"><span class="comment">  	*/</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g1</span> = E::G1::<span class="title function_ invoke__">generator</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g2</span> = E::G2::<span class="title function_ invoke__">generator</span>();</span><br><span class="line">  	<span class="comment">/**</span></span><br><span class="line"><span class="comment">  	*这一步验证传来的结构体里g1,g2上的点是一一对应而非假造的，验证方法为：</span></span><br><span class="line"><span class="comment">		* pairing(g1_mine, g2)== E::pairing(g1, g2_mine);</span></span><br><span class="line"><span class="comment">		* pairing(g1_result, g2)== E::pairing(g1, g2_result);</span></span><br><span class="line"><span class="comment">  	*/</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">result</span> = E::<span class="title function_ invoke__">pairing</span>(&amp;new_paramter.g1_mine.<span class="title function_ invoke__">unwrap</span>(), &amp;g2.<span class="title function_ invoke__">to_affine</span>())</span><br><span class="line">        == E::<span class="title function_ invoke__">pairing</span>(&amp;g1.<span class="title function_ invoke__">to_affine</span>(), &amp;new_paramter.g2_mine.<span class="title function_ invoke__">unwrap</span>());</span><br><span class="line">  	result = E::<span class="title function_ invoke__">pairing</span>(&amp;new_paramter.g1_result.<span class="title function_ invoke__">unwrap</span>(), &amp;g2.<span class="title function_ invoke__">to_affine</span>())</span><br><span class="line">        == E::<span class="title function_ invoke__">pairing</span>(&amp;g1.<span class="title function_ invoke__">to_affine</span>(), &amp;new_paramter.g2_result.<span class="title function_ invoke__">unwrap</span>());</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">index</span> = paramters.<span class="title function_ invoke__">len</span>();</span><br><span class="line">		<span class="comment">/**</span></span><br><span class="line"><span class="comment">		* 这一步用来验证第i个节点是否篡改了原来的数据：拿出一个进故宫验证的节点i-1的数据list[i-1]</span></span><br><span class="line"><span class="comment">		* 那么应该有：pairing(list[i-1].g1_result,new_paramter.g2_mine)==pairing(new_paramter.g1_result,g2)</span></span><br><span class="line"><span class="comment">		*/</span></span><br><span class="line">    <span class="title function_ invoke__">if</span> (index &gt;= <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">paramter_last</span> = new_paramter.g1_result.<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">paramter_part2</span> = new_paramter.g2_mine.<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">paramter_part1</span> = paramters[index - <span class="number">1</span>].g1_result.<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        result = result</span><br><span class="line">            &amp;&amp; E::<span class="title function_ invoke__">pairing</span>(&amp;paramter_last, &amp;g2.<span class="title function_ invoke__">to_affine</span>())</span><br><span class="line">                == E::<span class="title function_ invoke__">pairing</span>(&amp;paramter_part1, &amp;paramter_part2);</span><br><span class="line">    &#125;</span><br><span class="line">    result</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果验证通过，再将该节点的信息加入进列表，进行下一轮计算。</p>
+<p>最后拿到的g1_result和g2_result就是<span
+class="math inline">\((\prod_{i=1}^n a_i)\times g_1\)</span>和<span
+class="math inline">\((\prod_{i=1}^n a_i)\times
+g_2\)</span>了，这同时我们确实没有泄露任何一个<span
+class="math inline">\(a\)</span>，也避免了作恶。</p>
+<h2 id="一些总结和延伸">一些总结和延伸</h2>
+<p>大家应该可以看出这个实例也可以用同态加法或乘法来做，比如每个人传<span
+class="math inline">\(a_i\times g_1\)</span>，然后维护一个<span
+class="math inline">\((a_1+a_2+...+a_i)\times
+g_1\)</span>来使用和验证即可。或者说任何一个同态加密方法都可以依照此法进行多方计算。</p>
+<p>同态加密也可以用于验证信息，比如同一组信息分成几个碎片，通过这吸热碎片验证这个集体对某物的所有权，我们可以通过同态加密计算，每一个人的私钥碎片是<span
+class="math inline">\(k_1,k_2...k_n\)</span>，私钥为<span
+class="math inline">\(K=(\prod_{i=1}^n
+k_i)\)</span>如何在不互通私钥信息的情况下一起生成一个私钥呢？可以把每一个私钥同态隐藏起来<span
+class="math inline">\(E(k_i)\)</span>，计算<span
+class="math inline">\(E(\prod_{i=1}^n k_i) = \prod_{i=1}^n
+E(k_i)\)</span>来进行验证。</p>
+<p>感谢您的观看，作者也是刚刚接触，如有错漏请诸君斧正。</p>
+<p><a href="alvan.coffee">作者博客: alvan.coffee</a></p>
+]]></content>
+      <categories>
+        <category>密码学</category>
+      </categories>
+      <tags>
+        <tag>rust</tag>
+        <tag>密码学</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Hello</title>
     <url>/2022/06/09/hello-world/</url>
     <content><![CDATA[<p>你好呀，我是张钰Alvan，主业是区块链/智能合约开发，了解一些defi项目，喜欢芥川龙之介和卡夫卡，希望能和更多的人交朋友！qq1541115709</p>
@@ -1499,117 +1706,6 @@ deltaBlock\)</span>，确实和我们预想的一样。</p>
       </categories>
       <tags>
         <tag>Rust</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>入门Defi第一步，初识DEX,AMM与LP token</title>
-    <url>/2022/06/13/Intro-DEX-AMM-LP-Token/</url>
-    <content><![CDATA[<h2 id="dex是什么">DEX是什么？</h2>
-<p>​ DEX(Decentralized
-Exchange)，即去中心化交易所，不依赖券商、银行等金融机构提供金融工具，而是利用区块链上的智能合约就可以提供交易服务的交易所。例如Uniswap，Curve，Pancake等等。</p>
-<h2 id="dex与传统交易所">DEX与传统交易所</h2>
-<p>​
-DEX和传统交易所的区别并不只在于数据存储的方式和所有权不同，在交易方式和原理上也有着本质的区别。我们以最常见的DEX框架即AMM模型与传统交易所挂单模型对比：</p>
-<h3 id="两种交易所订单簿模型的区别">两种交易所订单簿模型的区别：</h3>
-<p>中心化交易所：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.18-1024x887.png" alt="img" style="zoom:30%;" />DEX：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.24-1024x500.png" alt="img" style="zoom:33%;" />
-中心化交易所的卖方在交易所挂单，买方通过交易所自动撮合下单购买。
-DEX的不存在买方和卖方的差异，其本质也不是购兑换对方的资产，而是直接从流动性资产池中换取需要的资产。
-<small>流动性资金池(liquidity
-pools)：用户交易使用的资产池，其中的资金由用户提供，提供资金的行为被称为提供流动性(add
-liquidity)。为了保证交易稳定、流动性充足，提供流动性的用户(liquidity
-provider)可以从每笔交易的手续费里提取分成作为奖励。</small></p>
-<h3 id="两种方案的优劣比较">两种方案的优劣比较：</h3>
-<table>
-<thead>
-<tr class="header">
-<th>中心化交易所</th>
-<th>DEX</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>审查身份</td>
-<td>不审查身份</td>
-</tr>
-<tr class="even">
-<td>手续费只存在于执行交易时</td>
-<td>每一步操作都需要手续费</td>
-</tr>
-<tr class="odd">
-<td>数据中心化，放在服务器</td>
-<td>数据去中心化，放在区块链</td>
-</tr>
-<tr class="even">
-<td>交易迅速</td>
-<td>交易缓慢</td>
-</tr>
-<tr class="odd">
-<td>巨鲸操盘，交易所黑幕</td>
-<td>套利机器人日夜巡逻</td>
-</tr>
-</tbody>
-</table>
-<p>​
-<small>存在DEX像0x协议这样使用零知识证明原理，实现“链上+链下”结合的方式实现挂单模型，在下文中DEX特指使用AMM的去中心化交易所</small></p>
-<h2 id="amm和lp-token是什么">AMM和LP token是什么？</h2>
-<h3 id="amm">AMM:</h3>
-<p>​ AMM即Automated Market
-Maker，自动化做市商。AMM应用在DEX中，使得买方和卖方之间不需要任何信任关系以及第三方就可以安全完成交易。AMM用户的买/卖本质上是在对相应资产的流动性资金池做兑换，而非买卖双方的动作。所以AMM天生适合去中心化交易所使用，只要资金池和定价模式完全依托去中心化平台，就没有任何单独实体可以操纵这个系统，同时每个人都可以在这个基础上建立新的应用。</p>
-<h3 id="lp-token">LP token:</h3>
-<p>​ LP token即(Liquidity Provider Token)，对于AMM来说，x -
-y两种资产的兑换需要一个x - y
-的资金池，而x，y两种资产由用户提供。用户把x和y资产质押进流动性以获取流动性挖矿(yield
-farming )奖励，而质押的凭证就是AMM给流动性提供者签发的一种新代币，称为LP
-token。 ​ 在DeFi飞速发展的过程中，DeFi的术语也在不断。很多情况下LP
-token具体叫什么是随着项目变化的。比如在Balancer中，通常被称为BPT或者pools
-tokens；在Uniswap里被称为liquidity tokens或者pool
-tokens，在Curve中被称为LP token。</p>
-<h2 id="amm的原理">AMM的原理</h2>
-<p>​
-AMM发展至今已经落地在不少应用中，虽然具体实现方法和应用场景略有差别，但很多以简单模型为基础改进，本节将以其代表项目UniswapV2为例讲解。各种改进算法将不做讨论
-AMM实现功能靠以下两个核心功能：</p>
-<h3 id="swaps">Swaps:</h3>
-<p>​ AMM的token交换基于流动性资金池和恒定乘积公式算法：<span
-class="math inline">\(x \times y = k\)</span>，即交易发生在 （卖出资产-
-买入资产）交易对的流动性资金池中，交易价格由恒定乘积公式决定。
-x，y为资金池中两种资产的量：
-<img src="https://lh3.googleusercontent.com/DlgPwa6IlYeRgPkAPdwHPY7P0UCGMSiiESzvhCpUUSFuJ0HhFWG3rV1FSxEb_RFyV1JfdBQ1MUjVkzO8yDmJQXf-O0Ym0UWj-CM5xla9hARaA0kY6D6tSDhsYVhVkhbDrOj2-WHv" alt="img" style="zoom:50%;" /></p>
-<p>​ 例如在一个<span class="math inline">\(x = 200\)</span>, <span
-class="math inline">\(y =
-300\)</span>的资金池内想用100个y来兑换x，那么有<span
-class="math inline">\((y+100)\times (x- \delta x) = x \times
-y\)</span>，可解兑换出50个x资产。一个池子内，x越少，就可以用x换取更多的y，反之亦然，套利者会自发将两者价格与全链同步，这就是swap的基本原理。
-​
-那么K值是否能够改变呢？答案是肯定的，因为手续费和流动性的原因，几乎每一笔交易成功实际发生后，k都会改变。所谓的固定乘积，是交易发生前计算价格的方法。</p>
-<h3 id="liquidity-pools">Liquidity Pools:</h3>
-<p>​ AMM的用户不直接与另一个用户发生交易，他们的交易要通过liquidity
-pools实现，而且因为在AMM的恒定乘积公式算法中，当流动性池内资金量少时，很容易出现x，y有一个非常小导致价格离谱的情况。
-​流动性资金池由用户质押资产提供，用户质押资产进入liquidity
-pools，然后获得质押凭证LP
-token，而提供流动性的用户也会获得手续费收益，即LP
-token分红和对应交易所的治理代币。用户也可以使用LP
-token赎回其质押的资产，被称为移除流动性(remove liquidity)。</p>
-<h2 id="流动性挖矿与lp-tokens">流动性挖矿与LP Tokens</h2>
-<p>​ LP Tokens的一个很引人注目的应用领域就是流动性挖矿(Yield
-Farming)，将他们两个结合起来，是一种向多个不同合约组合操作以达到收益最大化的挖矿方式，下面举一个Curve中的例子：</p>
-<ol type="1">
-<li>向Curve 的liquidity pool质押DAI</li>
-<li>获得LP tokens</li>
-<li>将LP tokens质押进Curve的质押池</li>
-<li>获得Curve利息</li>
-</ol>
-<h2 id="引用">引用：</h2>
-<p><a
-href="https://fintechruminations.com/2021/07/09/uniswap-and-the-amm-model/">UNISWAP
-AND THE AMM MODEL</a> <a
-href="https://www.gemini.com/cryptopedia/liquidity-provider-amm-tokens">How
-Liquidity Provider (LP) Tokens Work</a></p>
-]]></content>
-      <categories>
-        <category>以太坊</category>
-      </categories>
-      <tags>
-        <tag>DeFi</tag>
       </tags>
   </entry>
 </search>

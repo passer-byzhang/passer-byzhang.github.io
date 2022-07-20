@@ -252,106 +252,52 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="dex是什么">DEX是什么？</h2>
-<p>​ DEX(Decentralized
-Exchange)，即去中心化交易所，不依赖券商、银行等金融机构提供金融工具，而是利用区块链上的智能合约就可以提供交易服务的交易所。例如Uniswap，Curve，Pancake等等。</p>
-<h2 id="dex与传统交易所">DEX与传统交易所</h2>
-<p>​
-DEX和传统交易所的区别并不只在于数据存储的方式和所有权不同，在交易方式和原理上也有着本质的区别。我们以最常见的DEX框架即AMM模型与传统交易所挂单模型对比：</p>
-<h3 id="两种交易所订单簿模型的区别">两种交易所订单簿模型的区别：</h3>
-<p>中心化交易所：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.18-1024x887.png" alt="img" style="zoom:30%;" />DEX：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.24-1024x500.png" alt="img" style="zoom:33%;" />
-中心化交易所的卖方在交易所挂单，买方通过交易所自动撮合下单购买。
-DEX的不存在买方和卖方的差异，其本质也不是购兑换对方的资产，而是直接从流动性资产池中换取需要的资产。
-<small>流动性资金池(liquidity
-pools)：用户交易使用的资产池，其中的资金由用户提供，提供资金的行为被称为提供流动性(add
-liquidity)。为了保证交易稳定、流动性充足，提供流动性的用户(liquidity
-provider)可以从每笔交易的手续费里提取分成作为奖励。</small></p>
-<h3 id="两种方案的优劣比较">两种方案的优劣比较：</h3>
-<table>
+        <h2 id="DEX是什么？"><a href="#DEX是什么？" class="headerlink" title="DEX是什么？"></a>DEX是什么？</h2><p>​		DEX(Decentralized Exchange)，即去中心化交易所，不依赖券商、银行等金融机构提供金融工具，而是利用区块链上的智能合约就可以提供交易服务的交易所。例如Uniswap，Curve，Pancake等等。</p>
+<h2 id="DEX与传统交易所"><a href="#DEX与传统交易所" class="headerlink" title="DEX与传统交易所"></a>DEX与传统交易所</h2><p>​		DEX和传统交易所的区别并不只在于数据存储的方式和所有权不同，在交易方式和原理上也有着本质的区别。我们以最常见的DEX框架即AMM模型与传统交易所挂单模型对比：</p>
+<h3 id="两种交易所订单簿模型的区别："><a href="#两种交易所订单簿模型的区别：" class="headerlink" title="两种交易所订单簿模型的区别："></a>两种交易所订单簿模型的区别：</h3><p>中心化交易所：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.18-1024x887.png" alt="img" style="zoom:30%;" />DEX：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.24-1024x500.png" alt="img" style="zoom:33%;" /><br>中心化交易所的卖方在交易所挂单，买方通过交易所自动撮合下单购买。<br>DEX的不存在买方和卖方的差异，其本质也不是购兑换对方的资产，而是直接从流动性资产池中换取需要的资产。<br>        <small>流动性资金池(liquidity pools)：用户交易使用的资产池，其中的资金由用户提供，提供资金的行为被称为提供流动性(add liquidity)。为了保证交易稳定、流动性充足，提供流动性的用户(liquidity provider)可以从每笔交易的手续费里提取分成作为奖励。</small></p>
+<h3 id="两种方案的优劣比较："><a href="#两种方案的优劣比较：" class="headerlink" title="两种方案的优劣比较："></a>两种方案的优劣比较：</h3><table>
 <thead>
-<tr class="header">
+<tr>
 <th>中心化交易所</th>
 <th>DEX</th>
 </tr>
 </thead>
-<tbody>
-<tr class="odd">
+<tbody><tr>
 <td>审查身份</td>
 <td>不审查身份</td>
 </tr>
-<tr class="even">
+<tr>
 <td>手续费只存在于执行交易时</td>
 <td>每一步操作都需要手续费</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>数据中心化，放在服务器</td>
 <td>数据去中心化，放在区块链</td>
 </tr>
-<tr class="even">
+<tr>
 <td>交易迅速</td>
 <td>交易缓慢</td>
 </tr>
-<tr class="odd">
+<tr>
 <td>巨鲸操盘，交易所黑幕</td>
 <td>套利机器人日夜巡逻</td>
 </tr>
-</tbody>
-</table>
-<p>​
-<small>存在DEX像0x协议这样使用零知识证明原理，实现“链上+链下”结合的方式实现挂单模型，在下文中DEX特指使用AMM的去中心化交易所</small></p>
-<h2 id="amm和lp-token是什么">AMM和LP token是什么？</h2>
-<h3 id="amm">AMM:</h3>
-<p>​ AMM即Automated Market
-Maker，自动化做市商。AMM应用在DEX中，使得买方和卖方之间不需要任何信任关系以及第三方就可以安全完成交易。AMM用户的买/卖本质上是在对相应资产的流动性资金池做兑换，而非买卖双方的动作。所以AMM天生适合去中心化交易所使用，只要资金池和定价模式完全依托去中心化平台，就没有任何单独实体可以操纵这个系统，同时每个人都可以在这个基础上建立新的应用。</p>
-<h3 id="lp-token">LP token:</h3>
-<p>​ LP token即(Liquidity Provider Token)，对于AMM来说，x -
-y两种资产的兑换需要一个x - y
-的资金池，而x，y两种资产由用户提供。用户把x和y资产质押进流动性以获取流动性挖矿(yield
-farming )奖励，而质押的凭证就是AMM给流动性提供者签发的一种新代币，称为LP
-token。 ​ 在DeFi飞速发展的过程中，DeFi的术语也在不断。很多情况下LP
-token具体叫什么是随着项目变化的。比如在Balancer中，通常被称为BPT或者pools
-tokens；在Uniswap里被称为liquidity tokens或者pool
-tokens，在Curve中被称为LP token。</p>
-<h2 id="amm的原理">AMM的原理</h2>
-<p>​
-AMM发展至今已经落地在不少应用中，虽然具体实现方法和应用场景略有差别，但很多以简单模型为基础改进，本节将以其代表项目UniswapV2为例讲解。各种改进算法将不做讨论
-AMM实现功能靠以下两个核心功能：</p>
-<h3 id="swaps">Swaps:</h3>
-<p>​ AMM的token交换基于流动性资金池和恒定乘积公式算法：<span
-class="math inline">\(x \times y = k\)</span>，即交易发生在 （卖出资产-
-买入资产）交易对的流动性资金池中，交易价格由恒定乘积公式决定。
-x，y为资金池中两种资产的量：
-<img src="https://lh3.googleusercontent.com/DlgPwa6IlYeRgPkAPdwHPY7P0UCGMSiiESzvhCpUUSFuJ0HhFWG3rV1FSxEb_RFyV1JfdBQ1MUjVkzO8yDmJQXf-O0Ym0UWj-CM5xla9hARaA0kY6D6tSDhsYVhVkhbDrOj2-WHv" alt="img" style="zoom:50%;" /></p>
-<p>​ 例如在一个<span class="math inline">\(x = 200\)</span>, <span
-class="math inline">\(y =
-300\)</span>的资金池内想用100个y来兑换x，那么有<span
-class="math inline">\((y+100)\times (x- \delta x) = x \times
-y\)</span>，可解兑换出50个x资产。一个池子内，x越少，就可以用x换取更多的y，反之亦然，套利者会自发将两者价格与全链同步，这就是swap的基本原理。
-​
-那么K值是否能够改变呢？答案是肯定的，因为手续费和流动性的原因，几乎每一笔交易成功实际发生后，k都会改变。所谓的固定乘积，是交易发生前计算价格的方法。</p>
-<h3 id="liquidity-pools">Liquidity Pools:</h3>
-<p>​ AMM的用户不直接与另一个用户发生交易，他们的交易要通过liquidity
-pools实现，而且因为在AMM的恒定乘积公式算法中，当流动性池内资金量少时，很容易出现x，y有一个非常小导致价格离谱的情况。
-​流动性资金池由用户质押资产提供，用户质押资产进入liquidity
-pools，然后获得质押凭证LP
-token，而提供流动性的用户也会获得手续费收益，即LP
-token分红和对应交易所的治理代币。用户也可以使用LP
-token赎回其质押的资产，被称为移除流动性(remove liquidity)。</p>
-<h2 id="流动性挖矿与lp-tokens">流动性挖矿与LP Tokens</h2>
-<p>​ LP Tokens的一个很引人注目的应用领域就是流动性挖矿(Yield
-Farming)，将他们两个结合起来，是一种向多个不同合约组合操作以达到收益最大化的挖矿方式，下面举一个Curve中的例子：</p>
-<ol type="1">
+</tbody></table>
+<p>​		<small>存在DEX像0x协议这样使用零知识证明原理，实现“链上+链下”结合的方式实现挂单模型，在下文中DEX特指使用AMM的去中心化交易所</small></p>
+<h2 id="AMM和LP-token是什么？"><a href="#AMM和LP-token是什么？" class="headerlink" title="AMM和LP token是什么？"></a>AMM和LP token是什么？</h2><h3 id="AMM"><a href="#AMM" class="headerlink" title="AMM:"></a>AMM:</h3><p>​		AMM即Automated Market Maker，自动化做市商。AMM应用在DEX中，使得买方和卖方之间不需要任何信任关系以及第三方就可以安全完成交易。AMM用户的买&#x2F;卖本质上是在对相应资产的流动性资金池做兑换，而非买卖双方的动作。所以AMM天生适合去中心化交易所使用，只要资金池和定价模式完全依托去中心化平台，就没有任何单独实体可以操纵这个系统，同时每个人都可以在这个基础上建立新的应用。</p>
+<h3 id="LP-token"><a href="#LP-token" class="headerlink" title="LP token:"></a>LP token:</h3><p>​		LP token即(Liquidity Provider Token)，对于AMM来说，x - y两种资产的兑换需要一个x - y 的资金池，而x，y两种资产由用户提供。用户把x和y资产质押进流动性以获取流动性挖矿(yield farming )奖励，而质押的凭证就是AMM给流动性提供者签发的一种新代币，称为LP token。<br>​		在DeFi飞速发展的过程中，DeFi的术语也在不断。很多情况下LP token具体叫什么是随着项目变化的。比如在Balancer中，通常被称为BPT或者pools tokens；在Uniswap里被称为liquidity tokens或者pool tokens，在Curve中被称为LP token。</p>
+<h2 id="AMM的原理"><a href="#AMM的原理" class="headerlink" title="AMM的原理"></a>AMM的原理</h2><p>​		AMM发展至今已经落地在不少应用中，虽然具体实现方法和应用场景略有差别，但很多以简单模型为基础改进，本节将以其代表项目UniswapV2为例讲解。各种改进算法将不做讨论<br>AMM实现功能靠以下两个核心功能：</p>
+<h3 id="Swaps"><a href="#Swaps" class="headerlink" title="Swaps:"></a>Swaps:</h3><p>​		AMM的token交换基于流动性资金池和恒定乘积公式算法：$x \times y &#x3D; k$，即交易发生在 （卖出资产- 买入资产）交易对的流动性资金池中，交易价格由恒定乘积公式决定。<br>x，y为资金池中两种资产的量：<br><img src="https://lh3.googleusercontent.com/DlgPwa6IlYeRgPkAPdwHPY7P0UCGMSiiESzvhCpUUSFuJ0HhFWG3rV1FSxEb_RFyV1JfdBQ1MUjVkzO8yDmJQXf-O0Ym0UWj-CM5xla9hARaA0kY6D6tSDhsYVhVkhbDrOj2-WHv" alt="img" style="zoom:50%;" /></p>
+<p>​		例如在一个$x &#x3D; 200$, $y &#x3D; 300$的资金池内想用100个y来兑换x，那么有$(y+100)\times (x- \delta x) &#x3D; x \times y$，可解兑换出50个x资产。一个池子内，x越少，就可以用x换取更多的y，反之亦然，套利者会自发将两者价格与全链同步，这就是swap的基本原理。<br>​		那么K值是否能够改变呢？答案是肯定的，因为手续费和流动性的原因，几乎每一笔交易成功实际发生后，k都会改变。所谓的固定乘积，是交易发生前计算价格的方法。</p>
+<h3 id="Liquidity-Pools"><a href="#Liquidity-Pools" class="headerlink" title="Liquidity Pools:"></a>Liquidity Pools:</h3><p>​		AMM的用户不直接与另一个用户发生交易，他们的交易要通过liquidity pools实现，而且因为在AMM的恒定乘积公式算法中，当流动性池内资金量少时，很容易出现x，y有一个非常小导致价格离谱的情况。<br>​		流动性资金池由用户质押资产提供，用户质押资产进入liquidity pools，然后获得质押凭证LP token，而提供流动性的用户也会获得手续费收益，即LP token分红和对应交易所的治理代币。用户也可以使用LP token赎回其质押的资产，被称为移除流动性(remove liquidity)。</p>
+<h2 id="流动性挖矿与LP-Tokens"><a href="#流动性挖矿与LP-Tokens" class="headerlink" title="流动性挖矿与LP Tokens"></a>流动性挖矿与LP Tokens</h2><p>​		LP Tokens的一个很引人注目的应用领域就是流动性挖矿(Yield Farming)，将他们两个结合起来，是一种向多个不同合约组合操作以达到收益最大化的挖矿方式，下面举一个Curve中的例子：</p>
+<ol>
 <li>向Curve 的liquidity pool质押DAI</li>
 <li>获得LP tokens</li>
 <li>将LP tokens质押进Curve的质押池</li>
 <li>获得Curve利息</li>
 </ol>
-<h2 id="引用">引用：</h2>
-<p><a
-target="_blank" rel="noopener" href="https://fintechruminations.com/2021/07/09/uniswap-and-the-amm-model/">UNISWAP
-AND THE AMM MODEL</a> <a
-target="_blank" rel="noopener" href="https://www.gemini.com/cryptopedia/liquidity-provider-amm-tokens">How
-Liquidity Provider (LP) Tokens Work</a></p>
+<h2 id="引用："><a href="#引用：" class="headerlink" title="引用："></a>引用：</h2><p><a target="_blank" rel="noopener" href="https://fintechruminations.com/2021/07/09/uniswap-and-the-amm-model/">UNISWAP AND THE AMM MODEL</a><br><a target="_blank" rel="noopener" href="https://www.gemini.com/cryptopedia/liquidity-provider-amm-tokens">How Liquidity Provider (LP) Tokens Work</a></p>
 
     </div>
 
@@ -436,7 +382,7 @@ Liquidity Provider (LP) Tokens Work</a></p>
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#dex%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">1.</span> <span class="nav-text">DEX是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#dex%E4%B8%8E%E4%BC%A0%E7%BB%9F%E4%BA%A4%E6%98%93%E6%89%80"><span class="nav-number">2.</span> <span class="nav-text">DEX与传统交易所</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%A4%E7%A7%8D%E4%BA%A4%E6%98%93%E6%89%80%E8%AE%A2%E5%8D%95%E7%B0%BF%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="nav-number">2.1.</span> <span class="nav-text">两种交易所订单簿模型的区别：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%A4%E7%A7%8D%E6%96%B9%E6%A1%88%E7%9A%84%E4%BC%98%E5%8A%A3%E6%AF%94%E8%BE%83"><span class="nav-number">2.2.</span> <span class="nav-text">两种方案的优劣比较：</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#amm%E5%92%8Clp-token%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-number">3.</span> <span class="nav-text">AMM和LP token是什么？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#amm"><span class="nav-number">3.1.</span> <span class="nav-text">AMM:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#lp-token"><span class="nav-number">3.2.</span> <span class="nav-text">LP token:</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#amm%E7%9A%84%E5%8E%9F%E7%90%86"><span class="nav-number">4.</span> <span class="nav-text">AMM的原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#swaps"><span class="nav-number">4.1.</span> <span class="nav-text">Swaps:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#liquidity-pools"><span class="nav-number">4.2.</span> <span class="nav-text">Liquidity Pools:</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%81%E5%8A%A8%E6%80%A7%E6%8C%96%E7%9F%BF%E4%B8%8Elp-tokens"><span class="nav-number">5.</span> <span class="nav-text">流动性挖矿与LP Tokens</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%95%E7%94%A8"><span class="nav-number">6.</span> <span class="nav-text">引用：</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#DEX%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-number">1.</span> <span class="nav-text">DEX是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DEX%E4%B8%8E%E4%BC%A0%E7%BB%9F%E4%BA%A4%E6%98%93%E6%89%80"><span class="nav-number">2.</span> <span class="nav-text">DEX与传统交易所</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%A4%E7%A7%8D%E4%BA%A4%E6%98%93%E6%89%80%E8%AE%A2%E5%8D%95%E7%B0%BF%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%8C%BA%E5%88%AB%EF%BC%9A"><span class="nav-number">2.1.</span> <span class="nav-text">两种交易所订单簿模型的区别：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%A4%E7%A7%8D%E6%96%B9%E6%A1%88%E7%9A%84%E4%BC%98%E5%8A%A3%E6%AF%94%E8%BE%83%EF%BC%9A"><span class="nav-number">2.2.</span> <span class="nav-text">两种方案的优劣比较：</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AMM%E5%92%8CLP-token%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-number">3.</span> <span class="nav-text">AMM和LP token是什么？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#AMM"><span class="nav-number">3.1.</span> <span class="nav-text">AMM:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LP-token"><span class="nav-number">3.2.</span> <span class="nav-text">LP token:</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AMM%E7%9A%84%E5%8E%9F%E7%90%86"><span class="nav-number">4.</span> <span class="nav-text">AMM的原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Swaps"><span class="nav-number">4.1.</span> <span class="nav-text">Swaps:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Liquidity-Pools"><span class="nav-number">4.2.</span> <span class="nav-text">Liquidity Pools:</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%81%E5%8A%A8%E6%80%A7%E6%8C%96%E7%9F%BF%E4%B8%8ELP-Tokens"><span class="nav-number">5.</span> <span class="nav-text">流动性挖矿与LP Tokens</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%95%E7%94%A8%EF%BC%9A"><span class="nav-number">6.</span> <span class="nav-text">引用：</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -452,14 +398,14 @@ Liquidity Provider (LP) Tokens Work</a></p>
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-count">12</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">5</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">

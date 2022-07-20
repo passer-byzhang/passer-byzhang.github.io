@@ -247,13 +247,9 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p><u>注：本篇文章适合初步了解区块链以及去中心化知识的Defi初学者/合约开发者，仅供学习参考，作者不推荐中国大陆居民购买任何加密货币与其理财产品</u></p>
-<h2 id="前言">前言</h2>
-<p>作者在fork一份compound的项目之后，觉得其中有不少值得一说的思想，比如激励comp的分配模式，利率模型等等。这篇文章会主要从业务逻辑和合约代码来讲解其经济模型，其治理模式，预言机与其他组件不做讲解，争取做到Defi初学者看完可以理解模型，开发者看完可以直接复现(不是，compound的代码本身也出现过一些漏洞，copy需谨慎)。</p>
-<h2 id="项目简介">项目简介</h2>
-<h3 id="背景介绍">背景介绍</h3>
-<p>compound是一个借贷合约，想想通常情况下在中心化的机构例如银行里进行质押
-- 借贷的程序是：</p>
+        <p><u>注：本篇文章适合初步了解区块链以及去中心化知识的Defi初学者&#x2F;合约开发者，仅供学习参考，作者不推荐中国大陆居民购买任何加密货币与其理财产品</u></p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>作者在fork一份compound的项目之后，觉得其中有不少值得一说的思想，比如激励comp的分配模式，利率模型等等。这篇文章会主要从业务逻辑和合约代码来讲解其经济模型，其治理模式，预言机与其他组件不做讲解，争取做到Defi初学者看完可以理解模型，开发者看完可以直接复现(不是，compound的代码本身也出现过一些漏洞，copy需谨慎)。</p>
+<h2 id="项目简介"><a href="#项目简介" class="headerlink" title="项目简介"></a>项目简介</h2><h3 id="背景介绍"><a href="#背景介绍" class="headerlink" title="背景介绍"></a>背景介绍</h3><p> compound是一个借贷合约，想想通常情况下在中心化的机构例如银行里进行质押 - 借贷的程序是：</p>
 <p>小张 存入 100元 到 某银行的资金池</p>
 <p>小李 抵押 价值150元的资产 从 某银行的资金池 借出 100元</p>
 <p>一个月后</p>
@@ -268,108 +264,61 @@
 <p>P2P平台 中间收取 一定比例的手续费与管理费1元</p>
 <p>小张 拿走其余9元利息和100元本金</p>
 <p>如果小李逾期未还，看P2P平台的心情平账</p>
-<p>P2P的问题依然明显，用户为了取得更高的收益承担了更多的风险，P2P平台的诚信和公正也无法保证。去中心化想要解决的就是大平台的高抽成和垄断问题和小平台的信任问题，把分账，风险评估，清算全部交给不可更改的程序，这就是co
-mpound与其他Defi项目所做的事情。</p>
-<h3 id="基本结构">基本结构</h3>
-<p>compound提供了借款，还款，存款，取款，清算等功能，它的质押资产和借出资产都是虚拟货币。</p>
-<p>其中每一种虚拟货币的资金池称为一个market，所有质押A货币的用户共同构成一个A
-market。同理，所有借出A货币的用户都从这个market借款，还款。他们共同使用A
-market的借款利率和抵押利率。这让风险和收益平分到了每个使用者的身上，一个人不用因为借出某个坏人而坏账，因为他们共用这个market。</p>
-<p>-------这就是CToken合约做的事情</p>
-<p>我们这样做的前提是可以判断质押物和借出的价值和数量。例如小李想要借走1个eth，那么他的质押物总值应该大于等于value(1
-eth) / factor
-，此处的factor为质押率，我们需要一个中间系统来整合每个market的情况和用户在每个market里的存款和借款。我们把CToken和用户信息登记到这个comptroller合约内，这样可以整合每个用户的资/债情况，
-再由comptroller合约来对接预言机，获得虚拟货币的单价。这样通过使用每个虚拟货币的单价和用户在每个market里的质押/借出值，算出用户目前的财务状态，帮助CToken判断是否同意用户的借款/取款操作</p>
-<p>-------这就是comptroller合约做的事情</p>
-<p>我们在上边两个合约里解决了信任问题，使用固定利率明显不符合大开大合的加密货币市场，我们要添加一个市场调节的利率模型和利息计算模式，这也是compound的核心经济模型。我将在下一节
-业务逻辑 详细介绍。</p>
-<p>-------这就是InterestModel合约做的事情</p>
-<p>作为一个Defi项目自然要自己发行一个新币啦，它会给每个market的用户的几乎每次财产操作发放激励，它也作为compound项目的治理代币，可以参与修改预言机或者市场的利率模型等，其激励机制我也会在下一节
-业务逻辑 详细介绍。</p>
-<p>-------这就是Comp合约做的事情</p>
-<h2 id="业务逻辑">业务逻辑</h2>
-<h3 id="业务流程">业务流程</h3>
-<p>首先，我们需要一个标记用户质押资产和借款的方法，而质押资产的价值和借款的数目与价值会随着利息改变，这时引入一个概念
-cToken。cToken是CToken合约发行的货币，在用户存入底层资产时，发给用户作为资产凭证。</p>
-<p>比如小张存入100A币，则A market对应的CToken合约会给用户发放
-100/exchangeRate 个
-cA币。exchange的初始值由管理员设定，之后的公式为：</p>
-<p><span class="math inline">\(exchangeRate =
-\frac{totalCash+totalBorrow-totalReserves}{totalSupply}\)</span></p>
-<p>其中totalSupply为发行的所有cA
-币总量，totalCash为存入该market且没被借走的A币总值，totalBorrow为从market里借走的A币总量，totalReserves为CToken自己收取的中介费。</p>
-<p>小李想借出一些A币，那么他向market发起借款申请：借100个A币。comptroller查询了他在所有market里的资/债情况，也就是借款记录和cB,cC,cD.......等等的持有量，判断该次操作是否会造成资不抵债，如果不会，则给小李的账户发送100A币，并在A
-market里更新小李的A 借款额。</p>
-<p>在小李借走100A的时间里，每一个用户的每次资产操作都会 “刷新利息/利率”
-，会更新一些系数，控制exchangeRate和每个人的借款额。</p>
+<p>P2P的问题依然明显，用户为了取得更高的收益承担了更多的风险，P2P平台的诚信和公正也无法保证。去中心化想要解决的就是大平台的高抽成和垄断问题和小平台的信任问题，把分账，风险评估，清算全部交给不可更改的程序，这就是co mpound与其他Defi项目所做的事情。</p>
+<h3 id="基本结构"><a href="#基本结构" class="headerlink" title="基本结构"></a>基本结构</h3><p>compound提供了借款，还款，存款，取款，清算等功能，它的质押资产和借出资产都是虚拟货币。</p>
+<p>其中每一种虚拟货币的资金池称为一个market，所有质押A货币的用户共同构成一个A market。同理，所有借出A货币的用户都从这个market借款，还款。他们共同使用A market的借款利率和抵押利率。这让风险和收益平分到了每个使用者的身上，一个人不用因为借出某个坏人而坏账，因为他们共用这个market。</p>
+<p>——-这就是CToken合约做的事情</p>
+<p>我们这样做的前提是可以判断质押物和借出的价值和数量。例如小李想要借走1个eth，那么他的质押物总值应该大于等于value(1 eth) &#x2F; factor ，此处的factor为质押率，我们需要一个中间系统来整合每个market的情况和用户在每个market里的存款和借款。我们把CToken和用户信息登记到这个comptroller合约内，这样可以整合每个用户的资&#x2F;债情况， 再由comptroller合约来对接预言机，获得虚拟货币的单价。这样通过使用每个虚拟货币的单价和用户在每个market里的质押&#x2F;借出值，算出用户目前的财务状态，帮助CToken判断是否同意用户的借款&#x2F;取款操作   </p>
+<p> ——-这就是comptroller合约做的事情</p>
+<p>我们在上边两个合约里解决了信任问题，使用固定利率明显不符合大开大合的加密货币市场，我们要添加一个市场调节的利率模型和利息计算模式，这也是compound的核心经济模型。我将在下一节 业务逻辑 详细介绍。</p>
+<p> ——-这就是InterestModel合约做的事情</p>
+<p>作为一个Defi项目自然要自己发行一个新币啦，它会给每个market的用户的几乎每次财产操作发放激励，它也作为compound项目的治理代币，可以参与修改预言机或者市场的利率模型等，其激励机制我也会在下一节 业务逻辑 详细介绍。</p>
+<p> ——-这就是Comp合约做的事情</p>
+<h2 id="业务逻辑"><a href="#业务逻辑" class="headerlink" title="业务逻辑"></a>业务逻辑</h2><h3 id="业务流程"><a href="#业务流程" class="headerlink" title="业务流程"></a>业务流程</h3><p>首先，我们需要一个标记用户质押资产和借款的方法，而质押资产的价值和借款的数目与价值会随着利息改变，这时引入一个概念 cToken。cToken是CToken合约发行的货币，在用户存入底层资产时，发给用户作为资产凭证。</p>
+<p>比如小张存入100A币，则A market对应的CToken合约会给用户发放 100&#x2F;exchangeRate 个 cA币。exchange的初始值由管理员设定，之后的公式为：</p>
+<p>$exchangeRate &#x3D; \frac{totalCash+totalBorrow-totalReserves}{totalSupply}$</p>
+<p>其中totalSupply为发行的所有cA 币总量，totalCash为存入该market且没被借走的A币总值，totalBorrow为从market里借走的A币总量，totalReserves为CToken自己收取的中介费。</p>
+<p>小李想借出一些A币，那么他向market发起借款申请：借100个A币。comptroller查询了他在所有market里的资&#x2F;债情况，也就是借款记录和cB,cC,cD…….等等的持有量，判断该次操作是否会造成资不抵债，如果不会，则给小李的账户发送100A币，并在A market里更新小李的A 借款额。</p>
+<p>在小李借走100A的时间里，每一个用户的每次资产操作都会 “刷新利息&#x2F;利率” ，会更新一些系数，控制exchangeRate和每个人的借款额。</p>
 <p>如果小李借走100A的期间里，A币价格暴跌，套利机器人将把小李的其他资产贱卖进行平账。</p>
 <p>因为一个用户的资产凭证只有cA，相同的cA在不同的时间可以兑换不同数量的A币，这就是该项目产生收益和亏损的直接原因。</p>
-<h3 id="利率模型">利率模型</h3>
-<h4 id="利息的产生">利息的产生</h4>
-<p>每一个资产操作前都要进行的刷新利率/利息，合约内的数据变动是这样的：</p>
-<p>$interestAccmulated = totalBorrow borrowRate deltaBlock $</p>
-<p><span class="math inline">\(totalBorrowNew = totalBorrow +
-interestAccmulated\)</span></p>
-<p>$totalReservesNew = totalReserves + reservesFactor interestAccmulated
-$</p>
-<p><span class="math inline">\(borrowIndexNew = borrowIndex +
-borrowIndex \times borrowRate \times deltaBlock\)</span></p>
+<h3 id="利率模型"><a href="#利率模型" class="headerlink" title="利率模型"></a>利率模型</h3><h4 id="利息的产生"><a href="#利息的产生" class="headerlink" title="利息的产生"></a>利息的产生</h4><p>每一个资产操作前都要进行的刷新利率&#x2F;利息，合约内的数据变动是这样的：</p>
+<p>$interestAccmulated &#x3D; totalBorrow \times borrowRate \times deltaBlock $</p>
+<p>$totalBorrowNew &#x3D; totalBorrow + interestAccmulated$ </p>
+<p>$totalReservesNew &#x3D; totalReserves + reservesFactor \times interestAccmulated $</p>
+<p>$borrowIndexNew &#x3D; borrowIndex + borrowIndex \times borrowRate \times deltaBlock$</p>
 <p>borrowRate是借款利率(后面细说来源)，reservesFactor是market设置的中介费系数，通常比较低。</p>
 <p>borrowIndex是用来调节借款者利息的标记位，初始值为1。</p>
 <p>我们可以看到如果不动任何资产，</p>
-<p>对于cA持有者，也就是A的存款者来说，每一次刷新之后totalBorrow -
-totalReserves 就会变大，exchangeRate就会变大，那么每一个A兑换的cA
-变少了，持有cA 的人在取款时可以收到比存取时更加多的A币。</p>
+<p>对于cA持有者，也就是A的存款者来说，每一次刷新之后totalBorrow - totalReserves 就会变大，exchangeRate就会变大，那么每一个A兑换的cA 变少了，持有cA 的人在取款时可以收到比存取时更加多的A币。</p>
 <p>对于A的借款者来说，他的利息通过borrowIndex控制，每次还款和借款都会更新，具体如下：</p>
-<p><span class="math inline">\(borrowAmount = \frac {principal \times
-borrowIndexA} {borrowIndexB}\)</span></p>
-<p>其中，principal为该账户借款的目前更新前记账数值数值，borowIndexA为整个A
-market现在的borrowIndex，borrowIndexB是上一次借款时的borrowIndexA，他的借款额也就更新到账户上了。需要还掉的借款变多了。</p>
-<h4 id="利率的计算">利率的计算</h4>
-<p>compound的利率模型其实就是一个核心观念：市场使用率(utilizationRate)</p>
-<p><span class="math inline">\(utilizationRate =
-\frac{borrows}{cash+borrows-reserves}\)</span></p>
+<p>$borrowAmount &#x3D; \frac {principal \times borrowIndexA} {borrowIndexB}$</p>
+<p>其中，principal为该账户借款的目前更新前记账数值数值，borowIndexA为整个A market现在的borrowIndex，borrowIndexB是上一次借款时的borrowIndexA，他的借款额也就更新到账户上了。需要还掉的借款变多了。</p>
+<h4 id="利率的计算"><a href="#利率的计算" class="headerlink" title="利率的计算"></a>利率的计算</h4><p>compound的利率模型其实就是一个核心观念：市场使用率(utilizationRate)</p>
+<p>$utilizationRate &#x3D; \frac{borrows}{cash+borrows-reserves}$</p>
 <p>使用率越高，我们的意愿是引入更多的存款者，限制更多的借款者，也就是利息越高，这时我们看借款利率：</p>
-<p><span class="math inline">\(borrowRatePerBlock = baseRatePerBlock +
-utilizationRate \times multiplierPerBlock\)</span></p>
+<p>$borrowRatePerBlock &#x3D; baseRatePerBlock + utilizationRate \times multiplierPerBlock$</p>
 <p>baseRatePerBlock和multiplierPerBlock，都由模型自己指定，作为配合市场利用率的参数。</p>
 <p>实际上compound并不需要一个计算存款利率的函数，只是通过记录exchangeRate来获利，但是我们依然可以算出来</p>
-<p><span class="math inline">\(supplyRatePerBlock = borrowRatePerBlock
-\times utilizationRate \times (1 - reserversFactor)\)</span></p>
-<h3 id="激励模型">激励模型</h3>
-<p>compound的激励代币称为Comp，激励发生在每次资产交易中，分为两种，一种发放给存款人，一种发放给借款人，量的大小由该用户的持有量/借款和总量的比例决定，每一个market在一个区块里发放的激励comp是固定的，存款激励和借款激励的比例也是固定的，分别称为supplySpeed和borrowSpeed，先从这两个式子讲起</p>
-<p><span class="math inline">\(SupplyIndexNew = SupplyIndex +
-\frac{deltaBlocks \times SupplySpeed} {totalSupply}\)</span></p>
-<p><span class="math inline">\(BorrowIndexNew = BorrowIndex +
-\frac{deltablock \times
-BorrowSpeed}{\frac{totalBorrows}{borrowIndex}}\)</span></p>
+<p>$supplyRatePerBlock &#x3D; borrowRatePerBlock \times utilizationRate \times (1 - reserversFactor)$</p>
+<h3 id="激励模型"><a href="#激励模型" class="headerlink" title="激励模型"></a>激励模型</h3><p>compound的激励代币称为Comp，激励发生在每次资产交易中，分为两种，一种发放给存款人，一种发放给借款人，量的大小由该用户的持有量&#x2F;借款和总量的比例决定，每一个market在一个区块里发放的激励comp是固定的，存款激励和借款激励的比例也是固定的，分别称为supplySpeed和borrowSpeed，先从这两个式子讲起</p>
+<p>$SupplyIndexNew &#x3D; SupplyIndex + \frac{deltaBlocks \times SupplySpeed} {totalSupply}$</p>
+<p>$BorrowIndexNew &#x3D; BorrowIndex + \frac{deltablock \times BorrowSpeed}{\frac{totalBorrows}{borrowIndex}}$</p>
 <p><small>在此模块里，BorrowIndex和BorrowIndex指在激励系统中标记借款激励的参数，而borrowIndex是指前文提到的利息参数。</small></p>
 <p>这是每个market共用的激励记录公式，每一次激励都会刷新的两个参数，分别是SupplyIndex和BorrowIndex，每一组绑定一个market，表示该market的整体激励状态。看起来有点抽象是吧，我们再看下边两个给用户分配激励的公式：</p>
-<p><span class="math inline">\(SupplierAccruedNew = SupplierAccrued +
-cToken.balanceOf(user) \times (SupplyIndex - SupplierIndex)\)</span></p>
-<p><span class="math inline">\(BorrowerAccruedNew = BorrowerAccruced +
-\frac{cToken.borrowBalance(user) } {borrowIndex} \times (BorrowIndex -
-BorrowerIndex)\)</span></p>
+<p>$SupplierAccruedNew &#x3D; SupplierAccrued + cToken.balanceOf(user) \times (SupplyIndex - SupplierIndex)$</p>
+<p>$BorrowerAccruedNew &#x3D; BorrowerAccruced + \frac{cToken.borrowBalance(user) } {borrowIndex} \times (BorrowIndex - BorrowerIndex)$</p>
 <p>SupplierIndex和BorrowerIndex是上次user做出对应交易时，该market的SupplyIndex和BorrowIndex。</p>
-<p>SupplyIndex -
-SupplierIndex则代表着这次操作中，每持有一个cToken，获得的激励量。</p>
-<p>举个例子在某区块totalSuppy =
-10000，小张操作资产得到激励，此时距离上次刷新的x区块又产生了100个区块，speed
-= v，小张持有量为100，现在开始刷新SupplyIndex，</p>
-<p><span class="math inline">\(SupplyIndex1 = SupplyIndex +
-\frac{100v}{10000}\)</span></p>
+<p>SupplyIndex - SupplierIndex则代表着这次操作中，每持有一个cToken，获得的激励量。</p>
+<p>举个例子在某区块totalSuppy &#x3D; 10000，小张操作资产得到激励，此时距离上次刷新的x区块又产生了100个区块，speed &#x3D; v，小张持有量为100，现在开始刷新SupplyIndex，</p>
+<p>$SupplyIndex1 &#x3D; SupplyIndex + \frac{100v}{10000}$</p>
 <p>又过了100个区块，小张操作资产再次获得激励，其余均不变，这时的</p>
-<p><span class="math inline">\(SupplyIndex2 = SupplyIndex1 +
-\frac{100v}{10000}\)</span></p>
-<p><span class="math inline">\(SupplierIndex = SupplyIndex1\)</span></p>
-<p><span class="math inline">\(SupplierAccruedNew = SupplierAccrued +
-100 \times \frac{100v}{10000}\)</span></p>
-<p>这次获得的新激励是<span
-class="math inline">\(\frac{balance}{totalSupply} \times speed \times
-deltaBlock\)</span>，确实和我们预想的一样。</p>
+<p>$SupplyIndex2 &#x3D; SupplyIndex1 + \frac{100v}{10000}$</p>
+<p>$SupplierIndex &#x3D; SupplyIndex1$</p>
+<p>$SupplierAccruedNew &#x3D; SupplierAccrued + 100 \times \frac{100v}{10000}$</p>
+<p>这次获得的新激励是$\frac{balance}{totalSupply} \times speed \times deltaBlock$，确实和我们预想的一样。</p>
 <p>就是这样，完成了激励的分配，不多不少，刚好分完。</p>
-<h2 id="结语">结语</h2>
-<p>compound的经济模型大概就是这样了，新人初稿，大家海涵，如有错漏请多指教小弟。下一篇可能是compound源码解析或者是AMM模型，最后祝大家财运昌隆！</p>
+<h2 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h2><p>compound的经济模型大概就是这样了，新人初稿，大家海涵，如有错漏请多指教小弟。下一篇可能是compound源码解析或者是AMM模型，最后祝大家财运昌隆！</p>
 
     </div>
 
@@ -467,14 +416,14 @@ deltaBlock\)</span>，确实和我们预想的一样。</p>
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-count">12</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">5</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">

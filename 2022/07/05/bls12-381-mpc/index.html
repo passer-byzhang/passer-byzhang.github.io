@@ -243,88 +243,33 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="背景">背景</h2>
-<p>作者在搬groth16上链的项目里需要用到一些椭圆曲线上的秘密随机点(自然也可以把它当作root生成随机数)，需要用到MPC计算生成。记录一下算法和思路，加密部分使用bls12-381加密库。</p>
-<h2 id="概述">概述</h2>
-<p>因为在Groth16中需要使用到一系列的随机点进行掩藏数据，产生这些随机数的参数绝不能泄漏，比如bls12-381上的一个<span
-class="math inline">\(\alpha\)</span>点来源<span
-class="math inline">\(g_1\times
-a\)</span>，由于陷门函数的特性，我们无法通过<span
-class="math inline">\(\alpha\)</span>来推导出<span
-class="math inline">\(a\)</span>，但是一旦<span
-class="math inline">\(a\)</span>遭到泄漏，就可以直接计算出<span
-class="math inline">\(\alpha\)</span>。</p>
-<p>那么我们就需要一种在运算过程中不可能泄露<span
-class="math inline">\(a\)</span>的方法去生成<span
-class="math inline">\(\alpha\)</span>，这就可以转换成一个多方协同计算的问题：</p>
-<p>假设有n个参与生成计算的节点参与，它们会依次提供<span
-class="math inline">\(a_1，a_2，a_3...a_n\)</span>这n个随机数计算出<span
-class="math inline">\(\alpha_1，\alpha_2...\alpha_n\)</span>，如果先计算<span
-class="math inline">\(a\)</span>再进行隐藏：<span
-class="math inline">\(\alpha=(\prod_{i=1}^n a_i)\times
-g_1\)</span>，那么<span
-class="math inline">\(a\)</span>和传输过程中的<span
-class="math inline">\(a_i\)</span>都有可能泄露。</p>
-<p>要将中间变量加密变成<span class="math inline">\(E(\prod_{i=1}^n
-a_i)\)</span>和<span
-class="math inline">\(E(a_i)\)</span>，才能在运行过程中不泄漏任何一个人提供的信息<span
-class="math inline">\(a_i\)</span>，就可以保证每一个参与提供随机数的节点都不可能的知道最终的<span
-class="math inline">\(a\)</span>，所有人拿到的只有加密后中间值。</p>
-<h2 id="基本思路">基本思路</h2>
-<p>可以预见的一点就是在依次计算的过程中，我们需要防止有人作恶，篡改之前的结果。如果第3个节点收到了加密数据<span
-class="math inline">\(E(a_1\times
-a_2)\)</span>，但是它传给下一个人的却是<span
-class="math inline">\(E(a_3\times a_3 \times
-a_3)\)</span>——擅自修改了内容，我们需要如何验证呢？</p>
-<p>如果我们没有使用加密数据<span class="math inline">\(E(a_1\times
-a_2)\)</span>和<span class="math inline">\(E(a_3\times a_3 \times
-a_3)\)</span>，而是直接存储了<span class="math inline">\(a_1\times
-a_2\)</span>，接受第三个节点的<span class="math inline">\(a_3\times a_3
-\times a_3\)</span>和他自己的<span
-class="math inline">\(a_3\)</span>，那么我们只需要验证上一次的结果<span
-class="math inline">\(a_1\times a_2\)</span>与新节点提供的随机数<span
-class="math inline">\(a_3\)</span>乘积是否等于它传给下一个人的<span
-class="math inline">\(a_3\times a_3 \times a_3\)</span>，就可以了。</p>
+        <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>作者在搬groth16上链的项目里需要用到一些椭圆曲线上的秘密随机点(自然也可以把它当作root生成随机数)，需要用到MPC计算生成。记录一下算法和思路，加密部分使用bls12-381加密库。</p>
+<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>因为在Groth16中需要使用到一系列的随机点进行掩藏数据，产生这些随机数的参数绝不能泄漏，比如bls12-381上的一个$\alpha$点来源$g_1\times a$，由于陷门函数的特性，我们无法通过$\alpha$来推导出$a$，但是一旦$a$遭到泄漏，就可以直接计算出$\alpha$。</p>
+<p>那么我们就需要一种在运算过程中不可能泄露$a$的方法去生成$\alpha$，这就可以转换成一个多方协同计算的问题：</p>
+<p>假设有n个参与生成计算的节点参与，它们会依次提供$a_1，a_2，a_3…a_n$这n个随机数计算出$\alpha_1，\alpha_2…\alpha_n$，如果先计算$a$再进行隐藏：$\alpha&#x3D;(\prod_{i&#x3D;1}^n a_i)\times g_1$，那么$a$和传输过程中的$a_i$都有可能泄露。</p>
+<p>要将中间变量加密变成$E(\prod_{i&#x3D;1}^n a_i)$和$E(a_i)$，才能在运行过程中不泄漏任何一个人提供的信息$a_i$，就可以保证每一个参与提供随机数的节点都不可能的知道最终的$a$，所有人拿到的只有加密后中间值。</p>
+<h2 id="基本思路"><a href="#基本思路" class="headerlink" title="基本思路"></a>基本思路</h2><p>可以预见的一点就是在依次计算的过程中，我们需要防止有人作恶，篡改之前的结果。如果第3个节点收到了加密数据$E(a_1\times a_2)$，但是它传给下一个人的却是$E(a_3\times a_3 \times a_3)$——擅自修改了内容，我们需要如何验证呢？</p>
+<p>如果我们没有使用加密数据$E(a_1\times a_2)$和$E(a_3\times a_3 \times a_3)$，而是直接存储了$a_1\times a_2$，接受第三个节点的$a_3\times a_3 \times a_3$和他自己的$a_3$，那么我们只需要验证上一次的结果$a_1\times a_2$与新节点提供的随机数$a_3$乘积是否等于它传给下一个人的$a_3\times a_3 \times a_3$，就可以了。</p>
 <p>但是<strong>所有人拿到的只有加密后中间值</strong>，我们只要保证中间值的运算结果符合数字运算的规律，也就是“同态”即可。</p>
-<p><strong>如果加密函数E(x)满足以下特性,则认为有同态性</strong> <span
-class="math display">\[ 加法同态:E(a+b)=E(a)+E(b)  \\
-乘法同态:E(ka)=kE(a)
-\\双线性映射:假设有两个群G_1,G_2,G_1*G_1=G_2,g是G_1的生成元,e(g,g)是G_2的生成元,则
-e(g^a,g^b)=e(g,g)^{ab}=e(g^b,g^a)\]</span></p>
-<p>我们的bls12-381中也符条件，既 加法同态：<span
-class="math inline">\((a_1+a_2)\times g_1 = a_1\times g_1 + a_2\times
-g_1\)</span> 乘法同态：<span class="math inline">\(k \times (a_1\times
-g_1) = (k\times a_1)\times g_1\)</span></p>
-<p>双线性映射：<span class="math inline">\(pairing(a_1\times g_1 ,
-a_2\times g_2) = pairing((a_1\times a_2)\times g_1，g_2)\)</span></p>
-<h2 id="实现方法">实现方法</h2>
-<p>我使用双线性映射来进行验证，第i个节点传输的数据为：</p>
+<p><strong>如果加密函数E(x)满足以下特性,则认为有同态性</strong><br>$$ 加法同态:E(a+b)&#x3D;E(a)+E(b)  \ 乘法同态:E(ka)&#x3D;kE(a) \双线性映射:假设有两个群G_1,G_2,G_1*G_1&#x3D;G_2,g是G_1的生成元,e(g,g)是G_2的生成元,则<br>e(g^a,g^b)&#x3D;e(g,g)^{ab}&#x3D;e(g^b,g^a)$$</p>
+<p>我们的bls12-381中也符条件，既<br>加法同态：$(a_1+a_2)\times g_1 &#x3D; a_1\times g_1 + a_2\times g_1$<br>乘法同态：$k \times (a_1\times g_1) &#x3D; (k\times a_1)\times g_1$</p>
+<p>双线性映射：$pairing(a_1\times g_1 , a_2\times g_2) &#x3D; pairing((a_1\times a_2)\times g_1，g_2)$</p>
+<h2 id="实现方法"><a href="#实现方法" class="headerlink" title="实现方法"></a>实现方法</h2><p>我使用双线性映射来进行验证，第i个节点传输的数据为：</p>
 <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Clone, Copy)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">ParameterPair</span>&lt;E: Engine&gt; &#123;</span><br><span class="line">    <span class="keyword">pub</span> g1_result: <span class="type">Option</span>&lt;E::G1Affine&gt;,<span class="comment">//传给下一个节点的数据,g1上的点,既(a1*a2*..ai * g1)</span></span><br><span class="line">    <span class="keyword">pub</span> g2_result: <span class="type">Option</span>&lt;E::G2Affine&gt;,<span class="comment">//传给下一个节点的数据,g2上的点,既(a1*a2*..ai * g2)</span></span><br><span class="line">    <span class="keyword">pub</span> g1_mine: <span class="type">Option</span>&lt;E::G1Affine&gt;,<span class="comment">//该节点新加入的数据,g1上的点,既(ai * g1)</span></span><br><span class="line">    <span class="keyword">pub</span> g2_mine: <span class="type">Option</span>&lt;E::G2Affine&gt;,<span class="comment">//该节点新加入的数据,g1上的点,既(ai * g2)</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>验证端保存着之前<span
-class="math inline">\(i-1\)</span>个节点传输数据的列表：</p>
+
+<p>验证端保存着之前$i-1$个节点传输数据的列表：</p>
 <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Vec</span>&lt;ParameterPair&lt;E&gt;&gt;;</span><br></pre></td></tr></table></figure>
+
 <p>需要通过这个列表 的最新数据和节点自己的随机数更新信息：</p>
 <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">mpc_common_paramters_custom</span>&lt;E&gt;(</span><br><span class="line">    paramter_last: &amp;ParameterPair&lt;E&gt;,</span><br><span class="line">    num: E::Fr,</span><br><span class="line">) <span class="punctuation">-&gt;</span> <span class="type">Result</span>&lt;ParameterPair&lt;E&gt;, SynthesisError&gt;</span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    E: Engine,</span><br><span class="line">    E::G1: WnafGroup,</span><br><span class="line">    E::G2: WnafGroup,</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g1</span> = E::G1::<span class="title function_ invoke__">generator</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g2</span> = E::G2::<span class="title function_ invoke__">generator</span>();<span class="comment">//g1,g2是两个群上的元，类似于自然数中的1。</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g1_before</span> = paramter_last.g1_result.<span class="title function_ invoke__">unwrap</span>();<span class="comment">//之前列表的最新值：a1*a2*...a(n-1) * g1</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g1_after</span> = (g1_before * num).<span class="title function_ invoke__">to_affine</span>();<span class="comment">//预期中更新之后的值：a1*a2*...a(n-1)*a(n) * g1</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g2_before</span> = paramter_last.g2_result.<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g2_after</span> = (g2_before * num).<span class="title function_ invoke__">to_affine</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g1_mine</span> = (g1 * num).<span class="title function_ invoke__">to_affine</span>();<span class="comment">//a(n)*g1</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g2_mine</span> = (g2 * num).<span class="title function_ invoke__">to_affine</span>();<span class="comment">//a(n)*g2</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">result</span> = ParameterPair &#123;</span><br><span class="line">        g1_result: <span class="title function_ invoke__">Some</span>(g1_after),</span><br><span class="line">        g2_result: <span class="title function_ invoke__">Some</span>(g2_after),</span><br><span class="line">        g1_mine: <span class="title function_ invoke__">Some</span>(g1_mine),</span><br><span class="line">        g2_mine: <span class="title function_ invoke__">Some</span>(g2_mine),</span><br><span class="line">    &#125;;</span><br><span class="line">    <span class="keyword">return</span> <span class="title function_ invoke__">Ok</span>(result);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <p>在新增数据之前，可以通过该列表和新节点传入数据验证：</p>
 <figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">verify_mpc_g1</span>&lt;E&gt;(new_paramter: &amp;ParameterPair&lt;E&gt;, paramters: &amp;<span class="type">Vec</span>&lt;ParameterPair&lt;E&gt;&gt;) <span class="punctuation">-&gt;</span> <span class="type">bool</span></span><br><span class="line"><span class="keyword">where</span></span><br><span class="line">    E: Engine,</span><br><span class="line">    E::G1: WnafGroup,</span><br><span class="line">    E::G2: WnafGroup,</span><br><span class="line">&#123;</span><br><span class="line">  	<span class="comment">/**</span></span><br><span class="line"><span class="comment">  	*g1,g2是两个群上的元，类似于自然数中的1。</span></span><br><span class="line"><span class="comment">  	*/</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g1</span> = E::G1::<span class="title function_ invoke__">generator</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">g2</span> = E::G2::<span class="title function_ invoke__">generator</span>();</span><br><span class="line">  	<span class="comment">/**</span></span><br><span class="line"><span class="comment">  	*这一步验证传来的结构体里g1,g2上的点是一一对应而非假造的，验证方法为：</span></span><br><span class="line"><span class="comment">		* pairing(g1_mine, g2)== E::pairing(g1, g2_mine);</span></span><br><span class="line"><span class="comment">		* pairing(g1_result, g2)== E::pairing(g1, g2_result);</span></span><br><span class="line"><span class="comment">  	*/</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">result</span> = E::<span class="title function_ invoke__">pairing</span>(&amp;new_paramter.g1_mine.<span class="title function_ invoke__">unwrap</span>(), &amp;g2.<span class="title function_ invoke__">to_affine</span>())</span><br><span class="line">        == E::<span class="title function_ invoke__">pairing</span>(&amp;g1.<span class="title function_ invoke__">to_affine</span>(), &amp;new_paramter.g2_mine.<span class="title function_ invoke__">unwrap</span>());</span><br><span class="line">  	result = E::<span class="title function_ invoke__">pairing</span>(&amp;new_paramter.g1_result.<span class="title function_ invoke__">unwrap</span>(), &amp;g2.<span class="title function_ invoke__">to_affine</span>())</span><br><span class="line">        == E::<span class="title function_ invoke__">pairing</span>(&amp;g1.<span class="title function_ invoke__">to_affine</span>(), &amp;new_paramter.g2_result.<span class="title function_ invoke__">unwrap</span>());</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">index</span> = paramters.<span class="title function_ invoke__">len</span>();</span><br><span class="line">		<span class="comment">/**</span></span><br><span class="line"><span class="comment">		* 这一步用来验证第i个节点是否篡改了原来的数据：拿出一个进故宫验证的节点i-1的数据list[i-1]</span></span><br><span class="line"><span class="comment">		* 那么应该有：pairing(list[i-1].g1_result,new_paramter.g2_mine)==pairing(new_paramter.g1_result,g2)</span></span><br><span class="line"><span class="comment">		*/</span></span><br><span class="line">    <span class="title function_ invoke__">if</span> (index &gt;= <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">paramter_last</span> = new_paramter.g1_result.<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">paramter_part2</span> = new_paramter.g2_mine.<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">paramter_part1</span> = paramters[index - <span class="number">1</span>].g1_result.<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">        result = result</span><br><span class="line">            &amp;&amp; E::<span class="title function_ invoke__">pairing</span>(&amp;paramter_last, &amp;g2.<span class="title function_ invoke__">to_affine</span>())</span><br><span class="line">                == E::<span class="title function_ invoke__">pairing</span>(&amp;paramter_part1, &amp;paramter_part2);</span><br><span class="line">    &#125;</span><br><span class="line">    result</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <p>如果验证通过，再将该节点的信息加入进列表，进行下一轮计算。</p>
-<p>最后拿到的g1_result和g2_result就是<span
-class="math inline">\((\prod_{i=1}^n a_i)\times g_1\)</span>和<span
-class="math inline">\((\prod_{i=1}^n a_i)\times
-g_2\)</span>了，这同时我们确实没有泄露任何一个<span
-class="math inline">\(a\)</span>，也避免了作恶。</p>
-<h2 id="一些总结和延伸">一些总结和延伸</h2>
-<p>大家应该可以看出这个实例也可以用同态加法或乘法来做，比如每个人传<span
-class="math inline">\(a_i\times g_1\)</span>，然后维护一个<span
-class="math inline">\((a_1+a_2+...+a_i)\times
-g_1\)</span>来使用和验证即可。或者说任何一个同态加密方法都可以依照此法进行多方计算。</p>
-<p>同态加密也可以用于验证信息，比如同一组信息分成几个碎片，通过这吸热碎片验证这个集体对某物的所有权，我们可以通过同态加密计算，每一个人的私钥碎片是<span
-class="math inline">\(k_1,k_2...k_n\)</span>，私钥为<span
-class="math inline">\(K=(\prod_{i=1}^n
-k_i)\)</span>如何在不互通私钥信息的情况下一起生成一个私钥呢？可以把每一个私钥同态隐藏起来<span
-class="math inline">\(E(k_i)\)</span>，计算<span
-class="math inline">\(E(\prod_{i=1}^n k_i) = \prod_{i=1}^n
-E(k_i)\)</span>来进行验证。</p>
+<p>最后拿到的g1_result和g2_result就是$(\prod_{i&#x3D;1}^n a_i)\times g_1$和$(\prod_{i&#x3D;1}^n a_i)\times g_2$了，这同时我们确实没有泄露任何一个$a$，也避免了作恶。</p>
+<h2 id="一些总结和延伸"><a href="#一些总结和延伸" class="headerlink" title="一些总结和延伸"></a>一些总结和延伸</h2><p>大家应该可以看出这个实例也可以用同态加法或乘法来做，比如每个人传$a_i\times g_1$，然后维护一个$(a_1+a_2+…+a_i)\times g_1$来使用和验证即可。或者说任何一个同态加密方法都可以依照此法进行多方计算。</p>
+<p>同态加密也可以用于验证信息，比如同一组信息分成几个碎片，通过这吸热碎片验证这个集体对某物的所有权，我们可以通过同态加密计算，每一个人的私钥碎片是$k_1,k_2…k_n$，私钥为$K&#x3D;(\prod_{i&#x3D;1}^n k_i)$如何在不互通私钥信息的情况下一起生成一个私钥呢？可以把每一个私钥同态隐藏起来$E(k_i)$，计算$E(\prod_{i&#x3D;1}^n k_i) &#x3D; \prod_{i&#x3D;1}^n E(k_i)$来进行验证。</p>
 <p>感谢您的观看，作者也是刚刚接触，如有错漏请诸君斧正。</p>
 <p><a href="alvan.coffee">作者博客: alvan.coffee</a></p>
 
@@ -349,7 +294,10 @@ E(k_i)\)</span>来进行验证。</p>
     <a href="/2022/07/02/vscode-rust-extension-bug/" rel="prev" title="使用vscode中运行rust单元测试找不到cargo的解决方法">
       <i class="fa fa-chevron-left"></i> 使用vscode中运行rust单元测试找不到cargo的解决方法
     </a></div>
-      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/2022/07/09/aave-v3-techpaper/" rel="next" title="AAVE v3 技术说明">
+      AAVE v3 技术说明 <i class="fa fa-chevron-right"></i>
+    </a></div>
     </div>
       </footer>
     
@@ -425,14 +373,14 @@ E(k_i)\)</span>来进行验证。</p>
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-count">12</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">5</span>
         <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">

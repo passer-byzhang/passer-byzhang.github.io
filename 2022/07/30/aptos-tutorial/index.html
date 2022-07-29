@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Alvan's Blog">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideDownBigOut"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Aptos链入门，发交易和构造合约">
+<meta property="og:type" content="article">
+<meta property="og:title" content="aptos初体验">
+<meta property="og:url" content="http://example.com/2022/07/30/aptos-tutorial/index.html">
+<meta property="og:site_name" content="Alvan&#39;s Blog">
+<meta property="og:description" content="Aptos链入门，发交易和构造合约">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-07-29T19:07:07.000Z">
+<meta property="article:modified_time" content="2022-07-29T19:13:02.896Z">
+<meta property="article:author" content="张钰Alvan">
+<meta property="article:tag" content="Rust">
+<meta property="article:tag" content="Aptos">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2022/07/30/aptos-tutorial/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>aptos初体验 | Alvan's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Alvan's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/07/30/aptos-tutorial/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/Alvan.png">
+      <meta itemprop="name" content="张钰Alvan">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Alvan's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          aptos初体验
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2022-07-30 03:07:07 / Modified: 03:13:02" itemprop="dateCreated datePublished" datetime="2022-07-30T03:07:07+08:00">2022-07-30</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Aptos/" itemprop="url" rel="index"><span itemprop="name">Aptos</span></a>
+                </span>
+            </span>
+
+          
+            <div class="post-description">Aptos链入门，发交易和构造合约</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Aptos作为有背景有技术的新公链最近可谓吸满了投资，赚足了眼球。其从Libra和Diem继承来的技术又支持其超高tps和高安全高稳定的合约机制，官网上明晃晃的"Building
+the safest and most scalable Layer 1
+blockchain."彰显着这群前FB工程师的野心。我们今天便浅尝一下这个技术和资本共同的宠儿，Aptos和Move语言。</p>
+<p>Aptos是一条不兼容evm的Layer1公链，其特点是高安全性，高稳定性，高扩展性以及高达100k+的恐怖tps。独特的存储模型使其可能在NFT和GameFi领域大展身手。合约语言为Move，是一个基于Rust的内存安全型合约语言，在Libra时期便已经成型，目前Sui和Aptos都在使用它构造"有史以来最高性能的公链"。据社交媒体透露，现在Move语言开发者的工资时薪已经高达$1200，这让我不禁留下了悔恨的口水，哦不是，泪水。</p>
+<p>这篇文章将从头到尾体验一下在Aptos链上发起交易和编写合约，不需要编写代码。通过运行，测试aptos官方事例，阅读
+move代码，感受这个号称最安全Layer1链的魅力。官方事例给出了TypeScript，Rust，和Python三种语言的代码，考虑到aptos-core本身是由Rust编写而且其合约语言Move又与Rust极度相似，本文使用Rust事例进行讲解。</p>
+<h2 id="准备工作">0.准备工作</h2>
+<p>安装rust，不多做介绍</p>
+<p>下载aptos-core代码库
+<code>git clone https://github.com/aptos-labs/aptos-core.git</code></p>
+<p>进入代码库<code>cd aptos-core</code></p>
+<p>切换分支<code>git checkout --track origin/devnet</code></p>
+<p>运行启动脚本，构建开发环境<code>./scripts/dev_setup.sh</code></p>
+<p>下载Aptos Commandline
+tool命令行工具<code>cargo install --git https://github.com/aptos-labs/aptos-core.git aptos</code></p>
+<h2 id="发起交易">1.发起交易</h2>
+<p>这一部分代码在<code>aptos-core/developer-docs-site/static/examples/rust/first_transaction</code>里：</p>
+<h3 id="创建账户">1.1 创建账户</h3>
+<p>关于aptos的账户系统详情可以看官方文档:
+https://aptos.dev/concepts/basics-accounts</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">    signing_key: SecretKey,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">    <span class="comment">/// Represents an account as well as the private, public key-pair for the Aptos blockchain.</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">new</span>(priv_key_bytes: <span class="type">Option</span>&lt;<span class="type">Vec</span>&lt;<span class="type">u8</span>&gt;&gt;) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">signing_key</span> = <span class="keyword">match</span> priv_key_bytes &#123;</span><br><span class="line">            <span class="title function_ invoke__">Some</span>(key) =&gt; SecretKey::<span class="title function_ invoke__">from_bytes</span>(&amp;key).<span class="title function_ invoke__">unwrap</span>(),</span><br><span class="line">            <span class="literal">None</span> =&gt; &#123;</span><br><span class="line">                <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">rng</span> = rand::rngs::StdRng::<span class="title function_ invoke__">from_seed</span>(OsRng.<span class="title function_ invoke__">gen</span>());</span><br><span class="line">                <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">bytes</span> = [<span class="number">0</span>; <span class="number">32</span>];</span><br><span class="line">                rng.<span class="title function_ invoke__">fill_bytes</span>(&amp;<span class="keyword">mut</span> bytes);</span><br><span class="line">                SecretKey::<span class="title function_ invoke__">from_bytes</span>(&amp;bytes).<span class="title function_ invoke__">unwrap</span>()</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line"></span><br><span class="line">        Account &#123; signing_key &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/// Returns the address associated with the given account</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">address</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="keyword">self</span>.<span class="title function_ invoke__">auth_key</span>()</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/// Returns the auth_key for the associated account</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">auth_key</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">sha3</span> = Sha3::<span class="title function_ invoke__">v256</span>();</span><br><span class="line">        sha3.<span class="title function_ invoke__">update</span>(PublicKey::<span class="title function_ invoke__">from</span>(&amp;<span class="keyword">self</span>.signing_key).<span class="title function_ invoke__">as_bytes</span>());</span><br><span class="line">        sha3.<span class="title function_ invoke__">update</span>(&amp;<span class="built_in">vec!</span>[<span class="number">0u8</span>]);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">output</span> = [<span class="number">0u8</span>; <span class="number">32</span>];</span><br><span class="line">        sha3.<span class="title function_ invoke__">finalize</span>(&amp;<span class="keyword">mut</span> output);</span><br><span class="line">        hex::<span class="title function_ invoke__">encode</span>(output)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/// Returns the public key for the associated account</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">pub_key</span>(&amp;<span class="keyword">self</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        hex::<span class="title function_ invoke__">encode</span>(PublicKey::<span class="title function_ invoke__">from</span>(&amp;<span class="keyword">self</span>.signing_key).<span class="title function_ invoke__">as_bytes</span>())</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="准备一个rest接口包装器">1.2 准备一个REST接口包装器</h3>
+<p>​ 构造一个RestClient，并连接测试网
+https://fullnode.devnet.aptoslabs.com</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#[derive(Clone)]</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">RestClient</span> &#123;</span><br><span class="line">    url: <span class="type">String</span>,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">///RestClient中的方法</span></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">RestClient</span> &#123;</span><br><span class="line">  </span><br><span class="line">    <span class="comment">//从url初始化client</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">new</span>(url: <span class="type">String</span>) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span> &#123;</span><br><span class="line">        <span class="keyword">Self</span> &#123; url &#125;</span><br><span class="line">  	&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">///Rest请求的具体实现,下边详细讲解</span></span><br><span class="line">    .......</span><br><span class="line">&#125;</span><br><span class="line">    </span><br></pre></td></tr></table></figure>
+<h4 id="读取账户信息">1.2.1 读取账户信息</h4>
+<p>以下代码是通过账户地址读取账户信息的接口实现</p>
+<p>值得注意的是account_resource接口，aptos的任何账户都有data存储，可以用来储存货币/NFT等等，这些信息被称为resource。</p>
+<p>如果我们要查询某个账户的AptosCoin余额，就要定位到0x1::coin::CoinStore&lt;0x1::aptos_coin::AptosCoin，查询对应的resource数据，在1.2.3中account_balance就是复用了该接口。</p>
+<p>这里的0x1实际上是一个account地址，因为AptosCoin是root账户0x1发行的，所以会出现0x1这种写法，类似写法在下文也会出现。而coin::CoinStore&lt;&gt;是aptos对代币的resource的一种特殊处理，以提供安全性。这样的话可以理解为查询该账户下，由0x1发行的AptosCoin的数目。</p>
+<p>详情见aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-framework/sources/coin.move</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// 返回账户的私钥和序列码sequence_number，详情见https://aptos.dev/concepts/basics-accounts</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">account</span>(&amp;<span class="keyword">self</span>, account_address: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> serde_json::Value &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">res</span> =</span><br><span class="line">        reqwest::blocking::<span class="title function_ invoke__">get</span>(<span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125;/accounts/&#123;&#125;&quot;</span>, <span class="keyword">self</span>.url, account_address)).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> res.<span class="title function_ invoke__">status</span>() != <span class="number">200</span> &#123;</span><br><span class="line">        <span class="built_in">assert_eq!</span>(</span><br><span class="line">            res.<span class="title function_ invoke__">status</span>(),</span><br><span class="line">            <span class="number">200</span>,</span><br><span class="line">            <span class="string">&quot;&#123;&#125; - &#123;&#125;&quot;</span>,</span><br><span class="line">            res.<span class="title function_ invoke__">text</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">            account_address,</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    res.<span class="title function_ invoke__">json</span>().<span class="title function_ invoke__">unwrap</span>()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// 返回账户所有相关信息</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">account_resource</span>(</span><br><span class="line">    &amp;<span class="keyword">self</span>,</span><br><span class="line">    account_address: &amp;<span class="type">str</span>,</span><br><span class="line">    resource_type: &amp;<span class="type">str</span>,</span><br><span class="line">) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;serde_json::Value&gt; &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">res</span> = reqwest::blocking::<span class="title function_ invoke__">get</span>(<span class="built_in">format!</span>(</span><br><span class="line">        <span class="string">&quot;&#123;&#125;/accounts/&#123;&#125;/resource/&#123;&#125;&quot;</span>,</span><br><span class="line">        <span class="keyword">self</span>.url, account_address, resource_type,</span><br><span class="line">    ))</span><br><span class="line">    .<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> res.<span class="title function_ invoke__">status</span>() == <span class="number">404</span> &#123;</span><br><span class="line">        <span class="literal">None</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> res.<span class="title function_ invoke__">status</span>() != <span class="number">200</span> &#123;</span><br><span class="line">        <span class="built_in">assert_eq!</span>(</span><br><span class="line">            res.<span class="title function_ invoke__">status</span>(),</span><br><span class="line">            <span class="number">200</span>,</span><br><span class="line">            <span class="string">&quot;&#123;&#125; - &#123;&#125;&quot;</span>,</span><br><span class="line">            res.<span class="title function_ invoke__">text</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">            account_address,</span><br><span class="line">        );</span><br><span class="line">        <span class="built_in">unreachable!</span>()</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="title function_ invoke__">Some</span>(res.<span class="title function_ invoke__">json</span>().<span class="title function_ invoke__">unwrap</span>())</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h4 id="交易相关操作生成签名提交">1.2.2
+交易相关操作(生成，签名，提交)</h4>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// Generates a transaction request that can be submitted to produce a raw transaction that can be signed, which upon being signed can be submitted to the blockchain.</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">generate_transaction</span>(</span><br><span class="line">    &amp;<span class="keyword">self</span>,</span><br><span class="line">    sender: &amp;<span class="type">str</span>,</span><br><span class="line">    payload: serde_json::Value,</span><br><span class="line">) <span class="punctuation">-&gt;</span> serde_json::Value &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">account_res</span> = <span class="keyword">self</span>.<span class="title function_ invoke__">account</span>(sender);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">seq_num</span> = account_res</span><br><span class="line">        .<span class="title function_ invoke__">get</span>(<span class="string">&quot;sequence_number&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()</span><br><span class="line">        .<span class="title function_ invoke__">as_str</span>()</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()</span><br><span class="line">        .parse::&lt;<span class="type">u64</span>&gt;()</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Unix timestamp, in seconds + 10 minutes</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">expiration_time_secs</span> = SystemTime::<span class="title function_ invoke__">now</span>()</span><br><span class="line">        .<span class="title function_ invoke__">duration_since</span>(UNIX_EPOCH)</span><br><span class="line">        .<span class="title function_ invoke__">expect</span>(<span class="string">&quot;Time went backwards&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">as_secs</span>()</span><br><span class="line">        + <span class="number">600</span>;</span><br><span class="line"></span><br><span class="line">    serde_json::json!(&#123;</span><br><span class="line">        <span class="string">&quot;sender&quot;</span>: <span class="built_in">format!</span>(<span class="string">&quot;0x&#123;&#125;&quot;</span>, sender),</span><br><span class="line">        <span class="string">&quot;sequence_number&quot;</span>: seq_num.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        <span class="string">&quot;max_gas_amount&quot;</span>: <span class="string">&quot;1000&quot;</span>,</span><br><span class="line">        <span class="string">&quot;gas_unit_price&quot;</span>: <span class="string">&quot;1&quot;</span>,</span><br><span class="line">        <span class="string">&quot;gas_currency_code&quot;</span>: <span class="string">&quot;XUS&quot;</span>,</span><br><span class="line">        <span class="string">&quot;expiration_timestamp_secs&quot;</span>: expiration_time_secs.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">        <span class="string">&quot;payload&quot;</span>: payload,</span><br><span class="line">    &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Converts a transaction request produced by `generate_transaction` into a properly signed transaction, which can then be submitted to the blockchain.</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">sign_transaction</span>(</span><br><span class="line">    &amp;<span class="keyword">self</span>,</span><br><span class="line">    account_from: &amp;<span class="keyword">mut</span> Account,</span><br><span class="line">    <span class="keyword">mut</span> txn_request: serde_json::Value,</span><br><span class="line">) <span class="punctuation">-&gt;</span> serde_json::Value &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">res</span> = reqwest::blocking::Client::<span class="title function_ invoke__">new</span>()</span><br><span class="line">        .<span class="title function_ invoke__">post</span>(<span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125;/transactions/signing_message&quot;</span>, <span class="keyword">self</span>.url))</span><br><span class="line">        .<span class="title function_ invoke__">body</span>(txn_request.<span class="title function_ invoke__">to_string</span>())</span><br><span class="line">        .<span class="title function_ invoke__">send</span>()</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> res.<span class="title function_ invoke__">status</span>() != <span class="number">200</span> &#123;</span><br><span class="line">        <span class="built_in">assert_eq!</span>(</span><br><span class="line">            res.<span class="title function_ invoke__">status</span>(),</span><br><span class="line">            <span class="number">200</span>,</span><br><span class="line">            <span class="string">&quot;&#123;&#125; - &#123;&#125;&quot;</span>,</span><br><span class="line">            res.<span class="title function_ invoke__">text</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">            txn_request.<span class="title function_ invoke__">as_str</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>),</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">body</span>: serde_json::Value = res.<span class="title function_ invoke__">json</span>().<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">to_sign_hex</span> = Box::<span class="title function_ invoke__">new</span>(body.<span class="title function_ invoke__">get</span>(<span class="string">&quot;message&quot;</span>).<span class="title function_ invoke__">unwrap</span>().<span class="title function_ invoke__">as_str</span>()).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">to_sign</span> = hex::<span class="title function_ invoke__">decode</span>(&amp;to_sign_hex[<span class="number">2</span>..]).<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">signature</span>: <span class="type">String</span> = ExpandedSecretKey::<span class="title function_ invoke__">from</span>(&amp;account_from.signing_key)</span><br><span class="line">        .<span class="title function_ invoke__">sign</span>(&amp;to_sign, &amp;PublicKey::<span class="title function_ invoke__">from</span>(&amp;account_from.signing_key))</span><br><span class="line">        .<span class="title function_ invoke__">encode_hex</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">signature_payload</span> = serde_json::json!(&#123;</span><br><span class="line">        <span class="string">&quot;type&quot;</span>: <span class="string">&quot;ed25519_signature&quot;</span>,</span><br><span class="line">        <span class="string">&quot;public_key&quot;</span>: <span class="built_in">format!</span>(<span class="string">&quot;0x&#123;&#125;&quot;</span>, account_from.<span class="title function_ invoke__">pub_key</span>()),</span><br><span class="line">        <span class="string">&quot;signature&quot;</span>: <span class="built_in">format!</span>(<span class="string">&quot;0x&#123;&#125;&quot;</span>, signature),</span><br><span class="line">    &#125;);</span><br><span class="line">    txn_request</span><br><span class="line">        .<span class="title function_ invoke__">as_object_mut</span>()</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()</span><br><span class="line">        .<span class="title function_ invoke__">insert</span>(<span class="string">&quot;signature&quot;</span>.<span class="title function_ invoke__">to_string</span>(), signature_payload);</span><br><span class="line">    txn_request</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Submits a signed transaction to the blockchain.</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">submit_transaction</span>(&amp;<span class="keyword">self</span>, txn_request: &amp;serde_json::Value) <span class="punctuation">-&gt;</span> serde_json::Value &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">res</span> = reqwest::blocking::Client::<span class="title function_ invoke__">new</span>()</span><br><span class="line">        .<span class="title function_ invoke__">post</span>(<span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125;/transactions&quot;</span>, <span class="keyword">self</span>.url))</span><br><span class="line">        .<span class="title function_ invoke__">body</span>(txn_request.<span class="title function_ invoke__">to_string</span>())</span><br><span class="line">        .<span class="title function_ invoke__">header</span>(<span class="string">&quot;Content-Type&quot;</span>, <span class="string">&quot;application/json&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">send</span>()</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> res.<span class="title function_ invoke__">status</span>() != <span class="number">202</span> &#123;</span><br><span class="line">        <span class="built_in">assert_eq!</span>(</span><br><span class="line">            res.<span class="title function_ invoke__">status</span>(),</span><br><span class="line">            <span class="number">202</span>,</span><br><span class="line">            <span class="string">&quot;&#123;&#125; - &#123;&#125;&quot;</span>,</span><br><span class="line">            res.<span class="title function_ invoke__">text</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">            txn_request.<span class="title function_ invoke__">as_str</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>),</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">    res.<span class="title function_ invoke__">json</span>().<span class="title function_ invoke__">unwrap</span>()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Submits a signed transaction to the blockchain.</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">execution_transaction_with_payload</span>(</span><br><span class="line">    &amp;<span class="keyword">self</span>,</span><br><span class="line">    account_from: &amp;<span class="keyword">mut</span> Account,</span><br><span class="line">    payload: serde_json::Value,</span><br><span class="line">) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">txn_request</span> = <span class="keyword">self</span>.<span class="title function_ invoke__">generate_transaction</span>(&amp;account_from.<span class="title function_ invoke__">address</span>(), payload);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">signed_txn</span> = <span class="keyword">self</span>.<span class="title function_ invoke__">sign_transaction</span>(account_from, txn_request);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">res</span> = <span class="keyword">self</span>.<span class="title function_ invoke__">submit_transaction</span>(&amp;signed_txn);</span><br><span class="line">    res.<span class="title function_ invoke__">get</span>(<span class="string">&quot;hash&quot;</span>).<span class="title function_ invoke__">unwrap</span>().<span class="title function_ invoke__">as_str</span>().<span class="title function_ invoke__">unwrap</span>().<span class="title function_ invoke__">to_string</span>()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">transaction_pending</span>(&amp;<span class="keyword">self</span>, transaction_hash: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="type">bool</span> &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">res</span> = reqwest::blocking::<span class="title function_ invoke__">get</span>(<span class="built_in">format!</span>(<span class="string">&quot;&#123;&#125;/transactions/&#123;&#125;&quot;</span>, <span class="keyword">self</span>.url, transaction_hash))</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> res.<span class="title function_ invoke__">status</span>() == <span class="number">404</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> res.<span class="title function_ invoke__">status</span>() != <span class="number">200</span> &#123;</span><br><span class="line">        <span class="built_in">assert_eq!</span>(</span><br><span class="line">            res.<span class="title function_ invoke__">status</span>(),</span><br><span class="line">            <span class="number">200</span>,</span><br><span class="line">            <span class="string">&quot;&#123;&#125; - &#123;&#125;&quot;</span>,</span><br><span class="line">            res.<span class="title function_ invoke__">text</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">            transaction_hash,</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    res.json::&lt;serde_json::Value&gt;()</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()</span><br><span class="line">        .<span class="title function_ invoke__">get</span>(<span class="string">&quot;type&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()</span><br><span class="line">        .<span class="title function_ invoke__">as_str</span>()</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()</span><br><span class="line">        == <span class="string">&quot;pending_transaction&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Waits up to 10 seconds for a transaction to move past pending state.</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">wait_for_transaction</span>(&amp;<span class="keyword">self</span>, txn_hash: &amp;<span class="type">str</span>) &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">count</span> = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span> <span class="keyword">self</span>.<span class="title function_ invoke__">transaction_pending</span>(txn_hash) &#123;</span><br><span class="line">        <span class="built_in">assert!</span>(count &lt; <span class="number">10</span>, <span class="string">&quot;transaction &#123;&#125; timed out&quot;</span>, txn_hash);</span><br><span class="line">        thread::<span class="title function_ invoke__">sleep</span>(Duration::<span class="title function_ invoke__">from_secs</span>(<span class="number">1</span>));</span><br><span class="line">        count += <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h4 id="构造交易逻辑">1.2.3 构造交易逻辑</h4>
+<p>一个是account_balance，使用account_resource调用AptosCoin资源查询
+另一个是transfer，使用的是0x1::coin::transfer也就是coin共有方法transfer</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">    <span class="comment">/// Returns the test coin balance associated with the account</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">account_balance</span>(&amp;<span class="keyword">self</span>, account_address: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;<span class="type">u64</span>&gt; &#123;</span><br><span class="line">        <span class="keyword">self</span>.<span class="title function_ invoke__">account_resource</span>(</span><br><span class="line">            account_address,</span><br><span class="line">            <span class="string">&quot;0x1::coin::CoinStore&lt;0x1::aptos_coin::AptosCoin&gt;&quot;</span>,</span><br><span class="line">        )</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()[<span class="string">&quot;data&quot;</span>][<span class="string">&quot;coin&quot;</span>][<span class="string">&quot;value&quot;</span>]</span><br><span class="line">            .<span class="title function_ invoke__">as_str</span>()</span><br><span class="line">            .<span class="title function_ invoke__">and_then</span>(|s| s.parse::&lt;<span class="type">u64</span>&gt;().<span class="title function_ invoke__">ok</span>())</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/// Transfer a given coin amount from a given Account to the recipient&#x27;s account address.</span></span><br><span class="line">    <span class="comment">/// Returns the sequence number of the transaction used to transfer</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">transfer</span>(&amp;<span class="keyword">self</span>, account_from: &amp;<span class="keyword">mut</span> Account, recipient: &amp;<span class="type">str</span>, amount: <span class="type">u64</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">payload</span> = serde_json::json!(&#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;script_function_payload&quot;</span>,</span><br><span class="line">            <span class="string">&quot;function&quot;</span>: <span class="string">&quot;0x1::coin::transfer&quot;</span>,</span><br><span class="line">            <span class="string">&quot;type_arguments&quot;</span>: [<span class="string">&quot;0x1::aptos_coin::AptosCoin&quot;</span>],</span><br><span class="line">            <span class="string">&quot;arguments&quot;</span>: [<span class="built_in">format!</span>(<span class="string">&quot;0x&#123;&#125;&quot;</span>, recipient), amount.<span class="title function_ invoke__">to_string</span>()]</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">txn_request</span> = <span class="keyword">self</span>.<span class="title function_ invoke__">generate_transaction</span>(&amp;account_from.<span class="title function_ invoke__">address</span>(), payload);</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">signed_txn</span> = <span class="keyword">self</span>.<span class="title function_ invoke__">sign_transaction</span>(account_from, txn_request);</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">res</span> = <span class="keyword">self</span>.<span class="title function_ invoke__">submit_transaction</span>(&amp;signed_txn);</span><br><span class="line"></span><br><span class="line">        res.<span class="title function_ invoke__">get</span>(<span class="string">&quot;hash&quot;</span>).<span class="title function_ invoke__">unwrap</span>().<span class="title function_ invoke__">as_str</span>().<span class="title function_ invoke__">unwrap</span>().<span class="title function_ invoke__">to_string</span>()</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="准备一个水龙头接口包装器">1.3 准备一个水龙头接口包装器</h3>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">FaucetClient</span> &#123;</span><br><span class="line">    url: <span class="type">String</span>,</span><br><span class="line">    rest_client: RestClient,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">FaucetClient</span> &#123;</span><br><span class="line"></span><br><span class="line">  	<span class="comment">/// 水龙头可以创建账户并给其分配资产，这是一个包装器</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">new</span>(url: <span class="type">String</span>, rest_client: RestClient) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span> &#123;</span><br><span class="line">        <span class="keyword">Self</span> &#123; url, rest_client &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/// 给传入用户铸币</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">fund_account</span>(&amp;<span class="keyword">self</span>, auth_key: &amp;<span class="type">str</span>, amount: <span class="type">u64</span>) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">res</span> = reqwest::blocking::Client::<span class="title function_ invoke__">new</span>()</span><br><span class="line">            .<span class="title function_ invoke__">post</span>(<span class="built_in">format!</span>(</span><br><span class="line">                <span class="string">&quot;&#123;&#125;/mint?amount=&#123;&#125;&amp;auth_key=&#123;&#125;&quot;</span>,</span><br><span class="line">                <span class="keyword">self</span>.url, amount, auth_key</span><br><span class="line">            ))</span><br><span class="line">            .<span class="title function_ invoke__">send</span>()</span><br><span class="line">            .<span class="title function_ invoke__">unwrap</span>();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> res.<span class="title function_ invoke__">status</span>() != <span class="number">200</span> &#123;</span><br><span class="line">            <span class="built_in">assert_eq!</span>(</span><br><span class="line">                res.<span class="title function_ invoke__">status</span>(),</span><br><span class="line">                <span class="number">200</span>,</span><br><span class="line">                <span class="string">&quot;&#123;&#125;&quot;</span>,</span><br><span class="line">                res.<span class="title function_ invoke__">text</span>().<span class="title function_ invoke__">unwrap_or</span>(<span class="string">&quot;&quot;</span>.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">            );</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">for</span> <span class="variable">txn_hash</span> <span class="keyword">in</span> res.json::&lt;serde_json::Value&gt;().<span class="title function_ invoke__">unwrap</span>().<span class="title function_ invoke__">as_array</span>().<span class="title function_ invoke__">unwrap</span>() &#123;</span><br><span class="line">            <span class="keyword">self</span>.rest_client</span><br><span class="line">                .<span class="title function_ invoke__">wait_for_transaction</span>(txn_hash.<span class="title function_ invoke__">as_str</span>().<span class="title function_ invoke__">unwrap</span>())</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="运行测试">1.4 运行测试</h3>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">main</span>() <span class="punctuation">-&gt;</span> () &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">rest_client</span> = RestClient::<span class="title function_ invoke__">new</span>(TESTNET_URL.<span class="title function_ invoke__">to_string</span>());</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">faucet_client</span> = FaucetClient::<span class="title function_ invoke__">new</span>(FAUCET_URL.<span class="title function_ invoke__">to_string</span>(), rest_client.<span class="title function_ invoke__">clone</span>());</span><br><span class="line"></span><br><span class="line">  	<span class="comment">//创建两个账户Alice和Bob，并用水龙头给Alice赚一笔账</span></span><br><span class="line">    <span class="keyword">let</span> <span class="keyword">mut </span><span class="variable">alice</span> = Account::<span class="title function_ invoke__">new</span>(<span class="literal">None</span>);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">bob</span> = Account::<span class="title function_ invoke__">new</span>(<span class="literal">None</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;\n=== Addresses ===&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Alice: 0x&#123;&#125;&quot;</span>, alice.<span class="title function_ invoke__">address</span>());</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Bob: 0x&#123;&#125;&quot;</span>, bob.<span class="title function_ invoke__">address</span>());</span><br><span class="line"></span><br><span class="line">    faucet_client.<span class="title function_ invoke__">fund_account</span>(&amp;alice.<span class="title function_ invoke__">auth_key</span>().<span class="title function_ invoke__">as_str</span>(), <span class="number">1_000_000</span>);</span><br><span class="line">    faucet_client.<span class="title function_ invoke__">fund_account</span>(&amp;bob.<span class="title function_ invoke__">auth_key</span>().<span class="title function_ invoke__">as_str</span>(), <span class="number">0</span>);</span><br><span class="line">		</span><br><span class="line">  	<span class="comment">//调用account_balance查询账户余额</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;\n=== Initial Balances ===&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Alice: &#123;:?&#125;&quot;</span>, rest_client.<span class="title function_ invoke__">account_balance</span>(&amp;alice.<span class="title function_ invoke__">address</span>()));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Bob: &#123;:?&#125;&quot;</span>, rest_client.<span class="title function_ invoke__">account_balance</span>(&amp;bob.<span class="title function_ invoke__">address</span>()));</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Alice构造一笔向bob转账1000的交易并提交等待完成</span></span><br><span class="line">    <span class="keyword">let</span> <span class="variable">tx_hash</span> = rest_client.<span class="title function_ invoke__">transfer</span>(&amp;<span class="keyword">mut</span> alice, &amp;bob.<span class="title function_ invoke__">address</span>(), <span class="number">1_000</span>);</span><br><span class="line">    rest_client.<span class="title function_ invoke__">wait_for_transaction</span>(&amp;tx_hash);</span><br><span class="line">	  </span><br><span class="line">  	<span class="comment">//调用account_balance查询账户余额</span></span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;\n=== Final Balances ===&quot;</span>);</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Alice: &#123;:?&#125;&quot;</span>, rest_client.<span class="title function_ invoke__">account_balance</span>(&amp;alice.<span class="title function_ invoke__">address</span>()));</span><br><span class="line">    <span class="built_in">println!</span>(<span class="string">&quot;Bob: &#123;:?&#125;&quot;</span>, rest_client.<span class="title function_ invoke__">account_balance</span>(&amp;bob.<span class="title function_ invoke__">address</span>()));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>运行<code>cargo run --bin first-transaction</code>(运行前确保您在<code>aptos-core/developer-docs-site/static/examples/rust</code>目录下)</p>
+<h3 id="输出">1.5 输出</h3>
+<p>可以看到转账成功后Alice和Bob的余额(去掉gas费)</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">=== Addresses ===</span><br><span class="line">Alice: e26d69b8d3ff12874358da6a4082a2ac</span><br><span class="line">Bob: c8585f009c8a90f22c6b603f28b9ed8c</span><br><span class="line"></span><br><span class="line">=== Initial Balances ===</span><br><span class="line">Alice: <span class="number">1000000000</span></span><br><span class="line">Bob: <span class="number">0</span></span><br><span class="line"></span><br><span class="line">=== Final Balances ===</span><br><span class="line">Alice: <span class="number">999998957</span></span><br><span class="line">Bob: <span class="number">1000</span></span><br></pre></td></tr></table></figure>
+<h2 id="玩转合约">2.玩转合约</h2>
+<p>aptos链使用Move语言编写合约，其特点是安全稳定，语法上与Rust很像。</p>
+<p>我们现在构建一个新的合约，在aptos的世界里称为module。</p>
+<p>需要完成以下几个步骤：</p>
+<p>1.编写，编译，测试module 2.部署module
+3.与module的资源(存储区)交互</p>
+<h3 id="阅读合约代码">2.1 阅读合约代码</h3>
+<p>我们先进到<code>aptos-move/move-examples/hello_blockchain</code>目录里，我们暂且称其为“Move目录”，方便之后切换目录指称。</p>
+<p>在这个目录里我们可以看到这个<code>sources/HelloBlockchain.move</code>文件，这个module可以让账户可以创建并修改一个String类型的资源，每个用户都只能操作自己的资源。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">module HelloBlockchain::Message &#123;</span><br><span class="line">    <span class="keyword">use</span> std::string;</span><br><span class="line">    <span class="keyword">use</span> std::error;</span><br><span class="line">    <span class="keyword">use</span> std::signer;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">MessageHolder</span> has key &#123;</span><br><span class="line">        message: string::<span class="type">String</span>,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public entry fun <span class="title function_ invoke__">set_message</span>(account: signer, message_bytes: vector&lt;<span class="type">u8</span>&gt;)</span><br><span class="line">    acquires MessageHolder &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">message</span> = string::<span class="title function_ invoke__">utf8</span>(message_bytes);</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">account_addr</span> = signer::<span class="title function_ invoke__">address_of</span>(&amp;account);</span><br><span class="line">        <span class="title function_ invoke__">if</span> (!exists&lt;MessageHolder&gt;(account_addr)) &#123;</span><br><span class="line">            <span class="title function_ invoke__">move_to</span>(&amp;account, MessageHolder &#123;</span><br><span class="line">                message,</span><br><span class="line">            &#125;)</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="keyword">let</span> <span class="variable">old_message_holder</span> = borrow_global_mut&lt;MessageHolder&gt;(account_addr);</span><br><span class="line">            old_message_holder.message = message;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在上述代码中有两个关键，一个是结构体<code>MessageHolder</code>
+一个是函数 <code>set_message</code>。 <code>set_message</code>
+是一个script函数，允许被交易直接调用，调用它之后函数会确认账户是否有<code>MessageHolder</code>
+资源，没有的话就创建一个并把信息写入，有的话就覆盖掉。</p>
+<h3 id="测试合约">2.2测试合约</h3>
+<p>Move测试可以直接写在合约里，我们加上了一个sender_can_set_message测试函数，用cargo
+test进行测试。</p>
+<p>运行
+<code>cargo test test_hello_blockchain -p move-examples -- --exact</code>
+即可。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="meta">#[test(account = @0x1)]</span></span><br><span class="line"><span class="title function_ invoke__">public</span>(script) fun <span class="title function_ invoke__">sender_can_set_message</span>(account: signer) acquires MessageHolder &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">addr</span> = Signer::<span class="title function_ invoke__">address_of</span>(&amp;account);</span><br><span class="line">    <span class="title function_ invoke__">set_message</span>(account,  <span class="string">b&quot;Hello, Blockchain&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="built_in">assert!</span>(</span><br><span class="line">      <span class="title function_ invoke__">get_message</span>(addr) == string::<span class="title function_ invoke__">utf8</span>(<span class="string">b&quot;Hello, Blockchain&quot;</span>),</span><br><span class="line">      <span class="number">0</span></span><br><span class="line">    );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="部署合约">2.3部署合约</h3>
+<p>现在我们回到之前transaction样例的同级目录，找到<code>developer-docs-site/static/examples/rust/hello_blockchain</code>查看部署和交互module的代码。这会复用一些上一节的函数。这一节我们只讨论新功能，比如部署module，<code>set_message</code>交易，以及读取<code>MessageHolder::message</code>资源，部署module和提交交易的区别就只有payload，我们开始看吧：</p>
+<h4 id="部署module">2.3.1 部署module</h4>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">HelloBlockchainClient</span> &#123;</span><br><span class="line">    <span class="keyword">pub</span> rest_client: RestClient,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">HelloBlockchainClient</span> &#123;</span><br><span class="line">    <span class="comment">/// Represents an account as well as the private, public key-pair for the Aptos blockchain.</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">new</span>(url: <span class="type">String</span>) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span> &#123;</span><br><span class="line">        <span class="keyword">Self</span> &#123;</span><br><span class="line">            rest_client: RestClient::<span class="title function_ invoke__">new</span>(url),</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/// Publish a new module to the blockchain within the specified account</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">publish_module</span>(&amp;<span class="keyword">self</span>, account_from: &amp;<span class="keyword">mut</span> Account, module_hex: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">payload</span> = serde_json::json!(&#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;module_bundle_payload&quot;</span>,</span><br><span class="line">            <span class="string">&quot;modules&quot;</span>: [&#123;<span class="string">&quot;bytecode&quot;</span>: <span class="built_in">format!</span>(<span class="string">&quot;0x&#123;&#125;&quot;</span>, module_hex)&#125;],</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">self</span>.rest_client</span><br><span class="line">            .<span class="title function_ invoke__">execution_transaction_with_payload</span>(account_from, payload)</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br></pre></td></tr></table></figure>
+<h4 id="读取资源">2.3.2 读取资源</h4>
+<p>Module 发布在一个地址上，就是下边的
+<code>contract_address</code>。上一节转移Coin时候的0x1也是发布地址。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">    <span class="comment">/// Retrieve the resource Message::MessageHolder::message</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">get_message</span>(&amp;<span class="keyword">self</span>, contract_address: &amp;<span class="type">str</span>, account_address: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="type">Option</span>&lt;<span class="type">String</span>&gt; &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">module_type</span> = <span class="built_in">format!</span>(<span class="string">&quot;0x&#123;&#125;::Message::MessageHolder&quot;</span>, contract_address);</span><br><span class="line">        <span class="keyword">self</span>.rest_client</span><br><span class="line">            .<span class="title function_ invoke__">account_resource</span>(account_address, &amp;module_type)</span><br><span class="line">            .<span class="title function_ invoke__">map</span>(|value| value[<span class="string">&quot;data&quot;</span>][<span class="string">&quot;message&quot;</span>].<span class="title function_ invoke__">as_str</span>().<span class="title function_ invoke__">unwrap</span>().<span class="title function_ invoke__">to_string</span>())</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h4 id="修改资源">2.3.3 修改资源</h4>
+<p>Module必须暴露出script函数才能初始化和修改资源，script可以被交易调用。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// Potentially initialize and set the resource Message::MessageHolder::message</span></span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">set_message</span>(</span><br><span class="line">    &amp;<span class="keyword">self</span>,</span><br><span class="line">    contract_address: &amp;<span class="type">str</span>,</span><br><span class="line">    account_from: &amp;<span class="keyword">mut</span> Account,</span><br><span class="line">    message: &amp;<span class="type">str</span>,</span><br><span class="line">) <span class="punctuation">-&gt;</span> <span class="type">String</span> &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">message_hex</span> = hex::<span class="title function_ invoke__">encode</span>(message.<span class="title function_ invoke__">as_bytes</span>());</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">payload</span> = serde_json::json!(&#123;</span><br><span class="line">        <span class="string">&quot;type&quot;</span>: <span class="string">&quot;script_function_payload&quot;</span>,</span><br><span class="line">        <span class="string">&quot;function&quot;</span>: <span class="built_in">format!</span>(<span class="string">&quot;0x&#123;&#125;::Message::set_message&quot;</span>, contract_address),</span><br><span class="line">        <span class="string">&quot;type_arguments&quot;</span>: [],</span><br><span class="line">        <span class="string">&quot;arguments&quot;</span>: [message_hex]</span><br><span class="line">    &#125;);</span><br><span class="line">    <span class="keyword">self</span>.rest_client</span><br><span class="line">        .<span class="title function_ invoke__">execution_transaction_with_payload</span>(account_from, payload)</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<h3 id="初始化并交互">2.4 初始化并交互</h3>
+<p>进入
+<code>developer-docs-site/static/examples/rust</code>，我们姑且称为"App
+目录"</p>
+<p>运行 <code>cargo run --bin hello-blockchain -- Message.mv</code></p>
+<p>过了一会，控制台会输出Alice与Bob的账户信息并显示<code>Update the module with Alice's address, build, copy to the provided path, and press enter.</code>，记录下Alice的地址，不要关闭</p>
+<p>这时我们另起一个控制台，进入"Move目录"，将<code>hello_blockchain/move.toml</code>中的
+<code>HelloBlockChain='_'</code>配置为Alice地址。</p>
+<p>运行<code>aptos move compile --package-dir . --named-addresses HelloBlockchain=0x&#123;Alice的地址&#125;</code></p>
+<p>Module编译成功，将<code>build/Examples/bytecode_modules/Message.mv</code>复制一份到<code>developer-docs-site/static/examples/rust</code></p>
+<p>在"App 目录"的控制台输入回车让它继续运行</p>
+<p>输出如果类似这样就是成功了：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">=== Addresses ===</span><br><span class="line">Alice: 11c32982d04fbcc79b694647edff88c5b5d5b1a99c9d2854039175facbeefb40</span><br><span class="line">Bob: 7ec8f962139943bc41c17a72e782b7729b1625cf65ed7812152a5677364a4f88</span><br><span class="line"></span><br><span class="line">=== Initial Balances ===</span><br><span class="line">Alice: 10000000</span><br><span class="line">Bob: 10000000</span><br><span class="line"></span><br><span class="line">Update the module with Alice&#x27;s address, build, copy to the provided path, and press enter.</span><br><span class="line"></span><br><span class="line">=== Testing Alice ===</span><br><span class="line">Publishing...</span><br><span class="line">Initial value: None</span><br><span class="line">Setting the message to &quot;Hello, Blockchain&quot;</span><br><span class="line">New value: Hello, Blockchain</span><br><span class="line"></span><br><span class="line">=== Testing Bob ===</span><br><span class="line">Initial value: None</span><br><span class="line">Setting the message to &quot;Hello, Blockchain&quot;</span><br><span class="line">New value: Hello, Blockchain</span><br></pre></td></tr></table></figure>
+<p>证明了Alice和Bob都新创建了Message资源并置为"Hello, Blockchain"</p>
+<h2 id="相关资料">3.相关资料</h2>
+<p>Aptos 官方文档：https://aptos.dev
+Move手册：https://move-language.github.io/move/
+区块链浏览器：https://explorer.devnet.aptos.dev
+api文档：https://fullnode.devnet.aptoslabs.com/spec.html#/</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Rust/" rel="tag"># Rust</a>
+              <a href="/tags/Aptos/" rel="tag"># Aptos</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/07/09/aave-v3-techpaper/" rel="prev" title="AAVE v3 技术说明">
+      <i class="fa fa-chevron-left"></i> AAVE v3 技术说明
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%86%E5%A4%87%E5%B7%A5%E4%BD%9C"><span class="nav-number">1.</span> <span class="nav-text">0.准备工作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%91%E8%B5%B7%E4%BA%A4%E6%98%93"><span class="nav-number">2.</span> <span class="nav-text">1.发起交易</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E8%B4%A6%E6%88%B7"><span class="nav-number">2.1.</span> <span class="nav-text">1.1 创建账户</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%86%E5%A4%87%E4%B8%80%E4%B8%AArest%E6%8E%A5%E5%8F%A3%E5%8C%85%E8%A3%85%E5%99%A8"><span class="nav-number">2.2.</span> <span class="nav-text">1.2 准备一个REST接口包装器</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%BB%E5%8F%96%E8%B4%A6%E6%88%B7%E4%BF%A1%E6%81%AF"><span class="nav-number">2.2.1.</span> <span class="nav-text">1.2.1 读取账户信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BA%A4%E6%98%93%E7%9B%B8%E5%85%B3%E6%93%8D%E4%BD%9C%E7%94%9F%E6%88%90%E7%AD%BE%E5%90%8D%E6%8F%90%E4%BA%A4"><span class="nav-number">2.2.2.</span> <span class="nav-text">1.2.2
+交易相关操作(生成，签名，提交)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E4%BA%A4%E6%98%93%E9%80%BB%E8%BE%91"><span class="nav-number">2.2.3.</span> <span class="nav-text">1.2.3 构造交易逻辑</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%87%86%E5%A4%87%E4%B8%80%E4%B8%AA%E6%B0%B4%E9%BE%99%E5%A4%B4%E6%8E%A5%E5%8F%A3%E5%8C%85%E8%A3%85%E5%99%A8"><span class="nav-number">2.3.</span> <span class="nav-text">1.3 准备一个水龙头接口包装器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E6%B5%8B%E8%AF%95"><span class="nav-number">2.4.</span> <span class="nav-text">1.4 运行测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%87%BA"><span class="nav-number">2.5.</span> <span class="nav-text">1.5 输出</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%A9%E8%BD%AC%E5%90%88%E7%BA%A6"><span class="nav-number">3.</span> <span class="nav-text">2.玩转合约</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%98%85%E8%AF%BB%E5%90%88%E7%BA%A6%E4%BB%A3%E7%A0%81"><span class="nav-number">3.1.</span> <span class="nav-text">2.1 阅读合约代码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E5%90%88%E7%BA%A6"><span class="nav-number">3.2.</span> <span class="nav-text">2.2测试合约</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2%E5%90%88%E7%BA%A6"><span class="nav-number">3.3.</span> <span class="nav-text">2.3部署合约</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2module"><span class="nav-number">3.3.1.</span> <span class="nav-text">2.3.1 部署module</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%BB%E5%8F%96%E8%B5%84%E6%BA%90"><span class="nav-number">3.3.2.</span> <span class="nav-text">2.3.2 读取资源</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E8%B5%84%E6%BA%90"><span class="nav-number">3.3.3.</span> <span class="nav-text">2.3.3 修改资源</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96%E5%B9%B6%E4%BA%A4%E4%BA%92"><span class="nav-number">3.4.</span> <span class="nav-text">2.4 初始化并交互</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E8%B5%84%E6%96%99"><span class="nav-number">4.</span> <span class="nav-text">3.相关资料</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="张钰Alvan"
+      src="/images/Alvan.png">
+  <p class="site-author-name" itemprop="name">张钰Alvan</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      <a href="https://github.com/passer-byzhang" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;passer-byzhang" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+      <a href="mailto:alvanzhang@skiff.com" rel="alternate" title="E-Mail" rel="noopener" target="_blank"> <i class="fa fa-fw fa-envelope"></i> E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">张钰Alvan</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '7be3591b434db5b63b24',
+      clientSecret: 'f0904467341de11c96d8a9f6a3c6e8d9754bba82',
+      repo        : 'passer-byzhang.github.io',
+      owner       : 'passer-byzhang',
+      admin       : ['passer-byzhang'],
+      id          : 'cab8bd26d1073ed6ba882e41fbf85878',
+        language: 'zh-CN',
+      distractionFreeMode: false
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

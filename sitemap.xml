@@ -2,6 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2022/07/30/aptos-tutorial/</loc>
+    
+    <lastmod>2022-07-29T19:13:02.896Z</lastmod>
+    
+    <date>1659121627000</date>
+    <title>aptos初体验 | Alvan's Blog</title>
+    
+    <desc>Aptos链入门，发交易和构造合约</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/2022/07/09/aave-v3-techpaper/</loc>
     
     <lastmod>2022-07-20T11:07:42.600Z</lastmod>

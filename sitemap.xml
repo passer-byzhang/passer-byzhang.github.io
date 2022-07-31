@@ -2,6 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2022/07/31/aptos-first-nft/</loc>
+    
+    <lastmod>2022-07-31T14:45:43.287Z</lastmod>
+    
+    <date>1659278584000</date>
+    <title>无需合约，在Aptos上发布NFT | Alvan's Blog</title>
+    
+    <desc>Aptos链入门，铸造和交易NFT</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/2022/07/30/aptos-tutorial/</loc>
     
     <lastmod>2022-07-29T19:13:02.896Z</lastmod>

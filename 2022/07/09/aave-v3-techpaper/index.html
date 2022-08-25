@@ -33,7 +33,7 @@
 <meta property="og:image" content="http://example.com/2022/07/09/aave-v3-techpaper/figure4.jpg">
 <meta property="og:image" content="http://example.com/2022/07/09/aave-v3-techpaper/figure5.jpg">
 <meta property="article:published_time" content="2022-07-09T07:59:05.000Z">
-<meta property="article:modified_time" content="2022-07-20T11:07:42.600Z">
+<meta property="article:modified_time" content="2022-08-17T10:01:02.552Z">
 <meta property="article:author" content="张钰Alvan">
 <meta property="article:tag" content="DeFi">
 <meta name="twitter:card" content="summary">
@@ -230,7 +230,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">Edited on</span>
-                <time title="Modified: 2022-07-20 19:07:42" itemprop="dateModified" datetime="2022-07-20T19:07:42+08:00">2022-07-20</time>
+                <time title="Modified: 2022-08-17 18:01:02" itemprop="dateModified" datetime="2022-08-17T18:01:02+08:00">2022-08-17</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -379,8 +379,7 @@ V3引入了资产列表管理员的概念，治理团队可以创建并向任何
 <li>智能合约的代码变小了--最多能运行100K的<a
 target="_blank" rel="noopener" href="https://www.osgeo.cn/solidity/internals/optimizer.html">优化器</a></li>
 <li>优化稳定利率计算的新策略，实现可以看这里：
-https://governance.aave.com/t/base-
-stable-rate-oracle-update-and-improvements-in-aave-v2/1879，4.4也会深入探讨</li>
+https://governance.aave.com/t/base-stable-rate-oracle-update-and-improvements-in-aave-v2/1879，4.4也会深入探讨</li>
 </ul>
 <h2 id="特性说明">4.特性说明</h2>
 <h3 id="e---mode">4.1 E - Mode</h3>
@@ -472,7 +471,7 @@ class="math inline">\(O_{util}\)</span>和<span
 class="math inline">\(O_{ratio}\)</span>分别为总负债率常数的最优利用率和最优稳定借款比例，则计算稳定利率公式如下:</p>
 <p><img src="figure3.jpg" title="图三" /></p>
 <h3 id="传送门">4.5 传送门</h3>
-<p>Portal代表了一组核心功能，让Aave上的资产可以在不同链上自由转移，在顶层逻辑上很好理解：</p>
+<p>传送门代表了一组核心功能，让Aave上的资产可以在不同链上自由转移，在顶层逻辑上很好理解：</p>
 <p>Aave协议利用aToken的独特设计在源网络上燃烧aTokens，同时在目标网络上铸造aTokens。然后，基础资产可以以一种延迟的方式提供给目标网络上的Aave，即在其通过跨链桥后将其传递给流动性池。但是这对计算利率和目标网络上的市场安全有许多影响。</p>
 <p>由于巧妙的设计，在协议层面实现这个只需要一个简单的方法。我们需要在协议加上三个特性：</p>
 <ol type="1">
@@ -500,7 +499,7 @@ V3在这些特定的情况下引入了清盘的宽限期。只要这个头寸没
 1)，都会被设置一个宽限期。如果HF&lt;0.95，就可以完全按照L1进行平仓。注意，这个宽限期只有在sequencer已经停机的情况下才会被激活。在宽限期内，用户也不允许借款。</p>
 <h3 id="系统身份与风险模式">4.7 系统身份与风险模式</h3>
 <p>Aave协议实现了一个访问控制列表，以区别每个身份的权利与收益。这些身份在ACLManager合约中进行管理。ACLManager跟踪各个身份和身份的持有者，并允许身份管理员管理身份。身份管理员本身是一个由DEFAULT_ADMIN_ROLE管理的身份。</p>
-<p>合约PoolAddressesProvider管理协议的各种组件(包括ACLManager和Pool)。PoolAddressesProvider跟踪各种协议模块，并有能力更新指针(例如更新ACLManager合约)或更新代理合约的实现(例如更新Pool的实现)。</p>
+<p>PoolAddressesProvider合约管理协议的各种组件(包括ACLManager和Pool)。PoolAddressesProvider跟踪各种协议模块，并有能力更新指针(例如更新ACLManager合约)或更新代理合约的实现(例如更新Pool的实现)。</p>
 <p>PoolAddressesProvider由Aave
 Governance拥有，并指定DEFAULT_ADMIN_ROLE的初始持有者。在以太坊以外的网络中，使用跨链桥(https://github.com/aave/governance-crosschain-bridges)，或者使用社区多签来管理PoolAddressesProvider。</p>
 <p><big><big><strong>身份权责</strong></big></big></p>
@@ -641,7 +640,7 @@ LISTING ADMIN拒绝更改现有oracle，只允许添加。</p>
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">14</span>
+          <span class="site-state-item-count">15</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -654,7 +653,7 @@ LISTING ADMIN拒绝更改现有oracle，只允许添加。</p>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-count">6</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>

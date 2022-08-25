@@ -383,6 +383,221 @@ Deep Dives - Part 2</a>。</p>
       </tags>
   </entry>
   <entry>
+    <title>深入理解EVM - Part2 - 内存</title>
+    <url>/2022/06/21/Digging-Deep-EVM-Part2/</url>
+    <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?s=r
+译者博客: <a href="alvan.coffee">Alvan的Blog</a></p>
+<p>本系列的第二篇文章，我们会继续学习基础知识，以期成为“shadowy super
+coder”。如果没看过本系列的<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>的话，建议看一下，有些前置的知识。在<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>里，我们知道了EVM如何根据字节码找到调用的函数，对调用栈，calldata，函数签名和opcode有了一定了解。在第二篇我们学习一下合约的内存(memory)是怎么在EVM里工作的。</p>
+<h2 id="a-trip-down-memory-lane">A Trip Down Memory Lane</h2>
+<p><a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>出现的1_Storage.sol
+contract又来营业了。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F3400bba6-f870-4b68-8ba8-118562b08aef_489x538.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>还是像上次一样，生成字节码然后把相关的截出来，在这篇里我们着重看一下前五字节。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">6080604052</span><br><span class="line">60 80                       =   PUSH1 0x80</span><br><span class="line">60 40                       =   PUSH1 0x40</span><br><span class="line">52                          =   MSTORE </span><br></pre></td></tr></table></figure>
+<p>这五个字节表示初始化“空闲内存指针”(free memory
+pointer)。要想完全理解它的含义，我们必须先对管理合约内存的数据结构有一定了解。</p>
+<h2 id="内存的数据结构">内存的数据结构</h2>
+<p>合约的内存是一个很简单的字节数组，可以储存32字节或者1字节的数据块，也可以读取32字节的数据块。如下图所示：</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F33d7994b-a4b5-4268-8d53-85f214944599_717x437.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F33d7994b-a4b5-4268-8d53-85f214944599_717x437.png"
+alt="img" /></a> 来源:
+https://takenobu-hs.github.io/downloads/ethereum_evm_illustrated.pdf</p>
+<p>这个功能是3个管理内存的opcode决定的</p>
+<ul>
+<li>MSTORE (x, y) - 以“x”处为起点，写入32字节的数据“y”</li>
+<li>MLOAD (x) - 从“x”处取出32字节的数据加载到调用栈。</li>
+<li>MSTORE8 (x, y) -
+以“x”处为起点，写入1字节的数据“y”(调用栈的最低有效字节)</li>
+</ul>
+<p>你可以简单把内存位置理解成数组的索引，如果要读写超过1字节的数据，只需在下一个索引继续读写。</p>
+<h2 id="evm-playground">EVM Playground</h2>
+<p>这个 <a href="#evm-playground">EVM
+playground</a>(https://www.evm.codes/playground?unit=Wei&amp;codeType=Mnemonic&amp;code='Vg<em>(<em>I...1W0GJ</em>!!!!z00FK22WJQ0Y22z20F8K33W33Q1Y33z21F8d(v0Z0-Jq00Xd(vJZJ-64q20Xdv33Z33-65q21Xpp'~N
+locatioCzG1_wppVv7o7hBcall stack from~uIIIIq( ofNzpbytegSTOREdw)</em>_
+0xZ9BY9Chex}zXpM)
+可以巩固理解这三个opcode和内存是怎么工作的。点击Run和右上角的弯箭头一步一步执行，可以看到调用栈和内存的变化(每一部分都有注释)。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe3e29126-2954-40e3-bc1b-7ca5e780fd1c_1500x850.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe3e29126-2954-40e3-bc1b-7ca5e780fd1c_1500x850.png"
+alt="img" /></a></p>
+<p>使用这个的时候你会发现一些奇怪的事情，首先当我们用MSTORE8把一个单字节数据0x22写进内存时，内存从这样</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F954d54e6-0bce-4de3-a61d-dd41fdae49c7_836x152.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F954d54e6-0bce-4de3-a61d-dd41fdae49c7_836x152.png"
+alt="img" /></a></p>
+<p>变成了这样</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F225fde5a-09bf-4a24-a702-88ad5010951e_836x176.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F225fde5a-09bf-4a24-a702-88ad5010951e_836x176.png"
+alt="img" /></a></p>
+<p>你可能会问，我只加了一字节，怎么补了这么多的0？</p>
+<h3 id="内存扩展">内存扩展</h3>
+<p>合约往内存里写数据是要根据数据大小付费的，如果要写在之前没写过的区域，还会收取首次使用的附加费用。没写过的区域是会按照32字节的增量增加的。</p>
+<blockquote>
+<p>前724字节，内存扩展的花费成线性增长，后边按照二次方增长</p>
+</blockquote>
+<p>因为我们刚刚初始化所以到处都是初始化为0的内存区域，又因为增量是32字节，就看到了内存被追加写入了2200000000000000000000000000000000000000000000000000000000000000</p>
+<h3 id="牢记内存是个字节数组">牢记内存是个字节数组</h3>
+<p>在33 (0x21)处跑MLOAD发现了第二件事，调用栈返回了这个</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">3300000000000000000000000000000000000000000000000000000000000000</span><br></pre></td></tr></table></figure>
+<p>牢记内存就是一个字节数组，我们可以在任何位置读写它，不一定是32的倍数，它记录线性的、字节级别的位置</p>
+<blockquote>
+<p>内存只能被函数创建。可以是复杂类型比如数组和结构体的实例化，也可能是从存储区(storage)复制过来的引用变量。</p>
+</blockquote>
+<p>了解了内存的数据结构之后我们老看一下空闲内存指针。</p>
+<h2 id="空闲内存指针">空闲内存指针</h2>
+<p>空闲内存指针就是一个简单的指向未使用内存开始处的指针，它可以确保智能合约可以记录哪些内存位置被写入了、哪些没被写入。这避免了合约用本应申请新内存的其他变量去覆盖老数据。当变量需要被写入内存时，合约会根据空闲内存指针确认数据应该写到哪里。</p>
+<p>写入之后空闲内存指针会更新，根据写入数据大小确定新指针位置。像这样用一个简单的两数相加，算出新的空闲内存从哪开始：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">freeMemoryPointer + dataSizeBytes = newFreeMemoryPointer </span><br></pre></td></tr></table></figure>
+<h3 id="字节码">字节码</h3>
+<p>根据上文所题，空闲内存指针是在字节码最前边的五个opcode声明的</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">60 80                       =   PUSH1 0x80</span><br><span class="line">60 40                       =   PUSH1 0x40</span><br><span class="line">52                          =   MSTORE  </span><br></pre></td></tr></table></figure>
+<p>这实际上是在说空闲内存指针在0x40(十进制64)位置上，有一个值0x80(十进制128)。那么0x40和0x80是怎么来的呢？我们可以在下边表格看到：</p>
+<blockquote>
+<p>Solidity的内存布局将前4个32字节的插槽保留:</p>
+<ul>
+<li><code>0x00</code> - <code>0x3f</code> (64 bytes): 暂存空间(Scratch
+space)</li>
+<li><code>0x40</code> - <code>0x5f</code> (32 bytes): 空闲内训指针</li>
+<li><code>0x60</code> - <code>0x7f</code> (32 bytes): 插槽0</li>
+</ul>
+</blockquote>
+<p>我们可以看到0x40是Solidity定下的空闲内存指针的位置，而紧接着这四个保留值的内存地址即为0x80。</p>
+<p>我们快速过一遍这四个保留值分别是干什么的：</p>
+<ul>
+<li>暂存空间, 用来给hash方法和内联汇编使用。</li>
+<li>空闲内存指针,
+记录当前已分配的内存大小，空闲内存的起点，初始值0x80。</li>
+<li>插槽0，用作动态内存数组的初始值，不会被写入。</li>
+</ul>
+<h3 id="合约里的内存">合约里的内存</h3>
+<p>我们巩固一下上边学到的知识，从真实的Solidity代码中看一下内存和空闲内存指针是如何更新的。我故意创建了一个很简单的MemoryLane合约，只有一个函数，里边声明了长度分别为5和2的梁哥数组，然后把b[0]赋1，尽管很简单，在这三行代码运行时依然发生了很多事。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F45614789-b470-43be-9bb5-f7e0aabf35b5_393x276.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F45614789-b470-43be-9bb5-f7e0aabf35b5_393x276.png"
+alt="img" /></a></p>
+<p>我们把代码复制到remix里，看看这段solidity代码在EVM里的工作细节。复制之后，把它编译部署了，运行memoryLane()函数然后进debug模式，能看见这个合约的opcodes。</p>
+<p>我把opcodes简化了一下，删除JUMP和其他与内存操作无关的代码。代码中添加了注释，以提供上下文。代码分为6个不同的部分。大家可以把这六部分合在一起，在EVM
+Playground里跑一下。</p>
+<h3
+id="空闲内存指针初始化evm-playground-lines-1-15">空闲内存指针初始化(EVM
+Playground Lines 1-15)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">////////////////////////////////////////</span><br><span class="line">// Free Memory Pointer Initialisation //</span><br><span class="line">////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// value to store for free memory pointer 0x80 = 128 in decimal</span><br><span class="line">PUSH1 0x80</span><br><span class="line">// location for free memory pointer 0x40 = 64 in decimal</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br><span class="line"></span><br><span class="line">// jump location (required to prevent stack underflow) </span><br><span class="line">PUSH2 0xffff</span><br></pre></td></tr></table></figure>
+<p>首先，按照上边所讲的，初始化空闲内存指针，把0x80压进栈里，这是solidity内存布局规定的。在这段时间里，我们内存里什么都没有。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6437f902-7104-4009-8858-230d73a765a8_1066x198.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6437f902-7104-4009-8858-230d73a765a8_1066x198.png"
+alt="img" /></a></p>
+<p>然后我们再按照内存布局把空闲内存指针的地址0x40压栈。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F61258407-3f1c-44ff-a81f-982dc17a174e_1066x256.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F61258407-3f1c-44ff-a81f-982dc17a174e_1066x256.png"
+alt="img" /></a></p>
+<p>最后我们调用MSTORE把栈顶的0x40弹出来，0x40处的值为0x80，把它写入内存。</p>
+<p>现在调用栈空了但是我们需要处理一些内存，这些内存是16进制，每一个字符对应4个比特位。现在我们有了192个16进制字符，也就是96字节(1字节=8位=2个十六进制字符)。</p>
+<p>前边讲过前64字节是solidity布局规定的暂存空间，紧接着的32字节是空闲内存指针，正如下边所表示的这样：(译者注：这个Memory并不是显示MSTORE存进去什么，而是从头到位显示，直到后边全是未分配内存，所以把前边的暂存空间也显示出来了)</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F62ee6b98-6d06-4b91-a12a-45cc86a9ab5c_1066x304.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F62ee6b98-6d06-4b91-a12a-45cc86a9ab5c_1066x304.png"
+alt="img" /></a></p>
+<h3
+id="变量-a-的内存分配和空闲内存指针更新-evm-playground-lines-16-34">变量
+a 的内存分配和空闲内存指针更新 (EVM Playground Lines 16-34)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">//////////////////////////////////////////////////////////////////</span><br><span class="line">// Memory Allocation Varibale “a” &amp; Free Memory Pointer Update ///</span><br><span class="line">//////////////////////////////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// load free memory pointer</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MLOAD</span><br><span class="line"></span><br><span class="line">// duplicate free memory pointer</span><br><span class="line">DUP1</span><br><span class="line">// 0xa0 = 160 in decimal, 32 * 5 = 160 first array is length 5</span><br><span class="line">PUSH1 0xa0</span><br><span class="line">// free memory pointer (0x80) + space for array (0xa0) = new free memory pointer</span><br><span class="line">ADD</span><br><span class="line">// Save this new value 0x120 to the free memory location</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br></pre></td></tr></table></figure>
+<p>剩下的部分，在剩下的部分中，我们将跳过到每个部分的结束状态，并简要地说一下发生了什么。单独的opcode步骤可以在
+<a href="https://www.evm.codes/playground">EVM
+playground</a>里自行探索。下一个分配内存的是“a”
+<code>(bytes32[5])</code>
+，空闲内存指针也更新了。编译器会根据数组大小和元素大小决定分配多大的内存。</p>
+<blockquote>
+<p>牢记内存数组中的元素永远是32字节的倍数(bytes1[]也一样，但是bytes和string不是)。</p>
+</blockquote>
+<p>32字节倍数大小的数组会告诉我们需要分配多少内存。</p>
+<p>那在这里就是5 * 32
+也就是160或者说0xa0。我们可以看到它被压入堆栈并添加到当前空闲内存指针0x80(十进制为128)以获得新的空闲内存指针值。本来空闲内存指针在0x80(十进制128)，加上160后等于288，也就是16进制0x120，已经写到Memory上了。</p>
+<p>调用栈里有变量a的内存起始地址0x80，以后可能会用到，0xffff是一个JuNP地址，跟内存操作无关可以忽略。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fdf90605a-11c5-4d15-a055-b45dc6f93d9f_1066x378.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fdf90605a-11c5-4d15-a055-b45dc6f93d9f_1066x378.png"
+alt="img" /></a></p>
+<h3 id="变量-a-的内存初始化-evm-playground-lines-35-95">变量 a
+的内存初始化 (EVM Playground Lines 35-95)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/////////////////////////////////////////</span><br><span class="line">// Memory Initialisation Varaible “a” ///</span><br><span class="line">/////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// duplicate 0x80</span><br><span class="line">DUP1</span><br><span class="line">// push 0x05 = 5 in decimal (array length)</span><br><span class="line">PUSH1 0x05</span><br><span class="line">// Swap the top 2 items on the stack in this case 0x05 and 0x80</span><br><span class="line">SWAP1</span><br><span class="line">// push 0x20 = 32 in decimal (array item size)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// Duplicate the 3rd item on the stack in this case 0x05 to the top of the stack</span><br><span class="line">DUP3</span><br><span class="line">// 0x05 * 0x20 = 5 * 32 in decmial = 160 on top of the stack (size of array in bytes)</span><br><span class="line">MUL</span><br><span class="line">// Duplicate 0xa0 = 160 in decimal</span><br><span class="line">DUP1</span><br><span class="line">// Returns size of calldata in bytes currently just function signature = 0x04 or 4 in decmial</span><br><span class="line">CALLDATASIZE</span><br><span class="line">// duplicate 4th item on stack (0x80)</span><br><span class="line">DUP4</span><br><span class="line">// 0x80 (byte offset in the memory where the result will be copied.), 0x04 (byte offset in the calldata to copy.), 0xa0 (byte size to copy.)</span><br><span class="line"></span><br><span class="line">// this offsets the 4 bytes in our call data with a size of 0xa0 which yeild a 160 bit set of 0&#x27;s to be stored at the free memory pointer location</span><br><span class="line"></span><br><span class="line">// this effectively initialises our array in memory </span><br><span class="line">CALLDATACOPY</span><br><span class="line"></span><br><span class="line">// The remaining lines in this section manipulate the stack to ensure we have the memory location of variable &quot;a&quot; and removes any items that are no longer needed</span><br><span class="line"></span><br><span class="line">// duplicate 0xa0</span><br><span class="line">DUP1</span><br><span class="line">// duplicate 0x80</span><br><span class="line">DUP3</span><br><span class="line">// new free memory pointer as before</span><br><span class="line">ADD</span><br><span class="line">// swap 1st (0x120) item on the stack and 3rd (0x80)</span><br><span class="line">SWAP2</span><br><span class="line">// pop top item off stack (0x80)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0xa0)</span><br><span class="line">POP</span><br><span class="line">// Swap top 2 items 0x120 &amp; 0x05</span><br><span class="line">SWAP1</span><br><span class="line">// pop top item off stack (0x05)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x120)</span><br><span class="line">POP</span><br><span class="line">// swap top 2 items 0x80 &amp; 0xb6 (jump location)</span><br><span class="line">SWAP1</span><br><span class="line">// simulating a JUMP remove the top item off stack with POP</span><br><span class="line">POP</span><br><span class="line"></span><br><span class="line">// Simulated jump location</span><br><span class="line">PUSH2 0xffff</span><br><span class="line">// Simulated jump location</span><br><span class="line">PUSH2 0xffff</span><br><span class="line">// simulating a JUMP, remove the top item off stack with POP</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
+<p>现在内存已经被分配了，空闲内存指针也更新了，我们需要初始化变量a的内存空间。变量只是声明却没被赋值，会被初始化为0。</p>
+<p>为此EVM使用CALLDATACOPY，有三个参数：</p>
+<ul>
+<li>memoryOffset (数据拷贝的目标地址)</li>
+<li>calldataOffset (待拷贝数据在calldata里的偏移量)</li>
+<li>size (需要复制的大小)</li>
+</ul>
+<p>在这个例子里，memoryOffset是变量 a
+的内存位置0x80。calldataOffset是待复制数据在calldata中的起点，因为我们反正不想复制任何calldata，就用0值初始化。最后size就是0xa0(十进制160)。</p>
+<p>我们可以看到内存已经扩展到288字节了，调用栈又拿到了a的内存位置，还有一个无关痛痒的JUMP地址。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F77921922-6699-4ef7-a248-5b96667ac1cc_1066x548.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F77921922-6699-4ef7-a248-5b96667ac1cc_1066x548.png"
+alt="img" /></a></p>
+<h3
+id="变量-b-的内存分配和空闲内存指针更新-evm-playground-lines-96-112">变量
+b 的内存分配和空闲内存指针更新 (EVM Playground Lines 96-112)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/////////////////////////////////////////////////////////////////</span><br><span class="line">// Memory Allocation Varibale “b” &amp; Free Memory Pointer Update //</span><br><span class="line">/////////////////////////////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// free memory pointer load in </span><br><span class="line">PUSH1 0x40</span><br><span class="line">MLOAD</span><br><span class="line">// duplicate free memory pointer (0x120)</span><br><span class="line">DUP1</span><br><span class="line">// 0x40 = 64 in decimal, 32 * 2 = 64 second array is length 2</span><br><span class="line">PUSH1 0x40</span><br><span class="line">// free memory pointer (0x120) + space for array (0x40) = new free memory pointer</span><br><span class="line">ADD</span><br><span class="line">// save new free memory pointer value at free memory location 0x40</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br></pre></td></tr></table></figure>
+<p>和 a
+一样，对<code>“bytes32[2] memory b”</code>也要做内存申请和更新空闲内存指针。空闲内存指针更新到0x160(即十进制的352
+= 288 + 2 * 32)。内存里显示空白内存指针已更新，栈上也有了变量 b
+的内存地址0x120。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6d38d4d0-f02f-4f85-a16e-11a3687ae095_1066x610.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6d38d4d0-f02f-4f85-a16e-11a3687ae095_1066x610.png"
+alt="img" /></a></p>
+<h3 id="变量-b-的内存初始化-evm-playground-lines-113-162">变量 b
+的内存初始化 (EVM Playground Lines 113-162)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">////////////////////////////////////////</span><br><span class="line">// Memory Initialisation Variable “b” //</span><br><span class="line">////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// duplicate 0x120 (memory start location for variable &quot;b&quot;)</span><br><span class="line">DUP1</span><br><span class="line">// 0x02 = 2 in decimal = array length</span><br><span class="line">PUSH1 0x02</span><br><span class="line">// swap top 2 items 0x02 &amp; 0x120</span><br><span class="line">SWAP1</span><br><span class="line">// 0x20 = 32 in decimal (array item size in bytes)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// duplicate 3rd item on the stack 0x02</span><br><span class="line">DUP3</span><br><span class="line">// 0x02 * 0x20 = 0x40 = 64 (amount of bytes in memory to initialise)</span><br><span class="line">MUL</span><br><span class="line">// duplicate 0x40 (free memory pointer location)</span><br><span class="line">DUP1</span><br><span class="line">// same as before 4 bytes for function signature 0x04</span><br><span class="line">CALLDATASIZE</span><br><span class="line">// duplicate 4th item on the stack = 0x120</span><br><span class="line">DUP4</span><br><span class="line">// 0x120 (byte offset in the memory where the result will be copied.), 0x04 (byte offset in the calldata to copy.), 0x40 (byte size to copy.)</span><br><span class="line">CALLDATACOPY</span><br><span class="line"></span><br><span class="line">// The remaining lines in this section manipulate the stack to ensure we have the memory location of variable &quot;a&quot; and removes any items that are no longer needed</span><br><span class="line"></span><br><span class="line">//duplicate the top of the stack 0x40</span><br><span class="line">DUP1</span><br><span class="line">// duplicate 3rd item on the stack 0x120</span><br><span class="line">DUP3</span><br><span class="line">// add together yields free memory pointer value</span><br><span class="line">ADD</span><br><span class="line">// swap 0x160 &amp; 0x120</span><br><span class="line">SWAP2</span><br><span class="line">// pop top item off stack (0x120)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x40)</span><br><span class="line">POP</span><br><span class="line">// swap 0x160 &amp; 0x02</span><br><span class="line">SWAP1</span><br><span class="line">// pop top item off stack (0x02)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x160)</span><br><span class="line">POP</span><br><span class="line">// jump location to top of the stack 0xbe</span><br><span class="line">SWAP1</span><br><span class="line">// simulate jump pop jump location off stack</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
+<p>和变量 a
+的初始化一样，现在内存已经扩展到352字节，栈里保存着两个变量的内存地址。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff45435da-8528-4e99-8a43-bab75decbf06_1066x630.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff45435da-8528-4e99-8a43-bab75decbf06_1066x630.png"
+alt="img" /></a></p>
+<h3 id="b0赋值-evm-playground-lines-163-207">b[0]赋值 (EVM Playground
+Lines 163-207)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">//////////////////////////</span><br><span class="line">// Assign Value to b[0] //</span><br><span class="line">//////////////////////////</span><br><span class="line"></span><br><span class="line">// push 0x01, value to add b[0]</span><br><span class="line">PUSH1 0x01</span><br><span class="line">// push 0x00</span><br><span class="line">PUSH1 0x00</span><br><span class="line">// left shift operation no shift, first input is 0 </span><br><span class="line">SHL</span><br><span class="line">// duplicate 2nd item on stack (0x120)</span><br><span class="line">DUP2</span><br><span class="line">// push 0x00 = [0] where in the array should this item go</span><br><span class="line">PUSH1 0x00</span><br><span class="line">// push 0x20 = 64 bytes the length of the array </span><br><span class="line">PUSH1 0x02</span><br><span class="line">// duplicate 2nd item on stack (0x00)</span><br><span class="line">DUP2</span><br><span class="line">// 0x00 &lt; 0x20 =  true = 0x01 (check the user is not trying to store a value at a location that doesn&#x27;t exist in the array)</span><br><span class="line">LT</span><br><span class="line">// jump location</span><br><span class="line">PUSH2 0x00d7</span><br><span class="line">// 2 POPs since this is a JUMPI (checking if LT returned true or false)</span><br><span class="line">// simulate JUMPI </span><br><span class="line">POP</span><br><span class="line">// simulate JUMPI </span><br><span class="line">POP</span><br><span class="line"></span><br><span class="line">// push 0x20 (32 bytes aray item size)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// 0x20 * 0x00 = 0x00 = 0 in decimal (array item size * index to determine byte offset)</span><br><span class="line">MUL</span><br><span class="line">// 0x00 + 0x120</span><br><span class="line">ADD</span><br><span class="line">// duplicate 2nd on stack 0x01 (value for b[0])</span><br><span class="line">DUP2</span><br><span class="line">// duplicate 2nd on stack 0x120 (memory location for b[])</span><br><span class="line">DUP2</span><br><span class="line">// store 0x01 at memory location 0x120</span><br><span class="line">MSTORE</span><br><span class="line">// clean up stack</span><br><span class="line">POP</span><br><span class="line">POP</span><br><span class="line">POP</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
+<p>最后一步我们需要给数组 b 的索引0处赋值，代码显示b[0] =
+1。那么0x01压栈，紧接着一个左移opcode，但是参数是0，相当于没移。</p>
+<p>接下来数组索引0也就是0x00会被压入栈中，然后检查这个值是否比数组长度0x02小，如果不是的话会跳到异常处理的部分。MUL和ADD可以根据数组的索引算出写入内存的位置，一个元素32，索引为0，则在0x00的偏移量开写。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0x20 (32 in decimal) * 0x00 (0 in decimal) = 0x00</span><br></pre></td></tr></table></figure>
+<p>偏移量加上起始位置，最终算出来该值应该在0x120被写入。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0x00 + 0x120 = 0x120 (288 in decimal)</span><br></pre></td></tr></table></figure>
+<p>最后，我们把0x01写进0x120。</p>
+<p>下图展示了这个函数执行完成后的状态，栈被弹空了。</p>
+<p><strong><em>实际上在用remix中调用栈上还是会有一些条目，一个跳转地址和函数签名，但是与内存操作无关，就被EVM省略了</em></strong></p>
+<p>我们的内存被更新成了b[0]=1，在倒数第三行。你也可以验证一下数据位置是否正确，b[0]应该在0x120
+- 0x13f (289-320字节)。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fa5516282-632f-4af3-8e0f-40b07497a9d7_1066x578.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fa5516282-632f-4af3-8e0f-40b07497a9d7_1066x578.png"
+alt="img" /></a></p>
+<p>成了！这里信息量很大但我们现在理解已经很深刻了，下次写代码的时候也会有不小的帮助！以前挨行跑opcode的时候经常看见内存不断弹出0x40，现在知道为什么了。</p>
+<p>这个系列的下一篇，我们会<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?s=r">揭开存储插槽的神秘面纱</a>。</p>
+]]></content>
+      <categories>
+        <category>以太坊</category>
+      </categories>
+      <tags>
+        <tag>ethereum</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>深入理解EVM - Part3 - 存储区</title>
     <url>/2022/06/22/Digging-Deep-EVM-Part3/</url>
     <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?s=
@@ -619,221 +834,6 @@ alt="img" /></a></p>
 href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-5a5?s=r">第四篇</a>，我们会学习Geth是怎么实现
 SSTORE 和 SLOAD 操作码的。</p>
 <p>希望对您有帮助！</p>
-]]></content>
-      <categories>
-        <category>以太坊</category>
-      </categories>
-      <tags>
-        <tag>ethereum</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>深入理解EVM - Part2 - 内存</title>
-    <url>/2022/06/21/Digging-Deep-EVM-Part2/</url>
-    <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?s=r
-译者博客: <a href="alvan.coffee">Alvan的Blog</a></p>
-<p>本系列的第二篇文章，我们会继续学习基础知识，以期成为“shadowy super
-coder”。如果没看过本系列的<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>的话，建议看一下，有些前置的知识。在<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>里，我们知道了EVM如何根据字节码找到调用的函数，对调用栈，calldata，函数签名和opcode有了一定了解。在第二篇我们学习一下合约的内存(memory)是怎么在EVM里工作的。</p>
-<h2 id="a-trip-down-memory-lane">A Trip Down Memory Lane</h2>
-<p><a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>出现的1_Storage.sol
-contract又来营业了。</p>
-<figure>
-<img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F3400bba6-f870-4b68-8ba8-118562b08aef_489x538.png"
-alt="img" />
-<figcaption aria-hidden="true">img</figcaption>
-</figure>
-<p>还是像上次一样，生成字节码然后把相关的截出来，在这篇里我们着重看一下前五字节。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">6080604052</span><br><span class="line">60 80                       =   PUSH1 0x80</span><br><span class="line">60 40                       =   PUSH1 0x40</span><br><span class="line">52                          =   MSTORE </span><br></pre></td></tr></table></figure>
-<p>这五个字节表示初始化“空闲内存指针”(free memory
-pointer)。要想完全理解它的含义，我们必须先对管理合约内存的数据结构有一定了解。</p>
-<h2 id="内存的数据结构">内存的数据结构</h2>
-<p>合约的内存是一个很简单的字节数组，可以储存32字节或者1字节的数据块，也可以读取32字节的数据块。如下图所示：</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F33d7994b-a4b5-4268-8d53-85f214944599_717x437.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F33d7994b-a4b5-4268-8d53-85f214944599_717x437.png"
-alt="img" /></a> 来源:
-https://takenobu-hs.github.io/downloads/ethereum_evm_illustrated.pdf</p>
-<p>这个功能是3个管理内存的opcode决定的</p>
-<ul>
-<li>MSTORE (x, y) - 以“x”处为起点，写入32字节的数据“y”</li>
-<li>MLOAD (x) - 从“x”处取出32字节的数据加载到调用栈。</li>
-<li>MSTORE8 (x, y) -
-以“x”处为起点，写入1字节的数据“y”(调用栈的最低有效字节)</li>
-</ul>
-<p>你可以简单把内存位置理解成数组的索引，如果要读写超过1字节的数据，只需在下一个索引继续读写。</p>
-<h2 id="evm-playground">EVM Playground</h2>
-<p>这个 <a href="#evm-playground">EVM
-playground</a>(https://www.evm.codes/playground?unit=Wei&amp;codeType=Mnemonic&amp;code='Vg<em>(<em>I...1W0GJ</em>!!!!z00FK22WJQ0Y22z20F8K33W33Q1Y33z21F8d(v0Z0-Jq00Xd(vJZJ-64q20Xdv33Z33-65q21Xpp'~N
-locatioCzG1_wppVv7o7hBcall stack from~uIIIIq( ofNzpbytegSTOREdw)</em>_
-0xZ9BY9Chex}zXpM)
-可以巩固理解这三个opcode和内存是怎么工作的。点击Run和右上角的弯箭头一步一步执行，可以看到调用栈和内存的变化(每一部分都有注释)。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe3e29126-2954-40e3-bc1b-7ca5e780fd1c_1500x850.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe3e29126-2954-40e3-bc1b-7ca5e780fd1c_1500x850.png"
-alt="img" /></a></p>
-<p>使用这个的时候你会发现一些奇怪的事情，首先当我们用MSTORE8把一个单字节数据0x22写进内存时，内存从这样</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F954d54e6-0bce-4de3-a61d-dd41fdae49c7_836x152.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F954d54e6-0bce-4de3-a61d-dd41fdae49c7_836x152.png"
-alt="img" /></a></p>
-<p>变成了这样</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F225fde5a-09bf-4a24-a702-88ad5010951e_836x176.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F225fde5a-09bf-4a24-a702-88ad5010951e_836x176.png"
-alt="img" /></a></p>
-<p>你可能会问，我只加了一字节，怎么补了这么多的0？</p>
-<h3 id="内存扩展">内存扩展</h3>
-<p>合约往内存里写数据是要根据数据大小付费的，如果要写在之前没写过的区域，还会收取首次使用的附加费用。没写过的区域是会按照32字节的增量增加的。</p>
-<blockquote>
-<p>前724字节，内存扩展的花费成线性增长，后边按照二次方增长</p>
-</blockquote>
-<p>因为我们刚刚初始化所以到处都是初始化为0的内存区域，又因为增量是32字节，就看到了内存被追加写入了2200000000000000000000000000000000000000000000000000000000000000</p>
-<h3 id="牢记内存是个字节数组">牢记内存是个字节数组</h3>
-<p>在33 (0x21)处跑MLOAD发现了第二件事，调用栈返回了这个</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">3300000000000000000000000000000000000000000000000000000000000000</span><br></pre></td></tr></table></figure>
-<p>牢记内存就是一个字节数组，我们可以在任何位置读写它，不一定是32的倍数，它记录线性的、字节级别的位置</p>
-<blockquote>
-<p>内存只能被函数创建。可以是复杂类型比如数组和结构体的实例化，也可能是从存储区(storage)复制过来的引用变量。</p>
-</blockquote>
-<p>了解了内存的数据结构之后我们老看一下空闲内存指针。</p>
-<h2 id="空闲内存指针">空闲内存指针</h2>
-<p>空闲内存指针就是一个简单的指向未使用内存开始处的指针，它可以确保智能合约可以记录哪些内存位置被写入了、哪些没被写入。这避免了合约用本应申请新内存的其他变量去覆盖老数据。当变量需要被写入内存时，合约会根据空闲内存指针确认数据应该写到哪里。</p>
-<p>写入之后空闲内存指针会更新，根据写入数据大小确定新指针位置。像这样用一个简单的两数相加，算出新的空闲内存从哪开始：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">freeMemoryPointer + dataSizeBytes = newFreeMemoryPointer </span><br></pre></td></tr></table></figure>
-<h3 id="字节码">字节码</h3>
-<p>根据上文所题，空闲内存指针是在字节码最前边的五个opcode声明的</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">60 80                       =   PUSH1 0x80</span><br><span class="line">60 40                       =   PUSH1 0x40</span><br><span class="line">52                          =   MSTORE  </span><br></pre></td></tr></table></figure>
-<p>这实际上是在说空闲内存指针在0x40(十进制64)位置上，有一个值0x80(十进制128)。那么0x40和0x80是怎么来的呢？我们可以在下边表格看到：</p>
-<blockquote>
-<p>Solidity的内存布局将前4个32字节的插槽保留:</p>
-<ul>
-<li><code>0x00</code> - <code>0x3f</code> (64 bytes): 暂存空间(Scratch
-space)</li>
-<li><code>0x40</code> - <code>0x5f</code> (32 bytes): 空闲内训指针</li>
-<li><code>0x60</code> - <code>0x7f</code> (32 bytes): 插槽0</li>
-</ul>
-</blockquote>
-<p>我们可以看到0x40是Solidity定下的空闲内存指针的位置，而紧接着这四个保留值的内存地址即为0x80。</p>
-<p>我们快速过一遍这四个保留值分别是干什么的：</p>
-<ul>
-<li>暂存空间, 用来给hash方法和内联汇编使用。</li>
-<li>空闲内存指针,
-记录当前已分配的内存大小，空闲内存的起点，初始值0x80。</li>
-<li>插槽0，用作动态内存数组的初始值，不会被写入。</li>
-</ul>
-<h3 id="合约里的内存">合约里的内存</h3>
-<p>我们巩固一下上边学到的知识，从真实的Solidity代码中看一下内存和空闲内存指针是如何更新的。我故意创建了一个很简单的MemoryLane合约，只有一个函数，里边声明了长度分别为5和2的梁哥数组，然后把b[0]赋1，尽管很简单，在这三行代码运行时依然发生了很多事。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F45614789-b470-43be-9bb5-f7e0aabf35b5_393x276.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F45614789-b470-43be-9bb5-f7e0aabf35b5_393x276.png"
-alt="img" /></a></p>
-<p>我们把代码复制到remix里，看看这段solidity代码在EVM里的工作细节。复制之后，把它编译部署了，运行memoryLane()函数然后进debug模式，能看见这个合约的opcodes。</p>
-<p>我把opcodes简化了一下，删除JUMP和其他与内存操作无关的代码。代码中添加了注释，以提供上下文。代码分为6个不同的部分。大家可以把这六部分合在一起，在EVM
-Playground里跑一下。</p>
-<h3
-id="空闲内存指针初始化evm-playground-lines-1-15">空闲内存指针初始化(EVM
-Playground Lines 1-15)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">////////////////////////////////////////</span><br><span class="line">// Free Memory Pointer Initialisation //</span><br><span class="line">////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// value to store for free memory pointer 0x80 = 128 in decimal</span><br><span class="line">PUSH1 0x80</span><br><span class="line">// location for free memory pointer 0x40 = 64 in decimal</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br><span class="line"></span><br><span class="line">// jump location (required to prevent stack underflow) </span><br><span class="line">PUSH2 0xffff</span><br></pre></td></tr></table></figure>
-<p>首先，按照上边所讲的，初始化空闲内存指针，把0x80压进栈里，这是solidity内存布局规定的。在这段时间里，我们内存里什么都没有。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6437f902-7104-4009-8858-230d73a765a8_1066x198.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6437f902-7104-4009-8858-230d73a765a8_1066x198.png"
-alt="img" /></a></p>
-<p>然后我们再按照内存布局把空闲内存指针的地址0x40压栈。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F61258407-3f1c-44ff-a81f-982dc17a174e_1066x256.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F61258407-3f1c-44ff-a81f-982dc17a174e_1066x256.png"
-alt="img" /></a></p>
-<p>最后我们调用MSTORE把栈顶的0x40弹出来，0x40处的值为0x80，把它写入内存。</p>
-<p>现在调用栈空了但是我们需要处理一些内存，这些内存是16进制，每一个字符对应4个比特位。现在我们有了192个16进制字符，也就是96字节(1字节=8位=2个十六进制字符)。</p>
-<p>前边讲过前64字节是solidity布局规定的暂存空间，紧接着的32字节是空闲内存指针，正如下边所表示的这样：(译者注：这个Memory并不是显示MSTORE存进去什么，而是从头到位显示，直到后边全是未分配内存，所以把前边的暂存空间也显示出来了)</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F62ee6b98-6d06-4b91-a12a-45cc86a9ab5c_1066x304.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F62ee6b98-6d06-4b91-a12a-45cc86a9ab5c_1066x304.png"
-alt="img" /></a></p>
-<h3
-id="变量-a-的内存分配和空闲内存指针更新-evm-playground-lines-16-34">变量
-a 的内存分配和空闲内存指针更新 (EVM Playground Lines 16-34)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">//////////////////////////////////////////////////////////////////</span><br><span class="line">// Memory Allocation Varibale “a” &amp; Free Memory Pointer Update ///</span><br><span class="line">//////////////////////////////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// load free memory pointer</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MLOAD</span><br><span class="line"></span><br><span class="line">// duplicate free memory pointer</span><br><span class="line">DUP1</span><br><span class="line">// 0xa0 = 160 in decimal, 32 * 5 = 160 first array is length 5</span><br><span class="line">PUSH1 0xa0</span><br><span class="line">// free memory pointer (0x80) + space for array (0xa0) = new free memory pointer</span><br><span class="line">ADD</span><br><span class="line">// Save this new value 0x120 to the free memory location</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br></pre></td></tr></table></figure>
-<p>剩下的部分，在剩下的部分中，我们将跳过到每个部分的结束状态，并简要地说一下发生了什么。单独的opcode步骤可以在
-<a href="https://www.evm.codes/playground">EVM
-playground</a>里自行探索。下一个分配内存的是“a”
-<code>(bytes32[5])</code>
-，空闲内存指针也更新了。编译器会根据数组大小和元素大小决定分配多大的内存。</p>
-<blockquote>
-<p>牢记内存数组中的元素永远是32字节的倍数(bytes1[]也一样，但是bytes和string不是)。</p>
-</blockquote>
-<p>32字节倍数大小的数组会告诉我们需要分配多少内存。</p>
-<p>那在这里就是5 * 32
-也就是160或者说0xa0。我们可以看到它被压入堆栈并添加到当前空闲内存指针0x80(十进制为128)以获得新的空闲内存指针值。本来空闲内存指针在0x80(十进制128)，加上160后等于288，也就是16进制0x120，已经写到Memory上了。</p>
-<p>调用栈里有变量a的内存起始地址0x80，以后可能会用到，0xffff是一个JuNP地址，跟内存操作无关可以忽略。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fdf90605a-11c5-4d15-a055-b45dc6f93d9f_1066x378.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fdf90605a-11c5-4d15-a055-b45dc6f93d9f_1066x378.png"
-alt="img" /></a></p>
-<h3 id="变量-a-的内存初始化-evm-playground-lines-35-95">变量 a
-的内存初始化 (EVM Playground Lines 35-95)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/////////////////////////////////////////</span><br><span class="line">// Memory Initialisation Varaible “a” ///</span><br><span class="line">/////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// duplicate 0x80</span><br><span class="line">DUP1</span><br><span class="line">// push 0x05 = 5 in decimal (array length)</span><br><span class="line">PUSH1 0x05</span><br><span class="line">// Swap the top 2 items on the stack in this case 0x05 and 0x80</span><br><span class="line">SWAP1</span><br><span class="line">// push 0x20 = 32 in decimal (array item size)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// Duplicate the 3rd item on the stack in this case 0x05 to the top of the stack</span><br><span class="line">DUP3</span><br><span class="line">// 0x05 * 0x20 = 5 * 32 in decmial = 160 on top of the stack (size of array in bytes)</span><br><span class="line">MUL</span><br><span class="line">// Duplicate 0xa0 = 160 in decimal</span><br><span class="line">DUP1</span><br><span class="line">// Returns size of calldata in bytes currently just function signature = 0x04 or 4 in decmial</span><br><span class="line">CALLDATASIZE</span><br><span class="line">// duplicate 4th item on stack (0x80)</span><br><span class="line">DUP4</span><br><span class="line">// 0x80 (byte offset in the memory where the result will be copied.), 0x04 (byte offset in the calldata to copy.), 0xa0 (byte size to copy.)</span><br><span class="line"></span><br><span class="line">// this offsets the 4 bytes in our call data with a size of 0xa0 which yeild a 160 bit set of 0&#x27;s to be stored at the free memory pointer location</span><br><span class="line"></span><br><span class="line">// this effectively initialises our array in memory </span><br><span class="line">CALLDATACOPY</span><br><span class="line"></span><br><span class="line">// The remaining lines in this section manipulate the stack to ensure we have the memory location of variable &quot;a&quot; and removes any items that are no longer needed</span><br><span class="line"></span><br><span class="line">// duplicate 0xa0</span><br><span class="line">DUP1</span><br><span class="line">// duplicate 0x80</span><br><span class="line">DUP3</span><br><span class="line">// new free memory pointer as before</span><br><span class="line">ADD</span><br><span class="line">// swap 1st (0x120) item on the stack and 3rd (0x80)</span><br><span class="line">SWAP2</span><br><span class="line">// pop top item off stack (0x80)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0xa0)</span><br><span class="line">POP</span><br><span class="line">// Swap top 2 items 0x120 &amp; 0x05</span><br><span class="line">SWAP1</span><br><span class="line">// pop top item off stack (0x05)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x120)</span><br><span class="line">POP</span><br><span class="line">// swap top 2 items 0x80 &amp; 0xb6 (jump location)</span><br><span class="line">SWAP1</span><br><span class="line">// simulating a JUMP remove the top item off stack with POP</span><br><span class="line">POP</span><br><span class="line"></span><br><span class="line">// Simulated jump location</span><br><span class="line">PUSH2 0xffff</span><br><span class="line">// Simulated jump location</span><br><span class="line">PUSH2 0xffff</span><br><span class="line">// simulating a JUMP, remove the top item off stack with POP</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
-<p>现在内存已经被分配了，空闲内存指针也更新了，我们需要初始化变量a的内存空间。变量只是声明却没被赋值，会被初始化为0。</p>
-<p>为此EVM使用CALLDATACOPY，有三个参数：</p>
-<ul>
-<li>memoryOffset (数据拷贝的目标地址)</li>
-<li>calldataOffset (待拷贝数据在calldata里的偏移量)</li>
-<li>size (需要复制的大小)</li>
-</ul>
-<p>在这个例子里，memoryOffset是变量 a
-的内存位置0x80。calldataOffset是待复制数据在calldata中的起点，因为我们反正不想复制任何calldata，就用0值初始化。最后size就是0xa0(十进制160)。</p>
-<p>我们可以看到内存已经扩展到288字节了，调用栈又拿到了a的内存位置，还有一个无关痛痒的JUMP地址。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F77921922-6699-4ef7-a248-5b96667ac1cc_1066x548.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F77921922-6699-4ef7-a248-5b96667ac1cc_1066x548.png"
-alt="img" /></a></p>
-<h3
-id="变量-b-的内存分配和空闲内存指针更新-evm-playground-lines-96-112">变量
-b 的内存分配和空闲内存指针更新 (EVM Playground Lines 96-112)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/////////////////////////////////////////////////////////////////</span><br><span class="line">// Memory Allocation Varibale “b” &amp; Free Memory Pointer Update //</span><br><span class="line">/////////////////////////////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// free memory pointer load in </span><br><span class="line">PUSH1 0x40</span><br><span class="line">MLOAD</span><br><span class="line">// duplicate free memory pointer (0x120)</span><br><span class="line">DUP1</span><br><span class="line">// 0x40 = 64 in decimal, 32 * 2 = 64 second array is length 2</span><br><span class="line">PUSH1 0x40</span><br><span class="line">// free memory pointer (0x120) + space for array (0x40) = new free memory pointer</span><br><span class="line">ADD</span><br><span class="line">// save new free memory pointer value at free memory location 0x40</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br></pre></td></tr></table></figure>
-<p>和 a
-一样，对<code>“bytes32[2] memory b”</code>也要做内存申请和更新空闲内存指针。空闲内存指针更新到0x160(即十进制的352
-= 288 + 2 * 32)。内存里显示空白内存指针已更新，栈上也有了变量 b
-的内存地址0x120。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6d38d4d0-f02f-4f85-a16e-11a3687ae095_1066x610.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6d38d4d0-f02f-4f85-a16e-11a3687ae095_1066x610.png"
-alt="img" /></a></p>
-<h3 id="变量-b-的内存初始化-evm-playground-lines-113-162">变量 b
-的内存初始化 (EVM Playground Lines 113-162)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">////////////////////////////////////////</span><br><span class="line">// Memory Initialisation Variable “b” //</span><br><span class="line">////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// duplicate 0x120 (memory start location for variable &quot;b&quot;)</span><br><span class="line">DUP1</span><br><span class="line">// 0x02 = 2 in decimal = array length</span><br><span class="line">PUSH1 0x02</span><br><span class="line">// swap top 2 items 0x02 &amp; 0x120</span><br><span class="line">SWAP1</span><br><span class="line">// 0x20 = 32 in decimal (array item size in bytes)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// duplicate 3rd item on the stack 0x02</span><br><span class="line">DUP3</span><br><span class="line">// 0x02 * 0x20 = 0x40 = 64 (amount of bytes in memory to initialise)</span><br><span class="line">MUL</span><br><span class="line">// duplicate 0x40 (free memory pointer location)</span><br><span class="line">DUP1</span><br><span class="line">// same as before 4 bytes for function signature 0x04</span><br><span class="line">CALLDATASIZE</span><br><span class="line">// duplicate 4th item on the stack = 0x120</span><br><span class="line">DUP4</span><br><span class="line">// 0x120 (byte offset in the memory where the result will be copied.), 0x04 (byte offset in the calldata to copy.), 0x40 (byte size to copy.)</span><br><span class="line">CALLDATACOPY</span><br><span class="line"></span><br><span class="line">// The remaining lines in this section manipulate the stack to ensure we have the memory location of variable &quot;a&quot; and removes any items that are no longer needed</span><br><span class="line"></span><br><span class="line">//duplicate the top of the stack 0x40</span><br><span class="line">DUP1</span><br><span class="line">// duplicate 3rd item on the stack 0x120</span><br><span class="line">DUP3</span><br><span class="line">// add together yields free memory pointer value</span><br><span class="line">ADD</span><br><span class="line">// swap 0x160 &amp; 0x120</span><br><span class="line">SWAP2</span><br><span class="line">// pop top item off stack (0x120)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x40)</span><br><span class="line">POP</span><br><span class="line">// swap 0x160 &amp; 0x02</span><br><span class="line">SWAP1</span><br><span class="line">// pop top item off stack (0x02)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x160)</span><br><span class="line">POP</span><br><span class="line">// jump location to top of the stack 0xbe</span><br><span class="line">SWAP1</span><br><span class="line">// simulate jump pop jump location off stack</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
-<p>和变量 a
-的初始化一样，现在内存已经扩展到352字节，栈里保存着两个变量的内存地址。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff45435da-8528-4e99-8a43-bab75decbf06_1066x630.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff45435da-8528-4e99-8a43-bab75decbf06_1066x630.png"
-alt="img" /></a></p>
-<h3 id="b0赋值-evm-playground-lines-163-207">b[0]赋值 (EVM Playground
-Lines 163-207)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">//////////////////////////</span><br><span class="line">// Assign Value to b[0] //</span><br><span class="line">//////////////////////////</span><br><span class="line"></span><br><span class="line">// push 0x01, value to add b[0]</span><br><span class="line">PUSH1 0x01</span><br><span class="line">// push 0x00</span><br><span class="line">PUSH1 0x00</span><br><span class="line">// left shift operation no shift, first input is 0 </span><br><span class="line">SHL</span><br><span class="line">// duplicate 2nd item on stack (0x120)</span><br><span class="line">DUP2</span><br><span class="line">// push 0x00 = [0] where in the array should this item go</span><br><span class="line">PUSH1 0x00</span><br><span class="line">// push 0x20 = 64 bytes the length of the array </span><br><span class="line">PUSH1 0x02</span><br><span class="line">// duplicate 2nd item on stack (0x00)</span><br><span class="line">DUP2</span><br><span class="line">// 0x00 &lt; 0x20 =  true = 0x01 (check the user is not trying to store a value at a location that doesn&#x27;t exist in the array)</span><br><span class="line">LT</span><br><span class="line">// jump location</span><br><span class="line">PUSH2 0x00d7</span><br><span class="line">// 2 POPs since this is a JUMPI (checking if LT returned true or false)</span><br><span class="line">// simulate JUMPI </span><br><span class="line">POP</span><br><span class="line">// simulate JUMPI </span><br><span class="line">POP</span><br><span class="line"></span><br><span class="line">// push 0x20 (32 bytes aray item size)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// 0x20 * 0x00 = 0x00 = 0 in decimal (array item size * index to determine byte offset)</span><br><span class="line">MUL</span><br><span class="line">// 0x00 + 0x120</span><br><span class="line">ADD</span><br><span class="line">// duplicate 2nd on stack 0x01 (value for b[0])</span><br><span class="line">DUP2</span><br><span class="line">// duplicate 2nd on stack 0x120 (memory location for b[])</span><br><span class="line">DUP2</span><br><span class="line">// store 0x01 at memory location 0x120</span><br><span class="line">MSTORE</span><br><span class="line">// clean up stack</span><br><span class="line">POP</span><br><span class="line">POP</span><br><span class="line">POP</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
-<p>最后一步我们需要给数组 b 的索引0处赋值，代码显示b[0] =
-1。那么0x01压栈，紧接着一个左移opcode，但是参数是0，相当于没移。</p>
-<p>接下来数组索引0也就是0x00会被压入栈中，然后检查这个值是否比数组长度0x02小，如果不是的话会跳到异常处理的部分。MUL和ADD可以根据数组的索引算出写入内存的位置，一个元素32，索引为0，则在0x00的偏移量开写。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0x20 (32 in decimal) * 0x00 (0 in decimal) = 0x00</span><br></pre></td></tr></table></figure>
-<p>偏移量加上起始位置，最终算出来该值应该在0x120被写入。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0x00 + 0x120 = 0x120 (288 in decimal)</span><br></pre></td></tr></table></figure>
-<p>最后，我们把0x01写进0x120。</p>
-<p>下图展示了这个函数执行完成后的状态，栈被弹空了。</p>
-<p><strong><em>实际上在用remix中调用栈上还是会有一些条目，一个跳转地址和函数签名，但是与内存操作无关，就被EVM省略了</em></strong></p>
-<p>我们的内存被更新成了b[0]=1，在倒数第三行。你也可以验证一下数据位置是否正确，b[0]应该在0x120
-- 0x13f (289-320字节)。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fa5516282-632f-4af3-8e0f-40b07497a9d7_1066x578.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fa5516282-632f-4af3-8e0f-40b07497a9d7_1066x578.png"
-alt="img" /></a></p>
-<p>成了！这里信息量很大但我们现在理解已经很深刻了，下次写代码的时候也会有不小的帮助！以前挨行跑opcode的时候经常看见内存不断弹出0x40，现在知道为什么了。</p>
-<p>这个系列的下一篇，我们会<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?s=r">揭开存储插槽的神秘面纱</a>。</p>
 ]]></content>
       <categories>
         <category>以太坊</category>
@@ -1453,41 +1453,6 @@ Liquidity Provider (LP) Tokens Work</a></p>
       </tags>
   </entry>
   <entry>
-    <title>无需合约，在Aptos上发布NFT</title>
-    <url>/2022/07/31/aptos-first-nft/</url>
-    <content><![CDATA[<p>从前有一个大网红Diana坐拥百万粉丝，她有一天突发奇想，想给每一个粉丝发放一个粉丝牌NFT，那么她应该怎么做呢？第一步，她需要部署一张NFT合约；第二步，铸造100万枚粉丝牌NFT；第三步，将粉丝牌NFT发送给粉丝。先不说天价gas费和Diana小姐会不会写合约，这一套下来等到粉丝全部收到粉丝牌保守估计得有四五天了，Diana很是头疼，怎么办呢。</p>
-<p>直到直播间的穷哥们小A发现了Aptos，这条链有着很强的性能和很低的使用门槛，链上内置了原生的NFT合约，这就省去了第一步的麻烦，又由于其超高性能，第二第三步居然可以在几个小时内解决！小A立刻来了精神，要是把这件事拿下，Diana小姐岂不是会尊敬我崇拜我爱上我对我欲罢不能？</p>
-<p>这就开干：</p>
-<p>由于下面会复用aptos官方example中的部分代码，可以先阅读该篇文章：http://alvan.coffee/2022/07/30/aptos-tutorial</p>
-<p>Aptos官网有铸造nft的example，python版本和typescript版本，rust版本还没有添加，那我们就用rust写了补全一下吧。</p>
-<p>第一步，构造一个Client用于和Aptos节点和水龙头交互：</p>
-<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">NftClient</span> &#123;</span><br><span class="line">    url: <span class="type">String</span>,</span><br><span class="line">    <span class="keyword">pub</span> rest_client: RestClient,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">NftClient</span> &#123;</span><br><span class="line">    <span class="comment">/// Represents an account as well as the private, public key-pair for the Aptos blockchain.</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">new</span>(url: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span> &#123;</span><br><span class="line">        <span class="keyword">Self</span> &#123;</span><br><span class="line">            url: url.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">            rest_client: RestClient::<span class="title function_ invoke__">new</span>(url.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">   <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">submit_transaction_helper</span>(&amp;<span class="keyword">self</span>, account: &amp;<span class="keyword">mut</span> Account, payload: Value) &#123;</span><br><span class="line">        <span class="keyword">self</span>.rest_client</span><br><span class="line">            .<span class="title function_ invoke__">execution_transaction_with_payload</span>(account, payload);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这里复用了上一篇文章的RestClient，官方样例很贴心地把构造，提交，验证交易相关的操作都写好了，我们只需要添加业务层面的逻辑，也就是写写REST请求体就可以了。</p>
-<p>第二步，铸造NFT</p>
-<p>Nft在所谓0x1合约也就是<code>aptos-framework</code>中，提供了数种创建collection和token的方法。</p>
-<p>在aptos里我们可以创建有限或无限的Nft系列(collection)，根据业务需要，有些系列的NFT要强调稀缺性，有些系列则需要持续铸造，我们可以用选择不同的方法。这里我们使用<code>create_unlimited_collection_script</code>和<code>create_unlimited_token_script</code>，在<code>aptos-move/framework/aptos-framework/sources/token.move</code>中我们可以看到更详细的说明。</p>
-<p>在创建好collection后我们就可以去铸造该collection下的token了，可以批量生产，supply参数就是产量。</p>
-<p>我们只需要很简单的根据需求构造出对应name，description和url的collection/token，然后把它们塞进payload里，用自己的账户把交易发出去就ok了。</p>
-<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">create_collection</span>(</span><br><span class="line">        &amp;<span class="keyword">self</span>,</span><br><span class="line">        account: &amp;<span class="keyword">mut</span> Account,</span><br><span class="line">        name: &amp;<span class="type">str</span>,</span><br><span class="line">        uri: &amp;<span class="type">str</span>,</span><br><span class="line">        description: &amp;<span class="type">str</span>,</span><br><span class="line">    ) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">payload</span> = serde_json::json!(&#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;script_function_payload&quot;</span>,</span><br><span class="line">            <span class="string">&quot;function&quot;</span>: <span class="string">&quot;0x1::token::create_unlimited_collection_script&quot;</span>,</span><br><span class="line">            <span class="string">&quot;type_arguments&quot;</span>: [],</span><br><span class="line">            <span class="string">&quot;arguments&quot;</span>: [</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(description.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(uri.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">            ]</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">self</span>.<span class="title function_ invoke__">submit_transaction_helper</span>(account, payload)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">create_token</span>(</span><br><span class="line">        &amp;<span class="keyword">self</span>,</span><br><span class="line">        account: &amp;<span class="keyword">mut</span> Account,</span><br><span class="line">        collection_name: &amp;<span class="type">str</span>,</span><br><span class="line">        name: &amp;<span class="type">str</span>,</span><br><span class="line">        description: &amp;<span class="type">str</span>,</span><br><span class="line">        supply: <span class="type">i32</span>,</span><br><span class="line">        uri: &amp;<span class="type">str</span>,</span><br><span class="line">    ) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">payload</span> = serde_json::json!(&#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;script_function_payload&quot;</span>,</span><br><span class="line">            <span class="string">&quot;function&quot;</span>: <span class="string">&quot;0x1::token::create_unlimited_token_script&quot;</span>,</span><br><span class="line">            <span class="string">&quot;type_arguments&quot;</span>: [],</span><br><span class="line">            <span class="string">&quot;arguments&quot;</span>: [</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(collection_name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(description.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                <span class="literal">true</span>,</span><br><span class="line">                supply.<span class="title function_ invoke__">to_string</span>().<span class="title function_ invoke__">as_str</span>(),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(uri.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                <span class="string">&quot;0&quot;</span>,</span><br><span class="line">            ]</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">self</span>.<span class="title function_ invoke__">submit_transaction_helper</span>(account, payload)</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<p>第三步，交易NFT</p>
-<p>由于aptos独特的所有权机制，转移nft其实并不是合约记一下账这么简单，需要分为两步走，发送方发送<code>(offer_token</code>)之后，接收方还要声明接收一下(<code>claim_token</code>)，这两个方法都在<code>0x1::token_transfers</code>合约里，文件在<code>aptos-move/framework/aptos-framework/sources/token_transfers.move</code></p>
-<p>值得注意的是，想要转移nft，需要知道创建者地址，collection名和name名。</p>
-<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">offer_token</span>(</span><br><span class="line">        &amp;<span class="keyword">self</span>,</span><br><span class="line">        account: &amp;<span class="keyword">mut</span> Account,</span><br><span class="line">        receiver: &amp;<span class="type">str</span>,</span><br><span class="line">        creator: &amp;<span class="type">str</span>,</span><br><span class="line">        collection_name: &amp;<span class="type">str</span>,</span><br><span class="line">        token_name: &amp;<span class="type">str</span>,</span><br><span class="line">        amount: <span class="type">i32</span>,</span><br><span class="line">    ) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">payload</span> = serde_json::json!(&#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;script_function_payload&quot;</span>,</span><br><span class="line">            <span class="string">&quot;function&quot;</span>: <span class="string">&quot;0x1::token_transfers::offer_script&quot;</span>,</span><br><span class="line">            <span class="string">&quot;type_arguments&quot;</span>: [],</span><br><span class="line">            <span class="string">&quot;arguments&quot;</span>: [</span><br><span class="line">                receiver,</span><br><span class="line">                creator,</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(collection_name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(token_name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                amount.<span class="title function_ invoke__">to_string</span>().<span class="title function_ invoke__">as_str</span>()</span><br><span class="line">            ]</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">self</span>.<span class="title function_ invoke__">submit_transaction_helper</span>(account, payload)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">claim_token</span>(</span><br><span class="line">        &amp;<span class="keyword">self</span>,</span><br><span class="line">        account: &amp;<span class="keyword">mut</span> Account,</span><br><span class="line">        sender: &amp;<span class="type">str</span>,</span><br><span class="line">        creator: &amp;<span class="type">str</span>,</span><br><span class="line">        collection_name: &amp;<span class="type">str</span>,</span><br><span class="line">        token_name: &amp;<span class="type">str</span>,</span><br><span class="line">    ) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">payload</span> = serde_json::json!(&#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;script_function_payload&quot;</span>,</span><br><span class="line">            <span class="string">&quot;function&quot;</span>: <span class="string">&quot;0x1::token_transfers::claim_script&quot;</span>,</span><br><span class="line">            <span class="string">&quot;type_arguments&quot;</span>: [],</span><br><span class="line">            <span class="string">&quot;arguments&quot;</span>: [</span><br><span class="line">                sender,</span><br><span class="line">                creator,</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(collection_name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(token_name.<span class="title function_ invoke__">as_bytes</span>())</span><br><span class="line">            ]</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">self</span>.<span class="title function_ invoke__">submit_transaction_helper</span>(account, payload)</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-<p>第四步，查询NFT</p>
-<p>现在交易写完了，我们查询一下NFT的持有量和数据，这就复用到了上一篇文章里的<code>account_resource</code>，无论什么资源，原生代币还是项目代币，抑或是NFT，他们都是我们账户的资源(resource)，所以使用这个就可以查到我们持有的nft了。</p>
-<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">get_collection</span>(&amp;<span class="keyword">self</span>, creator: &amp;<span class="type">str</span>, collection_name: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> Value &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">collection</span> = &amp;<span class="keyword">self</span></span><br><span class="line">        .rest_client</span><br><span class="line">        .<span class="title function_ invoke__">account_resource</span>(creator, <span class="string">&quot;0x1::token::Collections&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()[<span class="string">&quot;data&quot;</span>][<span class="string">&quot;collections&quot;</span>][<span class="string">&quot;handle&quot;</span>];</span><br><span class="line">    <span class="keyword">match</span> collection &#123;</span><br><span class="line">        Value::<span class="title function_ invoke__">String</span>(s) =&gt; <span class="keyword">self</span>.<span class="title function_ invoke__">get_table_item</span>(</span><br><span class="line">            s.<span class="title function_ invoke__">as_str</span>(),</span><br><span class="line">            <span class="string">&quot;0x1::string::String&quot;</span>,</span><br><span class="line">            <span class="string">&quot;0x1::token::Collection&quot;</span>,</span><br><span class="line">            Value::<span class="title function_ invoke__">String</span>(collection_name.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">        ),</span><br><span class="line">        _ =&gt; <span class="built_in">panic!</span>(<span class="string">&quot;get_collection:error&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">get_token_balance</span>(</span><br><span class="line">    &amp;<span class="keyword">self</span>,</span><br><span class="line">    owner: &amp;<span class="type">str</span>,</span><br><span class="line">    creator: &amp;<span class="type">str</span>,</span><br><span class="line">    collection_name: &amp;<span class="type">str</span>,</span><br><span class="line">    token_name: &amp;<span class="type">str</span>,</span><br><span class="line">) <span class="punctuation">-&gt;</span> Value &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">token_store</span> = &amp;<span class="keyword">self</span></span><br><span class="line">        .rest_client</span><br><span class="line">        .<span class="title function_ invoke__">account_resource</span>(owner, <span class="string">&quot;0x1::token::TokenStore&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()[<span class="string">&quot;data&quot;</span>][<span class="string">&quot;tokens&quot;</span>][<span class="string">&quot;handle&quot;</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">token_id</span> = serde_json::json!(&#123;</span><br><span class="line">        <span class="string">&quot;creator&quot;</span>: creator,</span><br><span class="line">        <span class="string">&quot;collection&quot;</span>: collection_name,</span><br><span class="line">        <span class="string">&quot;name&quot;</span>: token_name,</span><br><span class="line">    &#125;);</span><br><span class="line">    <span class="keyword">match</span> token_store &#123;</span><br><span class="line">        Value::<span class="title function_ invoke__">String</span>(s) =&gt; &#123;</span><br><span class="line">            <span class="keyword">self</span>.<span class="title function_ invoke__">get_table_item</span>(s, <span class="string">&quot;0x1::token::TokenId&quot;</span>, <span class="string">&quot;0x1::token::Token&quot;</span>, token_id)</span><br><span class="line">                [<span class="string">&quot;value&quot;</span>]</span><br><span class="line">                .<span class="title function_ invoke__">clone</span>()</span><br><span class="line">        &#125;</span><br><span class="line">        _ =&gt; <span class="built_in">panic!</span>(<span class="string">&quot;get_token_balance:error&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">get_token_data</span>(&amp;<span class="keyword">self</span>, creator: &amp;<span class="type">str</span>, collection_name: &amp;<span class="type">str</span>, token_name: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> Value &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">token_data</span> = &amp;<span class="keyword">self</span></span><br><span class="line">        .rest_client</span><br><span class="line">        .<span class="title function_ invoke__">account_resource</span>(creator, <span class="string">&quot;0x1::token::Collections&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()[<span class="string">&quot;data&quot;</span>][<span class="string">&quot;token_data&quot;</span>][<span class="string">&quot;handle&quot;</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">token_id</span> = serde_json::json!(&#123;</span><br><span class="line">        <span class="string">&quot;creator&quot;</span>: creator,</span><br><span class="line">        <span class="string">&quot;collection&quot;</span>: collection_name,</span><br><span class="line">        <span class="string">&quot;name&quot;</span>: token_name,</span><br><span class="line">    &#125;);</span><br><span class="line">    <span class="keyword">match</span> token_data &#123;</span><br><span class="line">        Value::<span class="title function_ invoke__">String</span>(s) =&gt; <span class="keyword">self</span></span><br><span class="line">            .<span class="title function_ invoke__">get_table_item</span>(s, <span class="string">&quot;0x1::token::TokenId&quot;</span>, <span class="string">&quot;0x1::token::TokenData&quot;</span>, token_id)</span><br><span class="line">            .<span class="title function_ invoke__">clone</span>(),</span><br><span class="line">        _ =&gt; <span class="built_in">panic!</span>(<span class="string">&quot;get_token_data:error&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>写完之后，小A把代码放在这里：https://github.com/passer-byzhang/aptos-core/tree/main/developer-docs-site/static/examples/rust/first_nft</p>
-<p>随着测试代码绿油油的passed，小A开心地私信了Diana小姐，但是不知道为什么弹出了：由于对方隐私设置，无法发送私信。呵呵，一定是平台针对我，等进入了Web3时代，就不会有这样的事了吧，小A这样想着，合上电脑去睡觉了。</p>
-]]></content>
-      <categories>
-        <category>Aptos</category>
-      </categories>
-      <tags>
-        <tag>Rust</tag>
-        <tag>Aptos</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>AAVE v3 技术说明</title>
     <url>/2022/07/09/aave-v3-techpaper/</url>
     <content><![CDATA[<h2 id="简介">1.简介</h2>
@@ -1615,8 +1580,7 @@ V3引入了资产列表管理员的概念，治理团队可以创建并向任何
 <li>智能合约的代码变小了--最多能运行100K的<a
 href="https://www.osgeo.cn/solidity/internals/optimizer.html">优化器</a></li>
 <li>优化稳定利率计算的新策略，实现可以看这里：
-https://governance.aave.com/t/base-
-stable-rate-oracle-update-and-improvements-in-aave-v2/1879，4.4也会深入探讨</li>
+https://governance.aave.com/t/base-stable-rate-oracle-update-and-improvements-in-aave-v2/1879，4.4也会深入探讨</li>
 </ul>
 <h2 id="特性说明">4.特性说明</h2>
 <h3 id="e---mode">4.1 E - Mode</h3>
@@ -1708,7 +1672,7 @@ class="math inline">\(O_{util}\)</span>和<span
 class="math inline">\(O_{ratio}\)</span>分别为总负债率常数的最优利用率和最优稳定借款比例，则计算稳定利率公式如下:</p>
 <p><img src="figure3.jpg" title="图三" /></p>
 <h3 id="传送门">4.5 传送门</h3>
-<p>Portal代表了一组核心功能，让Aave上的资产可以在不同链上自由转移，在顶层逻辑上很好理解：</p>
+<p>传送门代表了一组核心功能，让Aave上的资产可以在不同链上自由转移，在顶层逻辑上很好理解：</p>
 <p>Aave协议利用aToken的独特设计在源网络上燃烧aTokens，同时在目标网络上铸造aTokens。然后，基础资产可以以一种延迟的方式提供给目标网络上的Aave，即在其通过跨链桥后将其传递给流动性池。但是这对计算利率和目标网络上的市场安全有许多影响。</p>
 <p>由于巧妙的设计，在协议层面实现这个只需要一个简单的方法。我们需要在协议加上三个特性：</p>
 <ol type="1">
@@ -1736,7 +1700,7 @@ V3在这些特定的情况下引入了清盘的宽限期。只要这个头寸没
 1)，都会被设置一个宽限期。如果HF&lt;0.95，就可以完全按照L1进行平仓。注意，这个宽限期只有在sequencer已经停机的情况下才会被激活。在宽限期内，用户也不允许借款。</p>
 <h3 id="系统身份与风险模式">4.7 系统身份与风险模式</h3>
 <p>Aave协议实现了一个访问控制列表，以区别每个身份的权利与收益。这些身份在ACLManager合约中进行管理。ACLManager跟踪各个身份和身份的持有者，并允许身份管理员管理身份。身份管理员本身是一个由DEFAULT_ADMIN_ROLE管理的身份。</p>
-<p>合约PoolAddressesProvider管理协议的各种组件(包括ACLManager和Pool)。PoolAddressesProvider跟踪各种协议模块，并有能力更新指针(例如更新ACLManager合约)或更新代理合约的实现(例如更新Pool的实现)。</p>
+<p>PoolAddressesProvider合约管理协议的各种组件(包括ACLManager和Pool)。PoolAddressesProvider跟踪各种协议模块，并有能力更新指针(例如更新ACLManager合约)或更新代理合约的实现(例如更新Pool的实现)。</p>
 <p>PoolAddressesProvider由Aave
 Governance拥有，并指定DEFAULT_ADMIN_ROLE的初始持有者。在以太坊以外的网络中，使用跨链桥(https://github.com/aave/governance-crosschain-bridges)，或者使用社区多签来管理PoolAddressesProvider。</p>
 <p><big><big><strong>身份权责</strong></big></big></p>
@@ -1783,6 +1747,41 @@ LISTING ADMIN拒绝更改现有oracle，只允许添加。</p>
       </categories>
       <tags>
         <tag>DeFi</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>无需合约，在Aptos上发布NFT</title>
+    <url>/2022/07/31/aptos-first-nft/</url>
+    <content><![CDATA[<p>从前有一个大网红Diana坐拥百万粉丝，她有一天突发奇想，想给每一个粉丝发放一个粉丝牌NFT，那么她应该怎么做呢？第一步，她需要部署一张NFT合约；第二步，铸造100万枚粉丝牌NFT；第三步，将粉丝牌NFT发送给粉丝。先不说天价gas费和Diana小姐会不会写合约，这一套下来等到粉丝全部收到粉丝牌保守估计得有四五天了，Diana很是头疼，怎么办呢。</p>
+<p>直到直播间的穷哥们小A发现了Aptos，这条链有着很强的性能和很低的使用门槛，链上内置了原生的NFT合约，这就省去了第一步的麻烦，又由于其超高性能，第二第三步居然可以在几个小时内解决！小A立刻来了精神，要是把这件事拿下，Diana小姐岂不是会尊敬我崇拜我爱上我对我欲罢不能？</p>
+<p>这就开干：</p>
+<p>由于下面会复用aptos官方example中的部分代码，可以先阅读该篇文章：http://alvan.coffee/2022/07/30/aptos-tutorial</p>
+<p>Aptos官网有铸造nft的example，python版本和typescript版本，rust版本还没有添加，那我们就用rust写了补全一下吧。</p>
+<p>第一步，构造一个Client用于和Aptos节点和水龙头交互：</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">struct</span> <span class="title class_">NftClient</span> &#123;</span><br><span class="line">    url: <span class="type">String</span>,</span><br><span class="line">    <span class="keyword">pub</span> rest_client: RestClient,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">impl</span> <span class="title class_">NftClient</span> &#123;</span><br><span class="line">    <span class="comment">/// Represents an account as well as the private, public key-pair for the Aptos blockchain.</span></span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">new</span>(url: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> <span class="keyword">Self</span> &#123;</span><br><span class="line">        <span class="keyword">Self</span> &#123;</span><br><span class="line">            url: url.<span class="title function_ invoke__">to_string</span>(),</span><br><span class="line">            rest_client: RestClient::<span class="title function_ invoke__">new</span>(url.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">   <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">submit_transaction_helper</span>(&amp;<span class="keyword">self</span>, account: &amp;<span class="keyword">mut</span> Account, payload: Value) &#123;</span><br><span class="line">        <span class="keyword">self</span>.rest_client</span><br><span class="line">            .<span class="title function_ invoke__">execution_transaction_with_payload</span>(account, payload);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里复用了上一篇文章的RestClient，官方样例很贴心地把构造，提交，验证交易相关的操作都写好了，我们只需要添加业务层面的逻辑，也就是写写REST请求体就可以了。</p>
+<p>第二步，铸造NFT</p>
+<p>Nft在所谓0x1合约也就是<code>aptos-framework</code>中，提供了数种创建collection和token的方法。</p>
+<p>在aptos里我们可以创建有限或无限的Nft系列(collection)，根据业务需要，有些系列的NFT要强调稀缺性，有些系列则需要持续铸造，我们可以用选择不同的方法。这里我们使用<code>create_unlimited_collection_script</code>和<code>create_unlimited_token_script</code>，在<code>aptos-move/framework/aptos-framework/sources/token.move</code>中我们可以看到更详细的说明。</p>
+<p>在创建好collection后我们就可以去铸造该collection下的token了，可以批量生产，supply参数就是产量。</p>
+<p>我们只需要很简单的根据需求构造出对应name，description和url的collection/token，然后把它们塞进payload里，用自己的账户把交易发出去就ok了。</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">create_collection</span>(</span><br><span class="line">        &amp;<span class="keyword">self</span>,</span><br><span class="line">        account: &amp;<span class="keyword">mut</span> Account,</span><br><span class="line">        name: &amp;<span class="type">str</span>,</span><br><span class="line">        uri: &amp;<span class="type">str</span>,</span><br><span class="line">        description: &amp;<span class="type">str</span>,</span><br><span class="line">    ) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">payload</span> = serde_json::json!(&#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;script_function_payload&quot;</span>,</span><br><span class="line">            <span class="string">&quot;function&quot;</span>: <span class="string">&quot;0x1::token::create_unlimited_collection_script&quot;</span>,</span><br><span class="line">            <span class="string">&quot;type_arguments&quot;</span>: [],</span><br><span class="line">            <span class="string">&quot;arguments&quot;</span>: [</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(description.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(uri.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">            ]</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">self</span>.<span class="title function_ invoke__">submit_transaction_helper</span>(account, payload)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">create_token</span>(</span><br><span class="line">        &amp;<span class="keyword">self</span>,</span><br><span class="line">        account: &amp;<span class="keyword">mut</span> Account,</span><br><span class="line">        collection_name: &amp;<span class="type">str</span>,</span><br><span class="line">        name: &amp;<span class="type">str</span>,</span><br><span class="line">        description: &amp;<span class="type">str</span>,</span><br><span class="line">        supply: <span class="type">i32</span>,</span><br><span class="line">        uri: &amp;<span class="type">str</span>,</span><br><span class="line">    ) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">payload</span> = serde_json::json!(&#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;script_function_payload&quot;</span>,</span><br><span class="line">            <span class="string">&quot;function&quot;</span>: <span class="string">&quot;0x1::token::create_unlimited_token_script&quot;</span>,</span><br><span class="line">            <span class="string">&quot;type_arguments&quot;</span>: [],</span><br><span class="line">            <span class="string">&quot;arguments&quot;</span>: [</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(collection_name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(description.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                <span class="literal">true</span>,</span><br><span class="line">                supply.<span class="title function_ invoke__">to_string</span>().<span class="title function_ invoke__">as_str</span>(),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(uri.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                <span class="string">&quot;0&quot;</span>,</span><br><span class="line">            ]</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">self</span>.<span class="title function_ invoke__">submit_transaction_helper</span>(account, payload)</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>第三步，交易NFT</p>
+<p>由于aptos独特的所有权机制，转移nft其实并不是合约记一下账这么简单，需要分为两步走，发送方发送<code>(offer_token</code>)之后，接收方还要声明接收一下(<code>claim_token</code>)，这两个方法都在<code>0x1::token_transfers</code>合约里，文件在<code>aptos-move/framework/aptos-framework/sources/token_transfers.move</code></p>
+<p>值得注意的是，想要转移nft，需要知道创建者地址，collection名和name名。</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">offer_token</span>(</span><br><span class="line">        &amp;<span class="keyword">self</span>,</span><br><span class="line">        account: &amp;<span class="keyword">mut</span> Account,</span><br><span class="line">        receiver: &amp;<span class="type">str</span>,</span><br><span class="line">        creator: &amp;<span class="type">str</span>,</span><br><span class="line">        collection_name: &amp;<span class="type">str</span>,</span><br><span class="line">        token_name: &amp;<span class="type">str</span>,</span><br><span class="line">        amount: <span class="type">i32</span>,</span><br><span class="line">    ) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">payload</span> = serde_json::json!(&#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;script_function_payload&quot;</span>,</span><br><span class="line">            <span class="string">&quot;function&quot;</span>: <span class="string">&quot;0x1::token_transfers::offer_script&quot;</span>,</span><br><span class="line">            <span class="string">&quot;type_arguments&quot;</span>: [],</span><br><span class="line">            <span class="string">&quot;arguments&quot;</span>: [</span><br><span class="line">                receiver,</span><br><span class="line">                creator,</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(collection_name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(token_name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                amount.<span class="title function_ invoke__">to_string</span>().<span class="title function_ invoke__">as_str</span>()</span><br><span class="line">            ]</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">self</span>.<span class="title function_ invoke__">submit_transaction_helper</span>(account, payload)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">claim_token</span>(</span><br><span class="line">        &amp;<span class="keyword">self</span>,</span><br><span class="line">        account: &amp;<span class="keyword">mut</span> Account,</span><br><span class="line">        sender: &amp;<span class="type">str</span>,</span><br><span class="line">        creator: &amp;<span class="type">str</span>,</span><br><span class="line">        collection_name: &amp;<span class="type">str</span>,</span><br><span class="line">        token_name: &amp;<span class="type">str</span>,</span><br><span class="line">    ) &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">payload</span> = serde_json::json!(&#123;</span><br><span class="line">            <span class="string">&quot;type&quot;</span>: <span class="string">&quot;script_function_payload&quot;</span>,</span><br><span class="line">            <span class="string">&quot;function&quot;</span>: <span class="string">&quot;0x1::token_transfers::claim_script&quot;</span>,</span><br><span class="line">            <span class="string">&quot;type_arguments&quot;</span>: [],</span><br><span class="line">            <span class="string">&quot;arguments&quot;</span>: [</span><br><span class="line">                sender,</span><br><span class="line">                creator,</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(collection_name.<span class="title function_ invoke__">as_bytes</span>()),</span><br><span class="line">                hex::<span class="title function_ invoke__">encode</span>(token_name.<span class="title function_ invoke__">as_bytes</span>())</span><br><span class="line">            ]</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">self</span>.<span class="title function_ invoke__">submit_transaction_helper</span>(account, payload)</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>第四步，查询NFT</p>
+<p>现在交易写完了，我们查询一下NFT的持有量和数据，这就复用到了上一篇文章里的<code>account_resource</code>，无论什么资源，原生代币还是项目代币，抑或是NFT，他们都是我们账户的资源(resource)，所以使用这个就可以查到我们持有的nft了。</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">get_collection</span>(&amp;<span class="keyword">self</span>, creator: &amp;<span class="type">str</span>, collection_name: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> Value &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">collection</span> = &amp;<span class="keyword">self</span></span><br><span class="line">        .rest_client</span><br><span class="line">        .<span class="title function_ invoke__">account_resource</span>(creator, <span class="string">&quot;0x1::token::Collections&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()[<span class="string">&quot;data&quot;</span>][<span class="string">&quot;collections&quot;</span>][<span class="string">&quot;handle&quot;</span>];</span><br><span class="line">    <span class="keyword">match</span> collection &#123;</span><br><span class="line">        Value::<span class="title function_ invoke__">String</span>(s) =&gt; <span class="keyword">self</span>.<span class="title function_ invoke__">get_table_item</span>(</span><br><span class="line">            s.<span class="title function_ invoke__">as_str</span>(),</span><br><span class="line">            <span class="string">&quot;0x1::string::String&quot;</span>,</span><br><span class="line">            <span class="string">&quot;0x1::token::Collection&quot;</span>,</span><br><span class="line">            Value::<span class="title function_ invoke__">String</span>(collection_name.<span class="title function_ invoke__">to_string</span>()),</span><br><span class="line">        ),</span><br><span class="line">        _ =&gt; <span class="built_in">panic!</span>(<span class="string">&quot;get_collection:error&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">get_token_balance</span>(</span><br><span class="line">    &amp;<span class="keyword">self</span>,</span><br><span class="line">    owner: &amp;<span class="type">str</span>,</span><br><span class="line">    creator: &amp;<span class="type">str</span>,</span><br><span class="line">    collection_name: &amp;<span class="type">str</span>,</span><br><span class="line">    token_name: &amp;<span class="type">str</span>,</span><br><span class="line">) <span class="punctuation">-&gt;</span> Value &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">token_store</span> = &amp;<span class="keyword">self</span></span><br><span class="line">        .rest_client</span><br><span class="line">        .<span class="title function_ invoke__">account_resource</span>(owner, <span class="string">&quot;0x1::token::TokenStore&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()[<span class="string">&quot;data&quot;</span>][<span class="string">&quot;tokens&quot;</span>][<span class="string">&quot;handle&quot;</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">token_id</span> = serde_json::json!(&#123;</span><br><span class="line">        <span class="string">&quot;creator&quot;</span>: creator,</span><br><span class="line">        <span class="string">&quot;collection&quot;</span>: collection_name,</span><br><span class="line">        <span class="string">&quot;name&quot;</span>: token_name,</span><br><span class="line">    &#125;);</span><br><span class="line">    <span class="keyword">match</span> token_store &#123;</span><br><span class="line">        Value::<span class="title function_ invoke__">String</span>(s) =&gt; &#123;</span><br><span class="line">            <span class="keyword">self</span>.<span class="title function_ invoke__">get_table_item</span>(s, <span class="string">&quot;0x1::token::TokenId&quot;</span>, <span class="string">&quot;0x1::token::Token&quot;</span>, token_id)</span><br><span class="line">                [<span class="string">&quot;value&quot;</span>]</span><br><span class="line">                .<span class="title function_ invoke__">clone</span>()</span><br><span class="line">        &#125;</span><br><span class="line">        _ =&gt; <span class="built_in">panic!</span>(<span class="string">&quot;get_token_balance:error&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">pub</span> <span class="keyword">fn</span> <span class="title function_">get_token_data</span>(&amp;<span class="keyword">self</span>, creator: &amp;<span class="type">str</span>, collection_name: &amp;<span class="type">str</span>, token_name: &amp;<span class="type">str</span>) <span class="punctuation">-&gt;</span> Value &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">token_data</span> = &amp;<span class="keyword">self</span></span><br><span class="line">        .rest_client</span><br><span class="line">        .<span class="title function_ invoke__">account_resource</span>(creator, <span class="string">&quot;0x1::token::Collections&quot;</span>)</span><br><span class="line">        .<span class="title function_ invoke__">unwrap</span>()[<span class="string">&quot;data&quot;</span>][<span class="string">&quot;token_data&quot;</span>][<span class="string">&quot;handle&quot;</span>];</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">token_id</span> = serde_json::json!(&#123;</span><br><span class="line">        <span class="string">&quot;creator&quot;</span>: creator,</span><br><span class="line">        <span class="string">&quot;collection&quot;</span>: collection_name,</span><br><span class="line">        <span class="string">&quot;name&quot;</span>: token_name,</span><br><span class="line">    &#125;);</span><br><span class="line">    <span class="keyword">match</span> token_data &#123;</span><br><span class="line">        Value::<span class="title function_ invoke__">String</span>(s) =&gt; <span class="keyword">self</span></span><br><span class="line">            .<span class="title function_ invoke__">get_table_item</span>(s, <span class="string">&quot;0x1::token::TokenId&quot;</span>, <span class="string">&quot;0x1::token::TokenData&quot;</span>, token_id)</span><br><span class="line">            .<span class="title function_ invoke__">clone</span>(),</span><br><span class="line">        _ =&gt; <span class="built_in">panic!</span>(<span class="string">&quot;get_token_data:error&quot;</span>),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>写完之后，小A把代码放在这里：https://github.com/passer-byzhang/aptos-core/tree/main/developer-docs-site/static/examples/rust/first_nft</p>
+<p>随着测试代码绿油油的passed，小A开心地私信了Diana小姐，但是不知道为什么弹出了：由于对方隐私设置，无法发送私信。呵呵，一定是平台针对我，等进入了Web3时代，就不会有这样的事了吧，小A这样想着，合上电脑去睡觉了。</p>
+]]></content>
+      <categories>
+        <category>Aptos</category>
+      </categories>
+      <tags>
+        <tag>Rust</tag>
+        <tag>Aptos</tag>
       </tags>
   </entry>
   <entry>
@@ -1896,12 +1895,6 @@ api文档：https://fullnode.devnet.aptoslabs.com/spec.html#/</p>
       </tags>
   </entry>
   <entry>
-    <title>Hello</title>
-    <url>/2022/06/09/hello-world/</url>
-    <content><![CDATA[<p>你好呀，我是张钰Alvan，主业是区块链/智能合约开发，了解一些defi项目，喜欢芥川龙之介和卡夫卡，希望能和更多的人交朋友！qq1541115709</p>
-]]></content>
-  </entry>
-  <entry>
     <title>基于bls12-381生成秘密随机点</title>
     <url>/2022/07/05/bls12-381-mpc/</url>
     <content><![CDATA[<h2 id="背景">背景</h2>
@@ -1998,26 +1991,38 @@ E(k_i)\)</span>来进行验证。</p>
       </tags>
   </entry>
   <entry>
-    <title>使用vscode中运行rust单元测试找不到cargo的解决方法</title>
-    <url>/2022/07/02/vscode-rust-extension-bug/</url>
-    <content><![CDATA[<p>最近在vscode上写rust代码时，插件自带的运行和调试用不了了，说是读不到cargo:</p>
-<p><img src="vscode-runtest.png" /></p>
-<p>一点就会报错：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Executing task: cargo test -- --nocapture test_add</span><br><span class="line">&lt; zsh:1: command not found: cargo</span><br></pre></td></tr></table></figure>
-<p>我们找到这个插件的位置，再修改一下这个文件，路径里的版本号换成当前使用的：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">vim ~/.vscode/extensions/rust-lang.rust-0.7.8/out/src/tasks.js</span><br></pre></td></tr></table></figure>
-<p>找到掌管shell初始化的createShellExecution函数：</p>
-<p>把这句</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> cmdLine = <span class="string">`<span class="subst">$&#123;command || binary&#125;</span> <span class="subst">$&#123;args.join(<span class="string">&#x27; &#x27;</span>)&#125;</span>`</span>;</span><br></pre></td></tr></table></figure>
-<p>加上加载cargo环境变量，变成：</p>
-<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> cmdLine = <span class="string">`source $HOME/.cargo/env; <span class="subst">$&#123;command || binary&#125;</span> <span class="subst">$&#123;args.join(<span class="string">&#x27; &#x27;</span>)&#125;</span>`</span>;</span><br></pre></td></tr></table></figure>
-<p>就ok了，重启一下就好。</p>
+    <title>Hello</title>
+    <url>/2022/06/09/hello-world/</url>
+    <content><![CDATA[<p>你好呀，我是张钰Alvan，主业是区块链/智能合约开发，了解一些defi项目，喜欢芥川龙之介和卡夫卡，希望能和更多的人交朋友！qq1541115709</p>
+]]></content>
+  </entry>
+  <entry>
+    <title>centos搭建rust环境的几个坑</title>
+    <url>/2022/08/25/centos-update-clang/</url>
+    <content><![CDATA[<p>这两天搭aptos测试网节点，本来以为像喝汤一样简单，对着手册突突突突弄下去就行了。没在新服务器上干过活，啥都要从头装，遇到了几个坑，记录一下</p>
+<h2
+id="clang版本太低centos是默认安装3.4版本rust要求至少3.9">1.clang版本太低，centos是默认安装3.4版本，rust要求至少3.9</h2>
+<p>解决方法：</p>
+<p>安装<code>llvm-toolset-7</code></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sudo yum install centos-release-scl</span><br><span class="line">$ sudo yum install llvm-toolset-7</span><br></pre></td></tr></table></figure>
+<p>开启 <code>llvm-toolset-7</code>:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ scl <span class="built_in">enable</span> llvm-toolset-7 bash</span><br></pre></td></tr></table></figure>
+<p>检查一下</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ clang --version</span><br></pre></td></tr></table></figure>
+<h2
+id="gcc版本不匹配有些程序需要c17的特性centos用yum默认下载的版本也不对">2.gcc版本不匹配，有些程序需要C++17的特性，centos用yum默认下载的版本也不对</h2>
+<p>解决方法：</p>
+<p>安装 <code>devtoolset-8</code>:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ sudo yum install centos-release-scl</span><br><span class="line">$ sudo yum install devtoolset-8</span><br></pre></td></tr></table></figure>
+<p>开启 <code>devtoolset-8</code>:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ scl <span class="built_in">enable</span> devtoolset-8 bash</span><br></pre></td></tr></table></figure>
 ]]></content>
       <categories>
         <category>Rust</category>
       </categories>
       <tags>
         <tag>Rust</tag>
+        <tag>linux</tag>
       </tags>
   </entry>
   <entry>
@@ -2150,5 +2155,28 @@ deltaBlock\)</span>，确实和我们预想的一样。</p>
       <categories>
         <category>DeFi</category>
       </categories>
+  </entry>
+  <entry>
+    <title>使用vscode中运行rust单元测试找不到cargo的解决方法</title>
+    <url>/2022/07/02/vscode-rust-extension-bug/</url>
+    <content><![CDATA[<p>最近在vscode上写rust代码时，插件自带的运行和调试用不了了，说是读不到cargo:</p>
+<p><img src="vscode-runtest.png" /></p>
+<p>一点就会报错：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Executing task: cargo test -- --nocapture test_add</span><br><span class="line">&lt; zsh:1: command not found: cargo</span><br></pre></td></tr></table></figure>
+<p>我们找到这个插件的位置，再修改一下这个文件，路径里的版本号换成当前使用的：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">vim ~/.vscode/extensions/rust-lang.rust-0.7.8/out/src/tasks.js</span><br></pre></td></tr></table></figure>
+<p>找到掌管shell初始化的createShellExecution函数：</p>
+<p>把这句</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> cmdLine = <span class="string">`<span class="subst">$&#123;command || binary&#125;</span> <span class="subst">$&#123;args.join(<span class="string">&#x27; &#x27;</span>)&#125;</span>`</span>;</span><br></pre></td></tr></table></figure>
+<p>加上加载cargo环境变量，变成：</p>
+<figure class="highlight javascript"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> cmdLine = <span class="string">`source $HOME/.cargo/env; <span class="subst">$&#123;command || binary&#125;</span> <span class="subst">$&#123;args.join(<span class="string">&#x27; &#x27;</span>)&#125;</span>`</span>;</span><br></pre></td></tr></table></figure>
+<p>就ok了，重启一下就好。</p>
+]]></content>
+      <categories>
+        <category>Rust</category>
+      </categories>
+      <tags>
+        <tag>Rust</tag>
+      </tags>
   </entry>
 </search>

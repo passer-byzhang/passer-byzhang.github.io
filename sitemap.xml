@@ -2,6 +2,28 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2022/08/25/centos-update-clang/</loc>
+    
+    <lastmod>2022-08-25T04:59:44.647Z</lastmod>
+    
+    <date>1661399752000</date>
+    <title>centos搭建rust环境的几个坑 | Alvan's Blog</title>
+    
+    <desc>记录几个centos玩rust的几个坑</desc>
+  </url>
+  
+  <url>
+    <loc>http://example.com/2022/07/09/aave-v3-techpaper/</loc>
+    
+    <lastmod>2022-08-17T10:01:02.552Z</lastmod>
+    
+    <date>1657353545000</date>
+    <title>AAVE v3 技术说明 | Alvan's Blog</title>
+    
+    <desc>Aave v3的tech paper，主要讲了在此次迭代中四个方面的老缺陷与新提升，包括资本效率，安全，权限管理和用户体验</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/2022/07/31/aptos-first-nft/</loc>
     
     <lastmod>2022-07-31T14:45:43.287Z</lastmod>
@@ -21,17 +43,6 @@
     <title>aptos初体验 | Alvan's Blog</title>
     
     <desc>Aptos链入门，发交易和构造合约</desc>
-  </url>
-  
-  <url>
-    <loc>http://example.com/2022/07/09/aave-v3-techpaper/</loc>
-    
-    <lastmod>2022-07-20T11:07:42.600Z</lastmod>
-    
-    <date>1657353545000</date>
-    <title>AAVE v3 技术说明 | Alvan's Blog</title>
-    
-    <desc>Aave v3的tech paper，主要讲了在此次迭代中四个方面的老缺陷与新提升，包括资本效率，安全，权限管理和用户体验</desc>
   </url>
   
   <url>

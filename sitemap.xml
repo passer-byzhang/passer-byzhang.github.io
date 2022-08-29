@@ -2,6 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2022/08/29/aptos-and-move/</loc>
+    
+    <lastmod>2022-08-29T08:04:25.048Z</lastmod>
+    
+    <date>1661759956000</date>
+    <title>金融特化，现金交易，浅析新公链Aptos与Move语言 | Alvan's Blog</title>
+    
+    <desc>aptos和move的一些安全特性，跟rust很像</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/2022/08/25/centos-update-clang/</loc>
     
     <lastmod>2022-08-25T04:59:44.647Z</lastmod>

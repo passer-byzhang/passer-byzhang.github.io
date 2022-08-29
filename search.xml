@@ -1,179 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Alpaca文档翻译</title>
-    <url>/2022/06/13/Alpaca-docs/</url>
-    <content><![CDATA[<h2 id="overview">Overview</h2>
-<p>Alpaca
-Finance是一个借贷协议，但它和Compound，Aave等单纯等待别人从池子里借款从而分红利息的项目不一样，在这里你不仅可以加上杠杆，还可以主动选择一些心仪的流动性挖矿项目并质押进去，吃到多次利润。</p>
-<p>Alpaca Leverage Farming 主要有四个组成部分 1.Vault 2.Worker
-3.Strategy 4.Fairlaunch(此模块另行介绍)</p>
-<h2 id="architecture">Architecture</h2>
-<ul>
-<li>前端(Frontend) - Alpaca 前端接口</li>
-<li>清算机器人(Liquidator) -
-观察仓位状态，一旦出现资不抵债就进行清算的机器人</li>
-<li>复投机器人(Reinvestor) - 自动收获利润又复投的机器人</li>
-</ul>
-<p><img
-src="https://alpaca-doc.s3.ap-southeast-1.amazonaws.com/lyf/Export-3aa4ff3c-20f2-4868-95ee-96a4da364889/Contract%20Documentation%204c48a0c0db7442c6aa0268dd110e6b80/Screen_Shot_2564-09-29_at_12.03.52.png" /></p>
-<h2 id="vault">Vault</h2>
-<p>顾名思义，这个合约用处是存放借款者的抵押物。作为在此时贡献资金池使用率的回报，借款者还可以向Vault申请资金。一个底层资产对应一个Vault合约。</p>
-<h2 id="worker">Worker</h2>
-<p>worker是一个管理仓位使用方法的合约，使用方法包括但不限于
-在一个DEX里开启一个流动性挖矿的仓位 平掉这个仓位 调节这个仓位
-每一个worker都对应特定的一些代币和一个特定的DEX，不同的ERC20代币/DEX会使用不同的worker。</p>
-<h2 id="strategy">Strategy</h2>
-<p>strategy合约是具体操作DEX的合约，每次只处理一个特定场景。可以对动态指定的不同的token做出童谣的DEX操作。</p>
-<h2 id="fairlaunch">FairLaunch</h2>
-<p>这是Alpaca的激励组件，可以接收ERC20然后给各个token池生成Alpaca代币，每个池子的发放量存在差异</p>
-<h2 id="contract-document">Contract Document</h2>
-<p><a href="#Vault%20Contract">Vault Contract</a> <a
-href="#Worker%20Contract">Worker Contract</a> <a
-href="#Strategy%20Contract">Strategy Contract</a></p>
-<h2 id="dex-integration">DEX Integration</h2>
-<p>尽管Alpaca集成了不少不同的DEX，他们之间也在细节上有差别，但是大部分DEX都是基于uniswapV2的机制，在这版文档里我们只讨论与PancakeSwap对接的Worker和Strategy。即以下具体实现：</p>
-<h3 id="worker-1">Worker</h3>
-<p>PancakeSwap Worker</p>
-<h3 id="strategy-1">Strategy</h3>
-<p>PancakeswapV2RestrictedStrategyAddBaseTokenOnly Strategy
-PancakeswapV2RestrictedStrategyAddTwoSidesOptimal Strategy
-PancakeswapV2RestrictedStrategyLiquidate Strategy
-PancakeswapV2RestrictedStrategyPartialCloseLiquidateStrategy
-PancakeswapV2RestrictedStrategyPartialCloseMinimizeTrading Strategy
-PancakeswapV2RestrictedStrategyWithdrawMinimizeTrading Strategy</p>
-<h1 id="vault-contract">Vault Contract</h1>
-<p><a name="Vault Contract"></a></p>
-<p><a
-href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/Vault.sol">合约源码</a></p>
-<h2 id="background">Background</h2>
-<p>Alpaca
-Finance里最重要的一个操作是通过vaults达成的，注意是vaults而非vault，vault被设计成连接存款者和借款者的中间体，存款者把资产储存进vault，借款者可以借出来一些用于流动性挖矿。
-存储token的同时，vault会给用户ibToken，用户可以用这个在Alpaca
-Finance中进行更多操作，比如获得FairLaunch里的Alpaca激励，获得合作Token激励，以后还有更多。
-借出token的同时，用户也可以获得debtToken，这也可以自动获得FairLuanch给的激励。</p>
-<h2 id="abstract">Abstract</h2>
-<ul>
-<li>Vault会给用户分配ibToken，用来标记用户在此vault里所占的份额(share)。随着时间推移，利息会进入份额，1份份额(share)的实际价值会增加。</li>
-<li>当用户开仓时，他们先需要在vault里放质押物。这使得vault的债务价值(debt
-value)根据借款量增加。</li>
-<li>一旦vault收获借款人的利息，vault的债务价值(debt
-value)会随着利息增加。这意味着随着时间推移，取出资产需要用到的量要比存款时更大。</li>
-<li>当用户平仓时，初始抵押品债务会从总债务中去除，流动性挖矿的利息会完整地还给lender。</li>
-<li>部分利息会被项目组留下，放在保留金池子里。</li>
-<li>由于用户是在不同的时间存款的，我们要用债务份额价值(debt share
-value)保持记录用户从哪里进入vault。</li>
-<li>债务份额(debt share)也被表示成vault铸造的生息token。</li>
-<li>债务份额的计算方法：<span
-class="math inline">\(\frac{DebtValue}{TotalDebtValue} \times
-ExistingDebtShare\)</span></li>
-</ul>
-<h2 id="structs">Structs</h2>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">struct Position &#123;</span><br><span class="line">    address worker;</span><br><span class="line">    address owner;</span><br><span class="line">    uint256 debtShare;</span><br><span class="line">  &#125;</span><br><span class="line">mapping(uint256 =&gt; Position) public positions;</span><br></pre></td></tr></table></figure>
-<h2 id="main-function">Main Function</h2>
-<p>Vault 主要业务逻辑有： 1.质押token获得ibToken (deposit)
-2.赎回token燃烧ibToken (withdraw)
-3.执行借贷+DEX流动性挖矿操作，调用worker.work，根据Position里worker的不同具体执行逻辑也不一样
-(work)
-4.清算，调用worker.liquidate，根据Position里worker的不同具体执行逻辑也不一样
-(kill)</p>
-<h1 id="worker-contract">Worker Contract</h1>
-<p><a name="Worker Contract"></a></p>
-<p><a
-href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/interfaces/IWorker02.sol">源码地址</a></p>
-<h2 id="background-1">BackGround</h2>
-<p>borrowers从vault申请款项唯一的办法就是从vault借出钱来做一些操作，特别是加杠杆的流动性挖矿。
-每一个worker根据配置比如其连接的DEX和LP token pair
-来进行不一样的操作，但是所有的Worker共用一个接口。
-然而worker并不一定要做流动性挖矿，也可能就只是做一些简单的操作，比如Syrup
-Pool。 这部分我们只讲一下所有worker共通的Interface。</p>
-<h2 id="abstract-1">Abstract</h2>
-<ul>
-<li>在整个系统里有多个worker</li>
-<li>一个worker可以根据实际情况使用不同的strategy</li>
-<li>worker会把特定的token对当成整体处理，即使他们在不同的仓里</li>
-<li>worker和底层资产服务强关联，比如Pancake的BNB-BUSD
-worker处理不了Wault的BNB-BUSD</li>
-<li>Base
-token是ERC20标准，是worker的主要资产，通常与借款，本金挂钩。</li>
-<li>Farm token是ERC20标准，与base token结对可以给DEX提供流动性</li>
-<li>worker把Fram token和Base token成对处理，如果我们需要将现在的farm
-token作为base
-token就需要另一个worker，反之亦然。因为在DEX中，Pancake的BNB-BUSD 也与
-Pancake的BUSD- BNB不一样。</li>
-<li>Worker Config作为一个分离出来的合约，存放着worker们的配置信息</li>
-</ul>
-<p>worker可以被两种角色调用： 1.Operator: 大多数情况是一个Vault合约
-2.Reinvestor: 白名单EOA，取出LP收益再复投</p>
-<h2 id="main-function-1">Main Function</h2>
-<p>1.利息复投(_reinvest) 2.调用Strategy的excute方法，并将返回的LP
-token质押，根据Strategy种类不同具体实现不一样 (work)
-3.计算某个position换算成baseToken的价值，用来做清算判断 (health)</p>
-<h1 id="strategy-contract">Strategy Contract</h1>
-<p><a name="Strategy Contract"></a></p>
-<p><a
-href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/interfaces/IStrategy.sol">合约源码</a></p>
-<h2 id="background-2">Background</h2>
-<p>顾名思义，这类合约只做一件事，那就是制定交易策略，根据DEX，token和需求不同分配不同的Strategy。这一节我们详细介绍策略逻辑和公式。值得注意的是，这个合约是一个耦合度极低的合约，只负责把传给该合约的资产在DEX中操作，再转账，几乎没有存储任何信息，也就是不参与借贷相关的任何逻辑。借贷/还账的逻辑应该在它的上层实现。</p>
-<h2 id="abstract-2">Abstract</h2>
-<p>根据用户的操作，前端会提供一个strategy，比如一个用户想借BUSD在Pancake开一个BUSD-
-USDT的仓，前端会用PancakeswapV2RestrictedStrategyAddBaseTokenOnly(一种Strategy合约)调用Vault.work，这样Vault将会调用USDT-
-BUSD PancakeSwap
-的worker。worker随后调用PancakeswapV2RestrictedStrategyAddBaseTokenOnly.</p>
-<h2 id="main-function-2">Main Function</h2>
-<p>有六种Strategy都只有一个主要方法,excute：</p>
-<h3 id="addbasetokenonly">AddBaseTokenOnly:</h3>
-<p>提供base token，根据最佳方案兑换farming
-token，再提供流动性拿LP，推导过程：
-balance为托管处理的baseToken总量，aIn为swap为farming token的base
-token，rIn，rOut是池子里的量</p>
-<p><span class="math inline">\(\begin{cases} rIn\times rOut = (rIn +
-aIn)\times(rOut - aOut)\\ \frac{rIn}{rOut} = \frac{balance - aIn}{ aOut
-}\\ \end{cases}\)</span></p>
-<p>得出<span class="math inline">\(aIn^{2} + 2rIn\times aIn - rIn\times
-balance = 0\)</span>，即<span
-class="math inline">\(aIn=\frac{\sqrt{rIn\times (4balance +
-4rIn)}-2rIn}{2}\)</span> 与代码吻合：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">uint256 aIn = AlpacaMath.sqrt(rIn.mul(balance.mul(399000000).add(rIn.mul(399000625)))).sub(rIn.mul(19975)) / 19950;</span><br></pre></td></tr></table></figure>
-<h3 id="addtwosideoptimal">AddTwoSideOptimal</h3>
-<p>同时提供base token和farming
-token，合约转换成正好的比例提供流动性，推导过程:
-bIn,bOut是用户提供的两种token量，aIn是打算换成另一种的多余Token量，aOut是换出的token量，
-<span class="math inline">\(\begin{cases} rIn\times rOut = (rIn +
-aIn)\times(rOut - aOut)\\ \frac{rIn + bIn }{rOut - bOut} =
-\frac{bIn-aIn}{bOut+aOut}\\ \end{cases}\)</span></p>
-<p>得出<span class="math inline">\(aIn^{2} + 2rIn\times aIn + \frac
-{rIn\times bOut - rOut \times bIn}{rOut+bOut} \times rIn = 0\)</span>
-即<span class="math inline">\(aIn = \frac{\sqrt{4rIn^{2}-4\times (\frac
-{rIn\times bOut - rOut \times bIn}{rOut+bOut} \times
-rIn)}-2rIn}{2}\)</span> 与代码吻合：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/// @dev Compute optimal deposit amount helper</span><br><span class="line">  /// @param amtA amount of token A desired to deposit</span><br><span class="line">  /// @param amtB amonut of token B desired to deposit</span><br><span class="line">  /// @param resA amount of token A in reserve</span><br><span class="line">  /// @param resB amount of token B in reserve</span><br><span class="line">  function _optimalDepositA(</span><br><span class="line">    uint256 amtA,</span><br><span class="line">    uint256 amtB,</span><br><span class="line">    uint256 resA,</span><br><span class="line">    uint256 resB</span><br><span class="line">  ) internal pure returns (uint256) &#123;</span><br><span class="line">    require(amtA.mul(resB) &gt;= amtB.mul(resA), &quot;Reversed&quot;);</span><br><span class="line"></span><br><span class="line">    uint256 a = 9975;</span><br><span class="line">    uint256 b = uint256(19975).mul(resA);</span><br><span class="line">    uint256 _c = (amtA.mul(resB)).sub(amtB.mul(resA));</span><br><span class="line">    uint256 c = _c.mul(10000).div(amtB.add(resB)).mul(resA);</span><br><span class="line"></span><br><span class="line">    uint256 d = a.mul(c).mul(4);</span><br><span class="line">    uint256 e = AlpacaMath.sqrt(b.mul(b).add(d));</span><br><span class="line"></span><br><span class="line">    uint256 numerator = e.sub(b);</span><br><span class="line">    uint256 denominator = a.mul(2);</span><br><span class="line"></span><br><span class="line">    return numerator.div(denominator);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
-<h3 id="liquidate">Liquidate</h3>
-<p>提供LPToken，取消所有流动性，之后所有farming token 兑换成base token
-返还给用户。</p>
-<h3 id="partialcloseliquidate">PartialCloseLiquidate</h3>
-<p>前面和Liquidate一样，也是把一定量的LP取消流动性，再全兑成base
-token提出来，最后留下一部分baseToken(数目是入参，一般做平账用，由合约传入)，剩下的返还给用户。</p>
-<h3 id="partialcloseminimizetrading">PartialCloseMinimizeTrading</h3>
-<p>提供一定量LPToken，取消流动性，返还base token和farming
-token，如果base
-token不够lessDebt值(数目是入参，一般做平账用，由合约传入)，用farming
-token兑换至足额，并将base token和剩余的farming token返还。</p>
-<h3 id="withdrawminimizetrading">WithdrawMinimizeTrading</h3>
-<p>把所有的LPToken取消流动性,返还base token和farming token，如果base
-token不够lessDebt值(数目是入参，一般做平账用，由合约传入)，用farming
-token兑换至足额，并将base token和剩余的farming token返还。</p>
-<h1 id="后记">后记</h1>
-<p>Alpaca小弟也是最近刚刚接触，如果有前辈研究过这个项目还请指路一下更多的资料，谢谢大家了。</p>
-]]></content>
-      <categories>
-        <category>DeFi</category>
-      </categories>
-      <tags>
-        <tag>DeFi</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>深入理解EVM - Part1 - 初识opcode</title>
     <url>/2022/06/17/Digging-Deep-EVM-Part1/</url>
     <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?s=r
@@ -374,221 +201,6 @@ into按钮(就是那个弯箭头)，一步一步运行opcode。</p>
 <p>本系列下一节我们会研究一下内存 <a
 href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?s=r">EVM
 Deep Dives - Part 2</a>。</p>
-]]></content>
-      <categories>
-        <category>以太坊</category>
-      </categories>
-      <tags>
-        <tag>ethereum</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>深入理解EVM - Part2 - 内存</title>
-    <url>/2022/06/21/Digging-Deep-EVM-Part2/</url>
-    <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?s=r
-译者博客: <a href="alvan.coffee">Alvan的Blog</a></p>
-<p>本系列的第二篇文章，我们会继续学习基础知识，以期成为“shadowy super
-coder”。如果没看过本系列的<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>的话，建议看一下，有些前置的知识。在<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>里，我们知道了EVM如何根据字节码找到调用的函数，对调用栈，calldata，函数签名和opcode有了一定了解。在第二篇我们学习一下合约的内存(memory)是怎么在EVM里工作的。</p>
-<h2 id="a-trip-down-memory-lane">A Trip Down Memory Lane</h2>
-<p><a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>出现的1_Storage.sol
-contract又来营业了。</p>
-<figure>
-<img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F3400bba6-f870-4b68-8ba8-118562b08aef_489x538.png"
-alt="img" />
-<figcaption aria-hidden="true">img</figcaption>
-</figure>
-<p>还是像上次一样，生成字节码然后把相关的截出来，在这篇里我们着重看一下前五字节。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">6080604052</span><br><span class="line">60 80                       =   PUSH1 0x80</span><br><span class="line">60 40                       =   PUSH1 0x40</span><br><span class="line">52                          =   MSTORE </span><br></pre></td></tr></table></figure>
-<p>这五个字节表示初始化“空闲内存指针”(free memory
-pointer)。要想完全理解它的含义，我们必须先对管理合约内存的数据结构有一定了解。</p>
-<h2 id="内存的数据结构">内存的数据结构</h2>
-<p>合约的内存是一个很简单的字节数组，可以储存32字节或者1字节的数据块，也可以读取32字节的数据块。如下图所示：</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F33d7994b-a4b5-4268-8d53-85f214944599_717x437.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F33d7994b-a4b5-4268-8d53-85f214944599_717x437.png"
-alt="img" /></a> 来源:
-https://takenobu-hs.github.io/downloads/ethereum_evm_illustrated.pdf</p>
-<p>这个功能是3个管理内存的opcode决定的</p>
-<ul>
-<li>MSTORE (x, y) - 以“x”处为起点，写入32字节的数据“y”</li>
-<li>MLOAD (x) - 从“x”处取出32字节的数据加载到调用栈。</li>
-<li>MSTORE8 (x, y) -
-以“x”处为起点，写入1字节的数据“y”(调用栈的最低有效字节)</li>
-</ul>
-<p>你可以简单把内存位置理解成数组的索引，如果要读写超过1字节的数据，只需在下一个索引继续读写。</p>
-<h2 id="evm-playground">EVM Playground</h2>
-<p>这个 <a href="#evm-playground">EVM
-playground</a>(https://www.evm.codes/playground?unit=Wei&amp;codeType=Mnemonic&amp;code='Vg<em>(<em>I...1W0GJ</em>!!!!z00FK22WJQ0Y22z20F8K33W33Q1Y33z21F8d(v0Z0-Jq00Xd(vJZJ-64q20Xdv33Z33-65q21Xpp'~N
-locatioCzG1_wppVv7o7hBcall stack from~uIIIIq( ofNzpbytegSTOREdw)</em>_
-0xZ9BY9Chex}zXpM)
-可以巩固理解这三个opcode和内存是怎么工作的。点击Run和右上角的弯箭头一步一步执行，可以看到调用栈和内存的变化(每一部分都有注释)。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe3e29126-2954-40e3-bc1b-7ca5e780fd1c_1500x850.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe3e29126-2954-40e3-bc1b-7ca5e780fd1c_1500x850.png"
-alt="img" /></a></p>
-<p>使用这个的时候你会发现一些奇怪的事情，首先当我们用MSTORE8把一个单字节数据0x22写进内存时，内存从这样</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F954d54e6-0bce-4de3-a61d-dd41fdae49c7_836x152.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F954d54e6-0bce-4de3-a61d-dd41fdae49c7_836x152.png"
-alt="img" /></a></p>
-<p>变成了这样</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F225fde5a-09bf-4a24-a702-88ad5010951e_836x176.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F225fde5a-09bf-4a24-a702-88ad5010951e_836x176.png"
-alt="img" /></a></p>
-<p>你可能会问，我只加了一字节，怎么补了这么多的0？</p>
-<h3 id="内存扩展">内存扩展</h3>
-<p>合约往内存里写数据是要根据数据大小付费的，如果要写在之前没写过的区域，还会收取首次使用的附加费用。没写过的区域是会按照32字节的增量增加的。</p>
-<blockquote>
-<p>前724字节，内存扩展的花费成线性增长，后边按照二次方增长</p>
-</blockquote>
-<p>因为我们刚刚初始化所以到处都是初始化为0的内存区域，又因为增量是32字节，就看到了内存被追加写入了2200000000000000000000000000000000000000000000000000000000000000</p>
-<h3 id="牢记内存是个字节数组">牢记内存是个字节数组</h3>
-<p>在33 (0x21)处跑MLOAD发现了第二件事，调用栈返回了这个</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">3300000000000000000000000000000000000000000000000000000000000000</span><br></pre></td></tr></table></figure>
-<p>牢记内存就是一个字节数组，我们可以在任何位置读写它，不一定是32的倍数，它记录线性的、字节级别的位置</p>
-<blockquote>
-<p>内存只能被函数创建。可以是复杂类型比如数组和结构体的实例化，也可能是从存储区(storage)复制过来的引用变量。</p>
-</blockquote>
-<p>了解了内存的数据结构之后我们老看一下空闲内存指针。</p>
-<h2 id="空闲内存指针">空闲内存指针</h2>
-<p>空闲内存指针就是一个简单的指向未使用内存开始处的指针，它可以确保智能合约可以记录哪些内存位置被写入了、哪些没被写入。这避免了合约用本应申请新内存的其他变量去覆盖老数据。当变量需要被写入内存时，合约会根据空闲内存指针确认数据应该写到哪里。</p>
-<p>写入之后空闲内存指针会更新，根据写入数据大小确定新指针位置。像这样用一个简单的两数相加，算出新的空闲内存从哪开始：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">freeMemoryPointer + dataSizeBytes = newFreeMemoryPointer </span><br></pre></td></tr></table></figure>
-<h3 id="字节码">字节码</h3>
-<p>根据上文所题，空闲内存指针是在字节码最前边的五个opcode声明的</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">60 80                       =   PUSH1 0x80</span><br><span class="line">60 40                       =   PUSH1 0x40</span><br><span class="line">52                          =   MSTORE  </span><br></pre></td></tr></table></figure>
-<p>这实际上是在说空闲内存指针在0x40(十进制64)位置上，有一个值0x80(十进制128)。那么0x40和0x80是怎么来的呢？我们可以在下边表格看到：</p>
-<blockquote>
-<p>Solidity的内存布局将前4个32字节的插槽保留:</p>
-<ul>
-<li><code>0x00</code> - <code>0x3f</code> (64 bytes): 暂存空间(Scratch
-space)</li>
-<li><code>0x40</code> - <code>0x5f</code> (32 bytes): 空闲内训指针</li>
-<li><code>0x60</code> - <code>0x7f</code> (32 bytes): 插槽0</li>
-</ul>
-</blockquote>
-<p>我们可以看到0x40是Solidity定下的空闲内存指针的位置，而紧接着这四个保留值的内存地址即为0x80。</p>
-<p>我们快速过一遍这四个保留值分别是干什么的：</p>
-<ul>
-<li>暂存空间, 用来给hash方法和内联汇编使用。</li>
-<li>空闲内存指针,
-记录当前已分配的内存大小，空闲内存的起点，初始值0x80。</li>
-<li>插槽0，用作动态内存数组的初始值，不会被写入。</li>
-</ul>
-<h3 id="合约里的内存">合约里的内存</h3>
-<p>我们巩固一下上边学到的知识，从真实的Solidity代码中看一下内存和空闲内存指针是如何更新的。我故意创建了一个很简单的MemoryLane合约，只有一个函数，里边声明了长度分别为5和2的梁哥数组，然后把b[0]赋1，尽管很简单，在这三行代码运行时依然发生了很多事。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F45614789-b470-43be-9bb5-f7e0aabf35b5_393x276.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F45614789-b470-43be-9bb5-f7e0aabf35b5_393x276.png"
-alt="img" /></a></p>
-<p>我们把代码复制到remix里，看看这段solidity代码在EVM里的工作细节。复制之后，把它编译部署了，运行memoryLane()函数然后进debug模式，能看见这个合约的opcodes。</p>
-<p>我把opcodes简化了一下，删除JUMP和其他与内存操作无关的代码。代码中添加了注释，以提供上下文。代码分为6个不同的部分。大家可以把这六部分合在一起，在EVM
-Playground里跑一下。</p>
-<h3
-id="空闲内存指针初始化evm-playground-lines-1-15">空闲内存指针初始化(EVM
-Playground Lines 1-15)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">////////////////////////////////////////</span><br><span class="line">// Free Memory Pointer Initialisation //</span><br><span class="line">////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// value to store for free memory pointer 0x80 = 128 in decimal</span><br><span class="line">PUSH1 0x80</span><br><span class="line">// location for free memory pointer 0x40 = 64 in decimal</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br><span class="line"></span><br><span class="line">// jump location (required to prevent stack underflow) </span><br><span class="line">PUSH2 0xffff</span><br></pre></td></tr></table></figure>
-<p>首先，按照上边所讲的，初始化空闲内存指针，把0x80压进栈里，这是solidity内存布局规定的。在这段时间里，我们内存里什么都没有。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6437f902-7104-4009-8858-230d73a765a8_1066x198.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6437f902-7104-4009-8858-230d73a765a8_1066x198.png"
-alt="img" /></a></p>
-<p>然后我们再按照内存布局把空闲内存指针的地址0x40压栈。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F61258407-3f1c-44ff-a81f-982dc17a174e_1066x256.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F61258407-3f1c-44ff-a81f-982dc17a174e_1066x256.png"
-alt="img" /></a></p>
-<p>最后我们调用MSTORE把栈顶的0x40弹出来，0x40处的值为0x80，把它写入内存。</p>
-<p>现在调用栈空了但是我们需要处理一些内存，这些内存是16进制，每一个字符对应4个比特位。现在我们有了192个16进制字符，也就是96字节(1字节=8位=2个十六进制字符)。</p>
-<p>前边讲过前64字节是solidity布局规定的暂存空间，紧接着的32字节是空闲内存指针，正如下边所表示的这样：(译者注：这个Memory并不是显示MSTORE存进去什么，而是从头到位显示，直到后边全是未分配内存，所以把前边的暂存空间也显示出来了)</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F62ee6b98-6d06-4b91-a12a-45cc86a9ab5c_1066x304.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F62ee6b98-6d06-4b91-a12a-45cc86a9ab5c_1066x304.png"
-alt="img" /></a></p>
-<h3
-id="变量-a-的内存分配和空闲内存指针更新-evm-playground-lines-16-34">变量
-a 的内存分配和空闲内存指针更新 (EVM Playground Lines 16-34)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">//////////////////////////////////////////////////////////////////</span><br><span class="line">// Memory Allocation Varibale “a” &amp; Free Memory Pointer Update ///</span><br><span class="line">//////////////////////////////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// load free memory pointer</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MLOAD</span><br><span class="line"></span><br><span class="line">// duplicate free memory pointer</span><br><span class="line">DUP1</span><br><span class="line">// 0xa0 = 160 in decimal, 32 * 5 = 160 first array is length 5</span><br><span class="line">PUSH1 0xa0</span><br><span class="line">// free memory pointer (0x80) + space for array (0xa0) = new free memory pointer</span><br><span class="line">ADD</span><br><span class="line">// Save this new value 0x120 to the free memory location</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br></pre></td></tr></table></figure>
-<p>剩下的部分，在剩下的部分中，我们将跳过到每个部分的结束状态，并简要地说一下发生了什么。单独的opcode步骤可以在
-<a href="https://www.evm.codes/playground">EVM
-playground</a>里自行探索。下一个分配内存的是“a”
-<code>(bytes32[5])</code>
-，空闲内存指针也更新了。编译器会根据数组大小和元素大小决定分配多大的内存。</p>
-<blockquote>
-<p>牢记内存数组中的元素永远是32字节的倍数(bytes1[]也一样，但是bytes和string不是)。</p>
-</blockquote>
-<p>32字节倍数大小的数组会告诉我们需要分配多少内存。</p>
-<p>那在这里就是5 * 32
-也就是160或者说0xa0。我们可以看到它被压入堆栈并添加到当前空闲内存指针0x80(十进制为128)以获得新的空闲内存指针值。本来空闲内存指针在0x80(十进制128)，加上160后等于288，也就是16进制0x120，已经写到Memory上了。</p>
-<p>调用栈里有变量a的内存起始地址0x80，以后可能会用到，0xffff是一个JuNP地址，跟内存操作无关可以忽略。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fdf90605a-11c5-4d15-a055-b45dc6f93d9f_1066x378.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fdf90605a-11c5-4d15-a055-b45dc6f93d9f_1066x378.png"
-alt="img" /></a></p>
-<h3 id="变量-a-的内存初始化-evm-playground-lines-35-95">变量 a
-的内存初始化 (EVM Playground Lines 35-95)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/////////////////////////////////////////</span><br><span class="line">// Memory Initialisation Varaible “a” ///</span><br><span class="line">/////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// duplicate 0x80</span><br><span class="line">DUP1</span><br><span class="line">// push 0x05 = 5 in decimal (array length)</span><br><span class="line">PUSH1 0x05</span><br><span class="line">// Swap the top 2 items on the stack in this case 0x05 and 0x80</span><br><span class="line">SWAP1</span><br><span class="line">// push 0x20 = 32 in decimal (array item size)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// Duplicate the 3rd item on the stack in this case 0x05 to the top of the stack</span><br><span class="line">DUP3</span><br><span class="line">// 0x05 * 0x20 = 5 * 32 in decmial = 160 on top of the stack (size of array in bytes)</span><br><span class="line">MUL</span><br><span class="line">// Duplicate 0xa0 = 160 in decimal</span><br><span class="line">DUP1</span><br><span class="line">// Returns size of calldata in bytes currently just function signature = 0x04 or 4 in decmial</span><br><span class="line">CALLDATASIZE</span><br><span class="line">// duplicate 4th item on stack (0x80)</span><br><span class="line">DUP4</span><br><span class="line">// 0x80 (byte offset in the memory where the result will be copied.), 0x04 (byte offset in the calldata to copy.), 0xa0 (byte size to copy.)</span><br><span class="line"></span><br><span class="line">// this offsets the 4 bytes in our call data with a size of 0xa0 which yeild a 160 bit set of 0&#x27;s to be stored at the free memory pointer location</span><br><span class="line"></span><br><span class="line">// this effectively initialises our array in memory </span><br><span class="line">CALLDATACOPY</span><br><span class="line"></span><br><span class="line">// The remaining lines in this section manipulate the stack to ensure we have the memory location of variable &quot;a&quot; and removes any items that are no longer needed</span><br><span class="line"></span><br><span class="line">// duplicate 0xa0</span><br><span class="line">DUP1</span><br><span class="line">// duplicate 0x80</span><br><span class="line">DUP3</span><br><span class="line">// new free memory pointer as before</span><br><span class="line">ADD</span><br><span class="line">// swap 1st (0x120) item on the stack and 3rd (0x80)</span><br><span class="line">SWAP2</span><br><span class="line">// pop top item off stack (0x80)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0xa0)</span><br><span class="line">POP</span><br><span class="line">// Swap top 2 items 0x120 &amp; 0x05</span><br><span class="line">SWAP1</span><br><span class="line">// pop top item off stack (0x05)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x120)</span><br><span class="line">POP</span><br><span class="line">// swap top 2 items 0x80 &amp; 0xb6 (jump location)</span><br><span class="line">SWAP1</span><br><span class="line">// simulating a JUMP remove the top item off stack with POP</span><br><span class="line">POP</span><br><span class="line"></span><br><span class="line">// Simulated jump location</span><br><span class="line">PUSH2 0xffff</span><br><span class="line">// Simulated jump location</span><br><span class="line">PUSH2 0xffff</span><br><span class="line">// simulating a JUMP, remove the top item off stack with POP</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
-<p>现在内存已经被分配了，空闲内存指针也更新了，我们需要初始化变量a的内存空间。变量只是声明却没被赋值，会被初始化为0。</p>
-<p>为此EVM使用CALLDATACOPY，有三个参数：</p>
-<ul>
-<li>memoryOffset (数据拷贝的目标地址)</li>
-<li>calldataOffset (待拷贝数据在calldata里的偏移量)</li>
-<li>size (需要复制的大小)</li>
-</ul>
-<p>在这个例子里，memoryOffset是变量 a
-的内存位置0x80。calldataOffset是待复制数据在calldata中的起点，因为我们反正不想复制任何calldata，就用0值初始化。最后size就是0xa0(十进制160)。</p>
-<p>我们可以看到内存已经扩展到288字节了，调用栈又拿到了a的内存位置，还有一个无关痛痒的JUMP地址。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F77921922-6699-4ef7-a248-5b96667ac1cc_1066x548.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F77921922-6699-4ef7-a248-5b96667ac1cc_1066x548.png"
-alt="img" /></a></p>
-<h3
-id="变量-b-的内存分配和空闲内存指针更新-evm-playground-lines-96-112">变量
-b 的内存分配和空闲内存指针更新 (EVM Playground Lines 96-112)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/////////////////////////////////////////////////////////////////</span><br><span class="line">// Memory Allocation Varibale “b” &amp; Free Memory Pointer Update //</span><br><span class="line">/////////////////////////////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// free memory pointer load in </span><br><span class="line">PUSH1 0x40</span><br><span class="line">MLOAD</span><br><span class="line">// duplicate free memory pointer (0x120)</span><br><span class="line">DUP1</span><br><span class="line">// 0x40 = 64 in decimal, 32 * 2 = 64 second array is length 2</span><br><span class="line">PUSH1 0x40</span><br><span class="line">// free memory pointer (0x120) + space for array (0x40) = new free memory pointer</span><br><span class="line">ADD</span><br><span class="line">// save new free memory pointer value at free memory location 0x40</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br></pre></td></tr></table></figure>
-<p>和 a
-一样，对<code>“bytes32[2] memory b”</code>也要做内存申请和更新空闲内存指针。空闲内存指针更新到0x160(即十进制的352
-= 288 + 2 * 32)。内存里显示空白内存指针已更新，栈上也有了变量 b
-的内存地址0x120。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6d38d4d0-f02f-4f85-a16e-11a3687ae095_1066x610.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6d38d4d0-f02f-4f85-a16e-11a3687ae095_1066x610.png"
-alt="img" /></a></p>
-<h3 id="变量-b-的内存初始化-evm-playground-lines-113-162">变量 b
-的内存初始化 (EVM Playground Lines 113-162)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">////////////////////////////////////////</span><br><span class="line">// Memory Initialisation Variable “b” //</span><br><span class="line">////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// duplicate 0x120 (memory start location for variable &quot;b&quot;)</span><br><span class="line">DUP1</span><br><span class="line">// 0x02 = 2 in decimal = array length</span><br><span class="line">PUSH1 0x02</span><br><span class="line">// swap top 2 items 0x02 &amp; 0x120</span><br><span class="line">SWAP1</span><br><span class="line">// 0x20 = 32 in decimal (array item size in bytes)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// duplicate 3rd item on the stack 0x02</span><br><span class="line">DUP3</span><br><span class="line">// 0x02 * 0x20 = 0x40 = 64 (amount of bytes in memory to initialise)</span><br><span class="line">MUL</span><br><span class="line">// duplicate 0x40 (free memory pointer location)</span><br><span class="line">DUP1</span><br><span class="line">// same as before 4 bytes for function signature 0x04</span><br><span class="line">CALLDATASIZE</span><br><span class="line">// duplicate 4th item on the stack = 0x120</span><br><span class="line">DUP4</span><br><span class="line">// 0x120 (byte offset in the memory where the result will be copied.), 0x04 (byte offset in the calldata to copy.), 0x40 (byte size to copy.)</span><br><span class="line">CALLDATACOPY</span><br><span class="line"></span><br><span class="line">// The remaining lines in this section manipulate the stack to ensure we have the memory location of variable &quot;a&quot; and removes any items that are no longer needed</span><br><span class="line"></span><br><span class="line">//duplicate the top of the stack 0x40</span><br><span class="line">DUP1</span><br><span class="line">// duplicate 3rd item on the stack 0x120</span><br><span class="line">DUP3</span><br><span class="line">// add together yields free memory pointer value</span><br><span class="line">ADD</span><br><span class="line">// swap 0x160 &amp; 0x120</span><br><span class="line">SWAP2</span><br><span class="line">// pop top item off stack (0x120)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x40)</span><br><span class="line">POP</span><br><span class="line">// swap 0x160 &amp; 0x02</span><br><span class="line">SWAP1</span><br><span class="line">// pop top item off stack (0x02)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x160)</span><br><span class="line">POP</span><br><span class="line">// jump location to top of the stack 0xbe</span><br><span class="line">SWAP1</span><br><span class="line">// simulate jump pop jump location off stack</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
-<p>和变量 a
-的初始化一样，现在内存已经扩展到352字节，栈里保存着两个变量的内存地址。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff45435da-8528-4e99-8a43-bab75decbf06_1066x630.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff45435da-8528-4e99-8a43-bab75decbf06_1066x630.png"
-alt="img" /></a></p>
-<h3 id="b0赋值-evm-playground-lines-163-207">b[0]赋值 (EVM Playground
-Lines 163-207)</h3>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">//////////////////////////</span><br><span class="line">// Assign Value to b[0] //</span><br><span class="line">//////////////////////////</span><br><span class="line"></span><br><span class="line">// push 0x01, value to add b[0]</span><br><span class="line">PUSH1 0x01</span><br><span class="line">// push 0x00</span><br><span class="line">PUSH1 0x00</span><br><span class="line">// left shift operation no shift, first input is 0 </span><br><span class="line">SHL</span><br><span class="line">// duplicate 2nd item on stack (0x120)</span><br><span class="line">DUP2</span><br><span class="line">// push 0x00 = [0] where in the array should this item go</span><br><span class="line">PUSH1 0x00</span><br><span class="line">// push 0x20 = 64 bytes the length of the array </span><br><span class="line">PUSH1 0x02</span><br><span class="line">// duplicate 2nd item on stack (0x00)</span><br><span class="line">DUP2</span><br><span class="line">// 0x00 &lt; 0x20 =  true = 0x01 (check the user is not trying to store a value at a location that doesn&#x27;t exist in the array)</span><br><span class="line">LT</span><br><span class="line">// jump location</span><br><span class="line">PUSH2 0x00d7</span><br><span class="line">// 2 POPs since this is a JUMPI (checking if LT returned true or false)</span><br><span class="line">// simulate JUMPI </span><br><span class="line">POP</span><br><span class="line">// simulate JUMPI </span><br><span class="line">POP</span><br><span class="line"></span><br><span class="line">// push 0x20 (32 bytes aray item size)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// 0x20 * 0x00 = 0x00 = 0 in decimal (array item size * index to determine byte offset)</span><br><span class="line">MUL</span><br><span class="line">// 0x00 + 0x120</span><br><span class="line">ADD</span><br><span class="line">// duplicate 2nd on stack 0x01 (value for b[0])</span><br><span class="line">DUP2</span><br><span class="line">// duplicate 2nd on stack 0x120 (memory location for b[])</span><br><span class="line">DUP2</span><br><span class="line">// store 0x01 at memory location 0x120</span><br><span class="line">MSTORE</span><br><span class="line">// clean up stack</span><br><span class="line">POP</span><br><span class="line">POP</span><br><span class="line">POP</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
-<p>最后一步我们需要给数组 b 的索引0处赋值，代码显示b[0] =
-1。那么0x01压栈，紧接着一个左移opcode，但是参数是0，相当于没移。</p>
-<p>接下来数组索引0也就是0x00会被压入栈中，然后检查这个值是否比数组长度0x02小，如果不是的话会跳到异常处理的部分。MUL和ADD可以根据数组的索引算出写入内存的位置，一个元素32，索引为0，则在0x00的偏移量开写。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0x20 (32 in decimal) * 0x00 (0 in decimal) = 0x00</span><br></pre></td></tr></table></figure>
-<p>偏移量加上起始位置，最终算出来该值应该在0x120被写入。</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0x00 + 0x120 = 0x120 (288 in decimal)</span><br></pre></td></tr></table></figure>
-<p>最后，我们把0x01写进0x120。</p>
-<p>下图展示了这个函数执行完成后的状态，栈被弹空了。</p>
-<p><strong><em>实际上在用remix中调用栈上还是会有一些条目，一个跳转地址和函数签名，但是与内存操作无关，就被EVM省略了</em></strong></p>
-<p>我们的内存被更新成了b[0]=1，在倒数第三行。你也可以验证一下数据位置是否正确，b[0]应该在0x120
-- 0x13f (289-320字节)。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fa5516282-632f-4af3-8e0f-40b07497a9d7_1066x578.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fa5516282-632f-4af3-8e0f-40b07497a9d7_1066x578.png"
-alt="img" /></a></p>
-<p>成了！这里信息量很大但我们现在理解已经很深刻了，下次写代码的时候也会有不小的帮助！以前挨行跑opcode的时候经常看见内存不断弹出0x40，现在知道为什么了。</p>
-<p>这个系列的下一篇，我们会<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?s=r">揭开存储插槽的神秘面纱</a>。</p>
 ]]></content>
       <categories>
         <category>以太坊</category>
@@ -843,6 +455,332 @@ SSTORE 和 SLOAD 操作码的。</p>
       </tags>
   </entry>
   <entry>
+    <title>深入理解EVM - Part2 - 内存</title>
+    <url>/2022/06/21/Digging-Deep-EVM-Part2/</url>
+    <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?s=r
+译者博客: <a href="alvan.coffee">Alvan的Blog</a></p>
+<p>本系列的第二篇文章，我们会继续学习基础知识，以期成为“shadowy super
+coder”。如果没看过本系列的<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>的话，建议看一下，有些前置的知识。在<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>里，我们知道了EVM如何根据字节码找到调用的函数，对调用栈，calldata，函数签名和opcode有了一定了解。在第二篇我们学习一下合约的内存(memory)是怎么在EVM里工作的。</p>
+<h2 id="a-trip-down-memory-lane">A Trip Down Memory Lane</h2>
+<p><a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy?utm_source=url&amp;s=r">第一篇</a>出现的1_Storage.sol
+contract又来营业了。</p>
+<figure>
+<img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F3400bba6-f870-4b68-8ba8-118562b08aef_489x538.png"
+alt="img" />
+<figcaption aria-hidden="true">img</figcaption>
+</figure>
+<p>还是像上次一样，生成字节码然后把相关的截出来，在这篇里我们着重看一下前五字节。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">6080604052</span><br><span class="line">60 80                       =   PUSH1 0x80</span><br><span class="line">60 40                       =   PUSH1 0x40</span><br><span class="line">52                          =   MSTORE </span><br></pre></td></tr></table></figure>
+<p>这五个字节表示初始化“空闲内存指针”(free memory
+pointer)。要想完全理解它的含义，我们必须先对管理合约内存的数据结构有一定了解。</p>
+<h2 id="内存的数据结构">内存的数据结构</h2>
+<p>合约的内存是一个很简单的字节数组，可以储存32字节或者1字节的数据块，也可以读取32字节的数据块。如下图所示：</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F33d7994b-a4b5-4268-8d53-85f214944599_717x437.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F33d7994b-a4b5-4268-8d53-85f214944599_717x437.png"
+alt="img" /></a> 来源:
+https://takenobu-hs.github.io/downloads/ethereum_evm_illustrated.pdf</p>
+<p>这个功能是3个管理内存的opcode决定的</p>
+<ul>
+<li>MSTORE (x, y) - 以“x”处为起点，写入32字节的数据“y”</li>
+<li>MLOAD (x) - 从“x”处取出32字节的数据加载到调用栈。</li>
+<li>MSTORE8 (x, y) -
+以“x”处为起点，写入1字节的数据“y”(调用栈的最低有效字节)</li>
+</ul>
+<p>你可以简单把内存位置理解成数组的索引，如果要读写超过1字节的数据，只需在下一个索引继续读写。</p>
+<h2 id="evm-playground">EVM Playground</h2>
+<p>这个 <a href="#evm-playground">EVM
+playground</a>(https://www.evm.codes/playground?unit=Wei&amp;codeType=Mnemonic&amp;code='Vg<em>(<em>I...1W0GJ</em>!!!!z00FK22WJQ0Y22z20F8K33W33Q1Y33z21F8d(v0Z0-Jq00Xd(vJZJ-64q20Xdv33Z33-65q21Xpp'~N
+locatioCzG1_wppVv7o7hBcall stack from~uIIIIq( ofNzpbytegSTOREdw)</em>_
+0xZ9BY9Chex}zXpM)
+可以巩固理解这三个opcode和内存是怎么工作的。点击Run和右上角的弯箭头一步一步执行，可以看到调用栈和内存的变化(每一部分都有注释)。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe3e29126-2954-40e3-bc1b-7ca5e780fd1c_1500x850.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fe3e29126-2954-40e3-bc1b-7ca5e780fd1c_1500x850.png"
+alt="img" /></a></p>
+<p>使用这个的时候你会发现一些奇怪的事情，首先当我们用MSTORE8把一个单字节数据0x22写进内存时，内存从这样</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F954d54e6-0bce-4de3-a61d-dd41fdae49c7_836x152.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F954d54e6-0bce-4de3-a61d-dd41fdae49c7_836x152.png"
+alt="img" /></a></p>
+<p>变成了这样</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F225fde5a-09bf-4a24-a702-88ad5010951e_836x176.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F225fde5a-09bf-4a24-a702-88ad5010951e_836x176.png"
+alt="img" /></a></p>
+<p>你可能会问，我只加了一字节，怎么补了这么多的0？</p>
+<h3 id="内存扩展">内存扩展</h3>
+<p>合约往内存里写数据是要根据数据大小付费的，如果要写在之前没写过的区域，还会收取首次使用的附加费用。没写过的区域是会按照32字节的增量增加的。</p>
+<blockquote>
+<p>前724字节，内存扩展的花费成线性增长，后边按照二次方增长</p>
+</blockquote>
+<p>因为我们刚刚初始化所以到处都是初始化为0的内存区域，又因为增量是32字节，就看到了内存被追加写入了2200000000000000000000000000000000000000000000000000000000000000</p>
+<h3 id="牢记内存是个字节数组">牢记内存是个字节数组</h3>
+<p>在33 (0x21)处跑MLOAD发现了第二件事，调用栈返回了这个</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">3300000000000000000000000000000000000000000000000000000000000000</span><br></pre></td></tr></table></figure>
+<p>牢记内存就是一个字节数组，我们可以在任何位置读写它，不一定是32的倍数，它记录线性的、字节级别的位置</p>
+<blockquote>
+<p>内存只能被函数创建。可以是复杂类型比如数组和结构体的实例化，也可能是从存储区(storage)复制过来的引用变量。</p>
+</blockquote>
+<p>了解了内存的数据结构之后我们老看一下空闲内存指针。</p>
+<h2 id="空闲内存指针">空闲内存指针</h2>
+<p>空闲内存指针就是一个简单的指向未使用内存开始处的指针，它可以确保智能合约可以记录哪些内存位置被写入了、哪些没被写入。这避免了合约用本应申请新内存的其他变量去覆盖老数据。当变量需要被写入内存时，合约会根据空闲内存指针确认数据应该写到哪里。</p>
+<p>写入之后空闲内存指针会更新，根据写入数据大小确定新指针位置。像这样用一个简单的两数相加，算出新的空闲内存从哪开始：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">freeMemoryPointer + dataSizeBytes = newFreeMemoryPointer </span><br></pre></td></tr></table></figure>
+<h3 id="字节码">字节码</h3>
+<p>根据上文所题，空闲内存指针是在字节码最前边的五个opcode声明的</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">60 80                       =   PUSH1 0x80</span><br><span class="line">60 40                       =   PUSH1 0x40</span><br><span class="line">52                          =   MSTORE  </span><br></pre></td></tr></table></figure>
+<p>这实际上是在说空闲内存指针在0x40(十进制64)位置上，有一个值0x80(十进制128)。那么0x40和0x80是怎么来的呢？我们可以在下边表格看到：</p>
+<blockquote>
+<p>Solidity的内存布局将前4个32字节的插槽保留:</p>
+<ul>
+<li><code>0x00</code> - <code>0x3f</code> (64 bytes): 暂存空间(Scratch
+space)</li>
+<li><code>0x40</code> - <code>0x5f</code> (32 bytes): 空闲内训指针</li>
+<li><code>0x60</code> - <code>0x7f</code> (32 bytes): 插槽0</li>
+</ul>
+</blockquote>
+<p>我们可以看到0x40是Solidity定下的空闲内存指针的位置，而紧接着这四个保留值的内存地址即为0x80。</p>
+<p>我们快速过一遍这四个保留值分别是干什么的：</p>
+<ul>
+<li>暂存空间, 用来给hash方法和内联汇编使用。</li>
+<li>空闲内存指针,
+记录当前已分配的内存大小，空闲内存的起点，初始值0x80。</li>
+<li>插槽0，用作动态内存数组的初始值，不会被写入。</li>
+</ul>
+<h3 id="合约里的内存">合约里的内存</h3>
+<p>我们巩固一下上边学到的知识，从真实的Solidity代码中看一下内存和空闲内存指针是如何更新的。我故意创建了一个很简单的MemoryLane合约，只有一个函数，里边声明了长度分别为5和2的梁哥数组，然后把b[0]赋1，尽管很简单，在这三行代码运行时依然发生了很多事。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F45614789-b470-43be-9bb5-f7e0aabf35b5_393x276.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F45614789-b470-43be-9bb5-f7e0aabf35b5_393x276.png"
+alt="img" /></a></p>
+<p>我们把代码复制到remix里，看看这段solidity代码在EVM里的工作细节。复制之后，把它编译部署了，运行memoryLane()函数然后进debug模式，能看见这个合约的opcodes。</p>
+<p>我把opcodes简化了一下，删除JUMP和其他与内存操作无关的代码。代码中添加了注释，以提供上下文。代码分为6个不同的部分。大家可以把这六部分合在一起，在EVM
+Playground里跑一下。</p>
+<h3
+id="空闲内存指针初始化evm-playground-lines-1-15">空闲内存指针初始化(EVM
+Playground Lines 1-15)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">////////////////////////////////////////</span><br><span class="line">// Free Memory Pointer Initialisation //</span><br><span class="line">////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// value to store for free memory pointer 0x80 = 128 in decimal</span><br><span class="line">PUSH1 0x80</span><br><span class="line">// location for free memory pointer 0x40 = 64 in decimal</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br><span class="line"></span><br><span class="line">// jump location (required to prevent stack underflow) </span><br><span class="line">PUSH2 0xffff</span><br></pre></td></tr></table></figure>
+<p>首先，按照上边所讲的，初始化空闲内存指针，把0x80压进栈里，这是solidity内存布局规定的。在这段时间里，我们内存里什么都没有。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6437f902-7104-4009-8858-230d73a765a8_1066x198.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6437f902-7104-4009-8858-230d73a765a8_1066x198.png"
+alt="img" /></a></p>
+<p>然后我们再按照内存布局把空闲内存指针的地址0x40压栈。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F61258407-3f1c-44ff-a81f-982dc17a174e_1066x256.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F61258407-3f1c-44ff-a81f-982dc17a174e_1066x256.png"
+alt="img" /></a></p>
+<p>最后我们调用MSTORE把栈顶的0x40弹出来，0x40处的值为0x80，把它写入内存。</p>
+<p>现在调用栈空了但是我们需要处理一些内存，这些内存是16进制，每一个字符对应4个比特位。现在我们有了192个16进制字符，也就是96字节(1字节=8位=2个十六进制字符)。</p>
+<p>前边讲过前64字节是solidity布局规定的暂存空间，紧接着的32字节是空闲内存指针，正如下边所表示的这样：(译者注：这个Memory并不是显示MSTORE存进去什么，而是从头到位显示，直到后边全是未分配内存，所以把前边的暂存空间也显示出来了)</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F62ee6b98-6d06-4b91-a12a-45cc86a9ab5c_1066x304.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F62ee6b98-6d06-4b91-a12a-45cc86a9ab5c_1066x304.png"
+alt="img" /></a></p>
+<h3
+id="变量-a-的内存分配和空闲内存指针更新-evm-playground-lines-16-34">变量
+a 的内存分配和空闲内存指针更新 (EVM Playground Lines 16-34)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">//////////////////////////////////////////////////////////////////</span><br><span class="line">// Memory Allocation Varibale “a” &amp; Free Memory Pointer Update ///</span><br><span class="line">//////////////////////////////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// load free memory pointer</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MLOAD</span><br><span class="line"></span><br><span class="line">// duplicate free memory pointer</span><br><span class="line">DUP1</span><br><span class="line">// 0xa0 = 160 in decimal, 32 * 5 = 160 first array is length 5</span><br><span class="line">PUSH1 0xa0</span><br><span class="line">// free memory pointer (0x80) + space for array (0xa0) = new free memory pointer</span><br><span class="line">ADD</span><br><span class="line">// Save this new value 0x120 to the free memory location</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br></pre></td></tr></table></figure>
+<p>剩下的部分，在剩下的部分中，我们将跳过到每个部分的结束状态，并简要地说一下发生了什么。单独的opcode步骤可以在
+<a href="https://www.evm.codes/playground">EVM
+playground</a>里自行探索。下一个分配内存的是“a”
+<code>(bytes32[5])</code>
+，空闲内存指针也更新了。编译器会根据数组大小和元素大小决定分配多大的内存。</p>
+<blockquote>
+<p>牢记内存数组中的元素永远是32字节的倍数(bytes1[]也一样，但是bytes和string不是)。</p>
+</blockquote>
+<p>32字节倍数大小的数组会告诉我们需要分配多少内存。</p>
+<p>那在这里就是5 * 32
+也就是160或者说0xa0。我们可以看到它被压入堆栈并添加到当前空闲内存指针0x80(十进制为128)以获得新的空闲内存指针值。本来空闲内存指针在0x80(十进制128)，加上160后等于288，也就是16进制0x120，已经写到Memory上了。</p>
+<p>调用栈里有变量a的内存起始地址0x80，以后可能会用到，0xffff是一个JuNP地址，跟内存操作无关可以忽略。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fdf90605a-11c5-4d15-a055-b45dc6f93d9f_1066x378.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fdf90605a-11c5-4d15-a055-b45dc6f93d9f_1066x378.png"
+alt="img" /></a></p>
+<h3 id="变量-a-的内存初始化-evm-playground-lines-35-95">变量 a
+的内存初始化 (EVM Playground Lines 35-95)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/////////////////////////////////////////</span><br><span class="line">// Memory Initialisation Varaible “a” ///</span><br><span class="line">/////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// duplicate 0x80</span><br><span class="line">DUP1</span><br><span class="line">// push 0x05 = 5 in decimal (array length)</span><br><span class="line">PUSH1 0x05</span><br><span class="line">// Swap the top 2 items on the stack in this case 0x05 and 0x80</span><br><span class="line">SWAP1</span><br><span class="line">// push 0x20 = 32 in decimal (array item size)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// Duplicate the 3rd item on the stack in this case 0x05 to the top of the stack</span><br><span class="line">DUP3</span><br><span class="line">// 0x05 * 0x20 = 5 * 32 in decmial = 160 on top of the stack (size of array in bytes)</span><br><span class="line">MUL</span><br><span class="line">// Duplicate 0xa0 = 160 in decimal</span><br><span class="line">DUP1</span><br><span class="line">// Returns size of calldata in bytes currently just function signature = 0x04 or 4 in decmial</span><br><span class="line">CALLDATASIZE</span><br><span class="line">// duplicate 4th item on stack (0x80)</span><br><span class="line">DUP4</span><br><span class="line">// 0x80 (byte offset in the memory where the result will be copied.), 0x04 (byte offset in the calldata to copy.), 0xa0 (byte size to copy.)</span><br><span class="line"></span><br><span class="line">// this offsets the 4 bytes in our call data with a size of 0xa0 which yeild a 160 bit set of 0&#x27;s to be stored at the free memory pointer location</span><br><span class="line"></span><br><span class="line">// this effectively initialises our array in memory </span><br><span class="line">CALLDATACOPY</span><br><span class="line"></span><br><span class="line">// The remaining lines in this section manipulate the stack to ensure we have the memory location of variable &quot;a&quot; and removes any items that are no longer needed</span><br><span class="line"></span><br><span class="line">// duplicate 0xa0</span><br><span class="line">DUP1</span><br><span class="line">// duplicate 0x80</span><br><span class="line">DUP3</span><br><span class="line">// new free memory pointer as before</span><br><span class="line">ADD</span><br><span class="line">// swap 1st (0x120) item on the stack and 3rd (0x80)</span><br><span class="line">SWAP2</span><br><span class="line">// pop top item off stack (0x80)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0xa0)</span><br><span class="line">POP</span><br><span class="line">// Swap top 2 items 0x120 &amp; 0x05</span><br><span class="line">SWAP1</span><br><span class="line">// pop top item off stack (0x05)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x120)</span><br><span class="line">POP</span><br><span class="line">// swap top 2 items 0x80 &amp; 0xb6 (jump location)</span><br><span class="line">SWAP1</span><br><span class="line">// simulating a JUMP remove the top item off stack with POP</span><br><span class="line">POP</span><br><span class="line"></span><br><span class="line">// Simulated jump location</span><br><span class="line">PUSH2 0xffff</span><br><span class="line">// Simulated jump location</span><br><span class="line">PUSH2 0xffff</span><br><span class="line">// simulating a JUMP, remove the top item off stack with POP</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
+<p>现在内存已经被分配了，空闲内存指针也更新了，我们需要初始化变量a的内存空间。变量只是声明却没被赋值，会被初始化为0。</p>
+<p>为此EVM使用CALLDATACOPY，有三个参数：</p>
+<ul>
+<li>memoryOffset (数据拷贝的目标地址)</li>
+<li>calldataOffset (待拷贝数据在calldata里的偏移量)</li>
+<li>size (需要复制的大小)</li>
+</ul>
+<p>在这个例子里，memoryOffset是变量 a
+的内存位置0x80。calldataOffset是待复制数据在calldata中的起点，因为我们反正不想复制任何calldata，就用0值初始化。最后size就是0xa0(十进制160)。</p>
+<p>我们可以看到内存已经扩展到288字节了，调用栈又拿到了a的内存位置，还有一个无关痛痒的JUMP地址。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F77921922-6699-4ef7-a248-5b96667ac1cc_1066x548.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F77921922-6699-4ef7-a248-5b96667ac1cc_1066x548.png"
+alt="img" /></a></p>
+<h3
+id="变量-b-的内存分配和空闲内存指针更新-evm-playground-lines-96-112">变量
+b 的内存分配和空闲内存指针更新 (EVM Playground Lines 96-112)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/////////////////////////////////////////////////////////////////</span><br><span class="line">// Memory Allocation Varibale “b” &amp; Free Memory Pointer Update //</span><br><span class="line">/////////////////////////////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// free memory pointer load in </span><br><span class="line">PUSH1 0x40</span><br><span class="line">MLOAD</span><br><span class="line">// duplicate free memory pointer (0x120)</span><br><span class="line">DUP1</span><br><span class="line">// 0x40 = 64 in decimal, 32 * 2 = 64 second array is length 2</span><br><span class="line">PUSH1 0x40</span><br><span class="line">// free memory pointer (0x120) + space for array (0x40) = new free memory pointer</span><br><span class="line">ADD</span><br><span class="line">// save new free memory pointer value at free memory location 0x40</span><br><span class="line">PUSH1 0x40</span><br><span class="line">MSTORE</span><br></pre></td></tr></table></figure>
+<p>和 a
+一样，对<code>“bytes32[2] memory b”</code>也要做内存申请和更新空闲内存指针。空闲内存指针更新到0x160(即十进制的352
+= 288 + 2 * 32)。内存里显示空白内存指针已更新，栈上也有了变量 b
+的内存地址0x120。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6d38d4d0-f02f-4f85-a16e-11a3687ae095_1066x610.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F6d38d4d0-f02f-4f85-a16e-11a3687ae095_1066x610.png"
+alt="img" /></a></p>
+<h3 id="变量-b-的内存初始化-evm-playground-lines-113-162">变量 b
+的内存初始化 (EVM Playground Lines 113-162)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">////////////////////////////////////////</span><br><span class="line">// Memory Initialisation Variable “b” //</span><br><span class="line">////////////////////////////////////////</span><br><span class="line"></span><br><span class="line">// duplicate 0x120 (memory start location for variable &quot;b&quot;)</span><br><span class="line">DUP1</span><br><span class="line">// 0x02 = 2 in decimal = array length</span><br><span class="line">PUSH1 0x02</span><br><span class="line">// swap top 2 items 0x02 &amp; 0x120</span><br><span class="line">SWAP1</span><br><span class="line">// 0x20 = 32 in decimal (array item size in bytes)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// duplicate 3rd item on the stack 0x02</span><br><span class="line">DUP3</span><br><span class="line">// 0x02 * 0x20 = 0x40 = 64 (amount of bytes in memory to initialise)</span><br><span class="line">MUL</span><br><span class="line">// duplicate 0x40 (free memory pointer location)</span><br><span class="line">DUP1</span><br><span class="line">// same as before 4 bytes for function signature 0x04</span><br><span class="line">CALLDATASIZE</span><br><span class="line">// duplicate 4th item on the stack = 0x120</span><br><span class="line">DUP4</span><br><span class="line">// 0x120 (byte offset in the memory where the result will be copied.), 0x04 (byte offset in the calldata to copy.), 0x40 (byte size to copy.)</span><br><span class="line">CALLDATACOPY</span><br><span class="line"></span><br><span class="line">// The remaining lines in this section manipulate the stack to ensure we have the memory location of variable &quot;a&quot; and removes any items that are no longer needed</span><br><span class="line"></span><br><span class="line">//duplicate the top of the stack 0x40</span><br><span class="line">DUP1</span><br><span class="line">// duplicate 3rd item on the stack 0x120</span><br><span class="line">DUP3</span><br><span class="line">// add together yields free memory pointer value</span><br><span class="line">ADD</span><br><span class="line">// swap 0x160 &amp; 0x120</span><br><span class="line">SWAP2</span><br><span class="line">// pop top item off stack (0x120)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x40)</span><br><span class="line">POP</span><br><span class="line">// swap 0x160 &amp; 0x02</span><br><span class="line">SWAP1</span><br><span class="line">// pop top item off stack (0x02)</span><br><span class="line">POP</span><br><span class="line">// pop top item off stack (0x160)</span><br><span class="line">POP</span><br><span class="line">// jump location to top of the stack 0xbe</span><br><span class="line">SWAP1</span><br><span class="line">// simulate jump pop jump location off stack</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
+<p>和变量 a
+的初始化一样，现在内存已经扩展到352字节，栈里保存着两个变量的内存地址。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff45435da-8528-4e99-8a43-bab75decbf06_1066x630.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Ff45435da-8528-4e99-8a43-bab75decbf06_1066x630.png"
+alt="img" /></a></p>
+<h3 id="b0赋值-evm-playground-lines-163-207">b[0]赋值 (EVM Playground
+Lines 163-207)</h3>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">//////////////////////////</span><br><span class="line">// Assign Value to b[0] //</span><br><span class="line">//////////////////////////</span><br><span class="line"></span><br><span class="line">// push 0x01, value to add b[0]</span><br><span class="line">PUSH1 0x01</span><br><span class="line">// push 0x00</span><br><span class="line">PUSH1 0x00</span><br><span class="line">// left shift operation no shift, first input is 0 </span><br><span class="line">SHL</span><br><span class="line">// duplicate 2nd item on stack (0x120)</span><br><span class="line">DUP2</span><br><span class="line">// push 0x00 = [0] where in the array should this item go</span><br><span class="line">PUSH1 0x00</span><br><span class="line">// push 0x20 = 64 bytes the length of the array </span><br><span class="line">PUSH1 0x02</span><br><span class="line">// duplicate 2nd item on stack (0x00)</span><br><span class="line">DUP2</span><br><span class="line">// 0x00 &lt; 0x20 =  true = 0x01 (check the user is not trying to store a value at a location that doesn&#x27;t exist in the array)</span><br><span class="line">LT</span><br><span class="line">// jump location</span><br><span class="line">PUSH2 0x00d7</span><br><span class="line">// 2 POPs since this is a JUMPI (checking if LT returned true or false)</span><br><span class="line">// simulate JUMPI </span><br><span class="line">POP</span><br><span class="line">// simulate JUMPI </span><br><span class="line">POP</span><br><span class="line"></span><br><span class="line">// push 0x20 (32 bytes aray item size)</span><br><span class="line">PUSH1 0x20</span><br><span class="line">// 0x20 * 0x00 = 0x00 = 0 in decimal (array item size * index to determine byte offset)</span><br><span class="line">MUL</span><br><span class="line">// 0x00 + 0x120</span><br><span class="line">ADD</span><br><span class="line">// duplicate 2nd on stack 0x01 (value for b[0])</span><br><span class="line">DUP2</span><br><span class="line">// duplicate 2nd on stack 0x120 (memory location for b[])</span><br><span class="line">DUP2</span><br><span class="line">// store 0x01 at memory location 0x120</span><br><span class="line">MSTORE</span><br><span class="line">// clean up stack</span><br><span class="line">POP</span><br><span class="line">POP</span><br><span class="line">POP</span><br><span class="line">POP</span><br></pre></td></tr></table></figure>
+<p>最后一步我们需要给数组 b 的索引0处赋值，代码显示b[0] =
+1。那么0x01压栈，紧接着一个左移opcode，但是参数是0，相当于没移。</p>
+<p>接下来数组索引0也就是0x00会被压入栈中，然后检查这个值是否比数组长度0x02小，如果不是的话会跳到异常处理的部分。MUL和ADD可以根据数组的索引算出写入内存的位置，一个元素32，索引为0，则在0x00的偏移量开写。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0x20 (32 in decimal) * 0x00 (0 in decimal) = 0x00</span><br></pre></td></tr></table></figure>
+<p>偏移量加上起始位置，最终算出来该值应该在0x120被写入。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">0x00 + 0x120 = 0x120 (288 in decimal)</span><br></pre></td></tr></table></figure>
+<p>最后，我们把0x01写进0x120。</p>
+<p>下图展示了这个函数执行完成后的状态，栈被弹空了。</p>
+<p><strong><em>实际上在用remix中调用栈上还是会有一些条目，一个跳转地址和函数签名，但是与内存操作无关，就被EVM省略了</em></strong></p>
+<p>我们的内存被更新成了b[0]=1，在倒数第三行。你也可以验证一下数据位置是否正确，b[0]应该在0x120
+- 0x13f (289-320字节)。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fa5516282-632f-4af3-8e0f-40b07497a9d7_1066x578.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fa5516282-632f-4af3-8e0f-40b07497a9d7_1066x578.png"
+alt="img" /></a></p>
+<p>成了！这里信息量很大但我们现在理解已经很深刻了，下次写代码的时候也会有不小的帮助！以前挨行跑opcode的时候经常看见内存不断弹出0x40，现在知道为什么了。</p>
+<p>这个系列的下一篇，我们会<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?s=r">揭开存储插槽的神秘面纱</a>。</p>
+]]></content>
+      <categories>
+        <category>以太坊</category>
+      </categories>
+      <tags>
+        <tag>ethereum</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>入门Defi第一步，初识DEX,AMM与LP token</title>
+    <url>/2022/06/13/Intro-DEX-AMM-LP-Token/</url>
+    <content><![CDATA[<h2 id="dex是什么">DEX是什么？</h2>
+<p>​ DEX(Decentralized
+Exchange)，即去中心化交易所，不依赖券商、银行等金融机构提供金融工具，而是利用区块链上的智能合约就可以提供交易服务的交易所。例如Uniswap，Curve，Pancake等等。</p>
+<h2 id="dex与传统交易所">DEX与传统交易所</h2>
+<p>​
+DEX和传统交易所的区别并不只在于数据存储的方式和所有权不同，在交易方式和原理上也有着本质的区别。我们以最常见的DEX框架即AMM模型与传统交易所挂单模型对比：</p>
+<h3 id="两种交易所订单簿模型的区别">两种交易所订单簿模型的区别：</h3>
+<p>中心化交易所：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.18-1024x887.png" alt="img" style="zoom:30%;" />DEX：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.24-1024x500.png" alt="img" style="zoom:33%;" />
+中心化交易所的卖方在交易所挂单，买方通过交易所自动撮合下单购买。
+DEX的不存在买方和卖方的差异，其本质也不是购兑换对方的资产，而是直接从流动性资产池中换取需要的资产。
+<small>流动性资金池(liquidity
+pools)：用户交易使用的资产池，其中的资金由用户提供，提供资金的行为被称为提供流动性(add
+liquidity)。为了保证交易稳定、流动性充足，提供流动性的用户(liquidity
+provider)可以从每笔交易的手续费里提取分成作为奖励。</small></p>
+<h3 id="两种方案的优劣比较">两种方案的优劣比较：</h3>
+<table>
+<thead>
+<tr class="header">
+<th>中心化交易所</th>
+<th>DEX</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>审查身份</td>
+<td>不审查身份</td>
+</tr>
+<tr class="even">
+<td>手续费只存在于执行交易时</td>
+<td>每一步操作都需要手续费</td>
+</tr>
+<tr class="odd">
+<td>数据中心化，放在服务器</td>
+<td>数据去中心化，放在区块链</td>
+</tr>
+<tr class="even">
+<td>交易迅速</td>
+<td>交易缓慢</td>
+</tr>
+<tr class="odd">
+<td>巨鲸操盘，交易所黑幕</td>
+<td>套利机器人日夜巡逻</td>
+</tr>
+</tbody>
+</table>
+<p>​
+<small>存在DEX像0x协议这样使用零知识证明原理，实现“链上+链下”结合的方式实现挂单模型，在下文中DEX特指使用AMM的去中心化交易所</small></p>
+<h2 id="amm和lp-token是什么">AMM和LP token是什么？</h2>
+<h3 id="amm">AMM:</h3>
+<p>​ AMM即Automated Market
+Maker，自动化做市商。AMM应用在DEX中，使得买方和卖方之间不需要任何信任关系以及第三方就可以安全完成交易。AMM用户的买/卖本质上是在对相应资产的流动性资金池做兑换，而非买卖双方的动作。所以AMM天生适合去中心化交易所使用，只要资金池和定价模式完全依托去中心化平台，就没有任何单独实体可以操纵这个系统，同时每个人都可以在这个基础上建立新的应用。</p>
+<h3 id="lp-token">LP token:</h3>
+<p>​ LP token即(Liquidity Provider Token)，对于AMM来说，x -
+y两种资产的兑换需要一个x - y
+的资金池，而x，y两种资产由用户提供。用户把x和y资产质押进流动性以获取流动性挖矿(yield
+farming )奖励，而质押的凭证就是AMM给流动性提供者签发的一种新代币，称为LP
+token。 ​ 在DeFi飞速发展的过程中，DeFi的术语也在不断。很多情况下LP
+token具体叫什么是随着项目变化的。比如在Balancer中，通常被称为BPT或者pools
+tokens；在Uniswap里被称为liquidity tokens或者pool
+tokens，在Curve中被称为LP token。</p>
+<h2 id="amm的原理">AMM的原理</h2>
+<p>​
+AMM发展至今已经落地在不少应用中，虽然具体实现方法和应用场景略有差别，但很多以简单模型为基础改进，本节将以其代表项目UniswapV2为例讲解。各种改进算法将不做讨论
+AMM实现功能靠以下两个核心功能：</p>
+<h3 id="swaps">Swaps:</h3>
+<p>​ AMM的token交换基于流动性资金池和恒定乘积公式算法：<span
+class="math inline">\(x \times y = k\)</span>，即交易发生在 （卖出资产-
+买入资产）交易对的流动性资金池中，交易价格由恒定乘积公式决定。
+x，y为资金池中两种资产的量：
+<img src="https://lh3.googleusercontent.com/DlgPwa6IlYeRgPkAPdwHPY7P0UCGMSiiESzvhCpUUSFuJ0HhFWG3rV1FSxEb_RFyV1JfdBQ1MUjVkzO8yDmJQXf-O0Ym0UWj-CM5xla9hARaA0kY6D6tSDhsYVhVkhbDrOj2-WHv" alt="img" style="zoom:50%;" /></p>
+<p>​ 例如在一个<span class="math inline">\(x = 200\)</span>, <span
+class="math inline">\(y =
+300\)</span>的资金池内想用100个y来兑换x，那么有<span
+class="math inline">\((y+100)\times (x- \delta x) = x \times
+y\)</span>，可解兑换出50个x资产。一个池子内，x越少，就可以用x换取更多的y，反之亦然，套利者会自发将两者价格与全链同步，这就是swap的基本原理。
+​
+那么K值是否能够改变呢？答案是肯定的，因为手续费和流动性的原因，几乎每一笔交易成功实际发生后，k都会改变。所谓的固定乘积，是交易发生前计算价格的方法。</p>
+<h3 id="liquidity-pools">Liquidity Pools:</h3>
+<p>​ AMM的用户不直接与另一个用户发生交易，他们的交易要通过liquidity
+pools实现，而且因为在AMM的恒定乘积公式算法中，当流动性池内资金量少时，很容易出现x，y有一个非常小导致价格离谱的情况。
+​流动性资金池由用户质押资产提供，用户质押资产进入liquidity
+pools，然后获得质押凭证LP
+token，而提供流动性的用户也会获得手续费收益，即LP
+token分红和对应交易所的治理代币。用户也可以使用LP
+token赎回其质押的资产，被称为移除流动性(remove liquidity)。</p>
+<h2 id="流动性挖矿与lp-tokens">流动性挖矿与LP Tokens</h2>
+<p>​ LP Tokens的一个很引人注目的应用领域就是流动性挖矿(Yield
+Farming)，将他们两个结合起来，是一种向多个不同合约组合操作以达到收益最大化的挖矿方式，下面举一个Curve中的例子：</p>
+<ol type="1">
+<li>向Curve 的liquidity pool质押DAI</li>
+<li>获得LP tokens</li>
+<li>将LP tokens质押进Curve的质押池</li>
+<li>获得Curve利息</li>
+</ol>
+<h2 id="引用">引用：</h2>
+<p><a
+href="https://fintechruminations.com/2021/07/09/uniswap-and-the-amm-model/">UNISWAP
+AND THE AMM MODEL</a> <a
+href="https://www.gemini.com/cryptopedia/liquidity-provider-amm-tokens">How
+Liquidity Provider (LP) Tokens Work</a></p>
+]]></content>
+      <categories>
+        <category>以太坊</category>
+      </categories>
+      <tags>
+        <tag>DeFi</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>深入理解EVM - Part 4 - Geth中存储区的实现</title>
     <url>/2022/06/25/Digging-Deep-EVM-Part4/</url>
     <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-5a5?s=r</p>
@@ -1083,373 +1021,6 @@ href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a7
       </categories>
       <tags>
         <tag>ethereum</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>深入理解EVM - Part 5 - 调用/委托调用的原理与实现</title>
-    <url>/2022/06/30/Digging-Deep-EVM-Part5/</url>
-    <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-a5f
-译者：<a href="alvan.coffee">Alvan's Blog</a></p>
-<h1 id="深入理解evm---part-5---调用委托调用">深入理解EVM - Part 5 -
-调用/委托调用</h1>
-<p>今天我们详细解读一下 CALL 和 DELEGATECALL 两个操作，如果没看过<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第二篇</a>，<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第三篇</a>
-和<a
-href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-5a5?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第四篇</a>的话，建议作为前置知识读一下。</p>
-<p>我们将从solidity，EVM 和 Geth
-三个层面解读这两个opcode，让你对它们有一个全面的认识。然而在深入理解他们之前，我们先确认一下合约执行上下文的概念：</p>
-<h3 id="执行上下文">执行上下文</h3>
-<p><em>当EVM运行合约时，会创造一个<a
-href="https://www.evm.codes/about">上下文</a>，它包含以下几个部分：</em></p>
-<ul>
-<li>Code
-<ul>
-<li>存储在链上的合约的不可变代码。</li>
-</ul></li>
-<li>Call Stack
-<ul>
-<li>前文讲过的合约的调用栈，EVM运行合约时会初始化一个空的。</li>
-</ul></li>
-<li>Memory
-<ul>
-<li>合约的内存，EVM运行合约时会初始化一个空的。</li>
-</ul></li>
-<li>Storage
-<ul>
-<li>存储区在执行过程中持久化，链上存储，根据合约地址和插槽寻址。</li>
-</ul></li>
-<li>The Call Data
-<ul>
-<li>交易的传入数据</li>
-</ul></li>
-<li>The Return Data
-<ul>
-<li>合约调用的返回数据</li>
-</ul></li>
-</ul>
-<p>在阅读下面内容时，时刻记着这几个点。我们先从<a
-href="https://www.youtube.com/watch?v=uawCDnxFJ-0">Smart Contract
-Programmer</a>的DELEGATECALL使用用例开始讲：</p>
-<h3 id="solidity-样例">Solidity 样例</h3>
-<p>下图是同一个合约中的两个调用，一个使用了DELEGATECALL，另一个使用了CALL。现在我们看一下他们之间的区别。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fbd68e45d-6238-483a-bf8f-393db30ac39c_2650x1572.png"><img
-src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fbd68e45d-6238-483a-bf8f-393db30ac39c_2650x1572.png"
-alt="img" /></a></p>
-<p>下边是这次交互的一些信息(如果你在remix里自己执行的话，会是不一样的数据)：</p>
-<p>我们有两个合约，即 Contract A 和 Contract B 还有一个 EOA：</p>
-<ul>
-<li>EOA 地址 = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4</li>
-<li>Contract A 地址 = 0x7b96aF9Bd211cBf6BA5b0dd53aa61Dc5806b6AcE</li>
-<li>Contract B 地址 = 0x3328358128832A260C76A4141e19E2A943CD4B6D</li>
-</ul>
-<p>现在把 Contract B 的地址和一个uint值 12以及 1000000000000000000 Wei
-传入，调用 Contract A 里的两个方法， setVarsDelegateCall 和
-setVarsCall。</p>
-<p><strong><em>Delegate Call</em></strong></p>
-<ol type="1">
-<li>一个 EOA 地址把 Contract B 的地址和一个uint值 12以及
-1000000000000000000 Wei 传入，调用Contract
-A的setVarsDelegateCall，这次是委托调用Contract
-B执行setVars(uint256)，参数是12。</li>
-<li>委托调用运行 Contract B 的 setVars(uint256) 但是更新的是 Contract A
-的存储区，它运行时的存储区，msg.sender 和msg.value
-也都和父调用一样。</li>
-<li>Contract A的存储区写入数据：num=12，sender = EOA Address以及value =
-1000000000000000000。尽管Contract A
-调用的setVars(uint256)不带value，</li>
-</ol>
-<p>执行完这个方法之后我们检查Contract A 和Contract B的num， sender 和
-value状态。我们可以看到Contract B没有被初始化，都设置在Contract
-A里了。</p>
-<p><strong><em>Call</em></strong></p>
-<ol type="1">
-<li>一个 EOA 地址把 Contract B 的地址和一个uint值 12以及
-1000000000000000000 Wei 传入，调用 Contract A
-的setVarsCall，这次是调用Contract B执行setVars(uint256)，参数是12。</li>
-<li>调用运行 Contract B 的setVars(uint256)
-，不改变(本合约的)存储区，msg.sender,和msg.value</li>
-<li>Contract B的存储区写入数据：num=12，sender = Contract A Address
-以及value = 0。(1000000000000000000 Wei被传进了父调用setVarsCall。)</li>
-</ol>
-<p>执行完这个方法之后我们检查Contract A 和Contract B的num， sender 和
-value状态。我们可以看到Contract A没有被初始化，都设置在Contract
-B里了。</p>
-<p>“委托调用”就是允许你从别的合约里复制一个方法粘贴到你的合约里，运行起来就行在你的合约里执行的一样，使用本合约的存储区，msg.sender
-和
-msg.value。而“调用”是进入到另一个合约去执行方法，相当于发了一笔交易，有其自己的value值和sender(也就是调用call的合约)。</p>
-<h3 id="delegate-call-storage-layout委托调用与内存布局">Delegate Call
-&amp; Storage Layout委托调用与内存布局</h3>
-<p>在上述例子里，你肯呢个注意到Contract B 第5行的注释<em>“NOTE: storage
-layout must be the same as contract A”</em>。</p>
-<p>合约里的每一个函数都会经过编译成为一个静态的字节码。当我们理解solidity变量的时候，是看见num，sender和value去理解的。但是字节码不知道这些，它只认存储插槽，而声明变量的时候就把插槽定下来了。</p>
-<p>Contract B 的 setVars(uint256) 函数里，“num = _num”就是说要把 _num
-存进插槽0。当我们看一个DELEGATECALL的时候不要去想num → num，sender →
-sender的映射，因为在字节码的层面不是这样的，我们需要认识到这是slot 0 →
-slot 0, slot 1 → slot 1的映射。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fcf64c77b-f60f-4720-96bb-575dabef8917_1006x306.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fcf64c77b-f60f-4720-96bb-575dabef8917_1006x306.png"
-alt="img" /></a></p>
-<p>试想如果我们改变了声明变量的顺序会怎样。那么他们的插槽位置会改变，同时setVars(uint256)
-的字节码也跟着变了。如果我们把 Contract B 的6行和8行互换位置，先声明
-value 后声明 num 。那就意味着11行的“num = _num”意味着把
-_num存进插槽2里，13行的“value = msg.value”意味着把msg.value
-存进插槽0。这就用意味着两合约中，我们变量之间的映射和插槽之间的映射不匹配了</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f24b3ce-a2ed-4bbe-b87d-6d36b9148640_1006x306.png"><img
-src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f24b3ce-a2ed-4bbe-b87d-6d36b9148640_1006x306.png"
-alt="img" /></a></p>
-<p>在这种情况下，当我们运行 DELEGATECALL
-时，num变量会被存在插槽2，而这里在 Contract A 中映射到 value
-变量。反过来也是一样的，两个变量就会存储进预想之外的地方。这就是DELEGATECALL比较危险的原因之一。我们意外地
-value 值把 num 覆盖了，用 num 值把 value
-覆盖了。但是黑客可不会意外，他们会有目的地攻击。</p>
-<p>试想我们知道一个开放 delegatecall 的合约，我们知道那个合约存储
-owner的插槽。现在我们可以做一个相同布局的合约，然后写一个更新owner的方法，这就意味着我们可以通过委托调用这个更新方法来改变该合约的owner。</p>
-<p>如果你对这个黑客攻击感兴趣的话可以在这里深入了解一下：</p>
-<ul>
-<li><a
-href="https://ethernaut.openzeppelin.com/level/0x9451961b7Aea1Df57bc20CC68D72f662241b5493">Ethernaut
-Level 6 - Delegation</a></li>
-<li><a
-href="https://ethernaut.openzeppelin.com/level/0x97E982a15FbB1C28F6B8ee971BEc15C78b3d263F">Ethernaut
-Level 16 - Preservation</a></li>
-</ul>
-<p>下面看一看opcode层面</p>
-<h2 id="opcodes">Opcodes</h2>
-<p>我们现在知道DELEGATECALL怎么工作了，那么深入一下，看看DELEGATECALL和CALL的操作码。</p>
-<p>对于DELEGATECALL我们有以下输入变量</p>
-<ul>
-<li><code>gas</code>: 执行的gas费</li>
-<li><code>address</code>: 执行上下文的account</li>
-<li><code>argsOffset</code>: 输入数据(calldata)的偏移量</li>
-<li><code>argsSize</code>: calldata的大小</li>
-<li><code>retOffset</code>: 输出数据(returndata)的偏移量</li>
-<li><code>retSize</code>: returndata的大小</li>
-</ul>
-<p>CALL比起上边的只多一个value，其它的都一样</p>
-<ul>
-<li><code>value</code>: 发送给account的以太币(CALL only)</li>
-</ul>
-<p>委托调用不需要value输入，它从父调用继承。我们的执行上下文有和父调用一样的存储区，msg.sender
-和 msg.value。</p>
-<p>他们都是有一个返回值布尔值"success"，为0则为执行失败，反之则为1。</p>
-<blockquote>
-<p><em>如果调用位置没有合约或者没有代码，Delegatecall会返回true。这会出现bug，因为它没执行，我们是希望返回False的</em></p>
-</blockquote>
-<h3
-id="delegatecall-opcode-inspection-with-remix利用remix检验delegatecall">DELEGATECALL
-Opcode Inspection With Remix利用Remix检验DELEGATECALL</h3>
-<p>下边是Remix中调用DELEGATECALL操作码的截图。对应Solidity代码的24-26行。</p>
-<p>我们可以看到栈和内存的条目以及它们是怎么传进DELEGATECALL的。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F39945796-94b6-4d6b-8bf6-52b29ac22559_3404x1334.png"><img
-src="https://substackcdn.com/image/fetch/w_5760,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F39945796-94b6-4d6b-8bf6-52b29ac22559_3404x1334.png"
-alt="img" /></a></p>
-<p>我们按照这条路线理解：opcode → stack → memory → calldata</p>
-<ol type="1">
-<li>Solidity代码的24行，使用了delegatecall 调用 Contract B 的
-setVars(unit256)，调用了DELEGATECALL操作码。</li>
-<li>DELEGATECALL从栈上拿6个输入：
-<ol type="1">
-<li>Gas = 0x45eb</li>
-<li>Address = 0x3328358128832A260C76A4141e19E2A943CD4B6D (Address for
-Contract B)</li>
-<li>ArgsOffset = 0xc4</li>
-<li>ArgsSize = 0x24</li>
-<li>RetOffset = 0xc4</li>
-<li>RetSize = 0x00</li>
-</ol></li>
-<li>注意到 argsOffset 和 argsSize 两个代表了传入 Contract B 的
-calldata。这两个变量让我们从内存位置0xc4开始，复制后边的 0x24
-(十进制36)作为calldata。</li>
-<li>我们因此拿到了0x6466414b000000000000000000000000000000000000000000000000000000000000000c，6466414b是setVars(uint256)
-的函数签名，而000000000000000000000000000000000000000000000000000000000000000c是我们传入的数据
-12。</li>
-<li>这对应了Solidity代码的25行，abi.encodeWithSignature("setVars(uint256)",
-_num)。</li>
-</ol>
-<p>因为setVars(uint256)不返回任何值，所以retSize置0。</p>
-<p>如果有返回值的话，就是存在retOffset以后的retOffset以内。这应该让你对这个操作码的底层逻辑了解的深一点，也会和Solidity联系起来了。</p>
-<p>现在我们看一下Geth里的实现。</p>
-<h3 id="geth实现">Geth实现</h3>
-<p>我们看一下Geth里写DELEGATECALL的部分。目标是展现DELEGATECALL和CALL在存储的层面的区别，以及是怎么联系上SLOAD的。</p>
-<p>下边的图有点唬人，但是我们拆解开来一步一步做，在结束的时候你就会对DELEGATECALL和CALL有深刻的认识。</p>
-<p><a
-href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F60abd9bd-475f-4694-8bce-aa4c4b43fadd_4102x3874.png"><img
-src="https://substackcdn.com/image/fetch/w_5760,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F60abd9bd-475f-4694-8bce-aa4c4b43fadd_4102x3874.png"
-alt="img" /></a></p>
-<p>We have the DELEGATECALL &amp; CALL opcodes labeled on the left-hand
-side and the SLOAD opcode labeled bottom right. Let’s see how they’re
-connected.</p>
-<ol type="1">
-<li>这图里有两个 [1]
-号截图，分别对应DELEGATECALL和CALL操作码的代码，在<a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go">instructions.go</a>里。我们可以看到从栈里弹出的那几个变量，之后可以看到调用
-interpreter.evm.DeleagteCall和 interpreter.evm.Call
-这两个函数，传进去了栈里的变量，目标地址和现在的合约上下文</li>
-<li>图里也有两个 [2] 号截图，分别对应 evm.DelegateCall 和 evm.Call
-的代码的代码，在 <a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/evm.go">evm.go</a>里边。中间省略了一些校验和其它函数，我们主要关注执行调用NewContract方法新建上下文的代码，其它的可以忽略掉。</li>
-<li>图里有两个 [3] 号截图。里边主要是evm.DelegateCall和evm.Call
-调用NewContract。它们非常相似，以下两点除外：
-<ol type="1">
-<li>DelegateCall的value参数设为nil，它从之前的上下文继承，所以不写进这个参数里。</li>
-<li>NewContract的第二个参数也不一样。evm.DelegateCall 里caller.Address(
-) 用的是Contract A的地址。evm.Call
-里addrCopy是复制的toAddr，也就是Contract
-B的地址，这一点区别非常大。他俩都是AccountRef类型，这个很重要，后边会提到。</li>
-</ol></li>
-<li>DelegateCall’s的NewContract会返回一个Contract结构体。它又调用了AsDelegate()方法(在<a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)(见图[4])，把msg.sender
-和 msg.value设置成了父调用的样子，也就是EOA地址和1000000000000000000
-Wei。这在Call的实现里是没有的。</li>
-<li>evm.DelegateCall 和 evm.Call 都执行NewContract方法(在<a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)，NewContract方法的第二个入参是“object
-ContractRef”，对应着第三点里提到的AccountRef。</li>
-<li>“object
-ContractRef”和一些其他值被用来初始化合约，对应Contract结构体里的“self”</li>
-<li>Contract结构体( 在<a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)有一个“self”字段，你可以看到也有其他的字段与我们之前提到的执行上下文有关。</li>
-<li>现在我们跳跃一下，去看看Geth里SLOAD(在<a
-href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go">instructions.go</a>里)的实现，它在调用GetState时用的参数就是scope.Contract.Address(
-)。这里的“Contract”就是我们在第7条提到的结构体。</li>
-<li>Contract结构体的Address( ) 返回的是self.Address。</li>
-<li>Self是一个ContractRef类型，ContractRef必然有一个Address( )
-方法。</li>
-<li>ContractRef是一个接口，规定如果一个类型要做ContractRef，那必须有一个返回值类型是common.Address的Address(
-)
-函数。common.Address是一个长度20的字节数组，也就是以太坊地址的长度。</li>
-<li>我们回到第3块看一下evm.DelegateCall和evm.Call
-中AccountRef的区别。我们可以看到AccountRef就是一个有Address( )
-函数的地址，那它也符合ContractRef接口的规则。</li>
-<li>AccountRef 的 Address( ) 函数是把 AccountRef
-转化成common.Address，也就是 evm.DelegateCall 里的 Contract A 地址和
-evm.Call 里的Contract B 地址。这意味着第8部分讲的 SLOAD 会在
-DELEGATECALL 时使用 Contract A 的存储区，在 CALL 时使用 Contract B
-的存储区。</li>
-</ol>
-<p>通过学习Geth的实现你应该对DelegateCall的存储区，
-msg.sender和msg.value的来龙去脉有了深刻了解，对DELEGATECALL也有了一定的认识，很棒！下次再见！</p>
-]]></content>
-      <categories>
-        <category>以太坊</category>
-      </categories>
-      <tags>
-        <tag>ethereum</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>入门Defi第一步，初识DEX,AMM与LP token</title>
-    <url>/2022/06/13/Intro-DEX-AMM-LP-Token/</url>
-    <content><![CDATA[<h2 id="dex是什么">DEX是什么？</h2>
-<p>​ DEX(Decentralized
-Exchange)，即去中心化交易所，不依赖券商、银行等金融机构提供金融工具，而是利用区块链上的智能合约就可以提供交易服务的交易所。例如Uniswap，Curve，Pancake等等。</p>
-<h2 id="dex与传统交易所">DEX与传统交易所</h2>
-<p>​
-DEX和传统交易所的区别并不只在于数据存储的方式和所有权不同，在交易方式和原理上也有着本质的区别。我们以最常见的DEX框架即AMM模型与传统交易所挂单模型对比：</p>
-<h3 id="两种交易所订单簿模型的区别">两种交易所订单簿模型的区别：</h3>
-<p>中心化交易所：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.18-1024x887.png" alt="img" style="zoom:30%;" />DEX：<img src="https://fintechruminations.com/wp-content/uploads/2021/07/Screenshot-2021-07-09-at-17.12.24-1024x500.png" alt="img" style="zoom:33%;" />
-中心化交易所的卖方在交易所挂单，买方通过交易所自动撮合下单购买。
-DEX的不存在买方和卖方的差异，其本质也不是购兑换对方的资产，而是直接从流动性资产池中换取需要的资产。
-<small>流动性资金池(liquidity
-pools)：用户交易使用的资产池，其中的资金由用户提供，提供资金的行为被称为提供流动性(add
-liquidity)。为了保证交易稳定、流动性充足，提供流动性的用户(liquidity
-provider)可以从每笔交易的手续费里提取分成作为奖励。</small></p>
-<h3 id="两种方案的优劣比较">两种方案的优劣比较：</h3>
-<table>
-<thead>
-<tr class="header">
-<th>中心化交易所</th>
-<th>DEX</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>审查身份</td>
-<td>不审查身份</td>
-</tr>
-<tr class="even">
-<td>手续费只存在于执行交易时</td>
-<td>每一步操作都需要手续费</td>
-</tr>
-<tr class="odd">
-<td>数据中心化，放在服务器</td>
-<td>数据去中心化，放在区块链</td>
-</tr>
-<tr class="even">
-<td>交易迅速</td>
-<td>交易缓慢</td>
-</tr>
-<tr class="odd">
-<td>巨鲸操盘，交易所黑幕</td>
-<td>套利机器人日夜巡逻</td>
-</tr>
-</tbody>
-</table>
-<p>​
-<small>存在DEX像0x协议这样使用零知识证明原理，实现“链上+链下”结合的方式实现挂单模型，在下文中DEX特指使用AMM的去中心化交易所</small></p>
-<h2 id="amm和lp-token是什么">AMM和LP token是什么？</h2>
-<h3 id="amm">AMM:</h3>
-<p>​ AMM即Automated Market
-Maker，自动化做市商。AMM应用在DEX中，使得买方和卖方之间不需要任何信任关系以及第三方就可以安全完成交易。AMM用户的买/卖本质上是在对相应资产的流动性资金池做兑换，而非买卖双方的动作。所以AMM天生适合去中心化交易所使用，只要资金池和定价模式完全依托去中心化平台，就没有任何单独实体可以操纵这个系统，同时每个人都可以在这个基础上建立新的应用。</p>
-<h3 id="lp-token">LP token:</h3>
-<p>​ LP token即(Liquidity Provider Token)，对于AMM来说，x -
-y两种资产的兑换需要一个x - y
-的资金池，而x，y两种资产由用户提供。用户把x和y资产质押进流动性以获取流动性挖矿(yield
-farming )奖励，而质押的凭证就是AMM给流动性提供者签发的一种新代币，称为LP
-token。 ​ 在DeFi飞速发展的过程中，DeFi的术语也在不断。很多情况下LP
-token具体叫什么是随着项目变化的。比如在Balancer中，通常被称为BPT或者pools
-tokens；在Uniswap里被称为liquidity tokens或者pool
-tokens，在Curve中被称为LP token。</p>
-<h2 id="amm的原理">AMM的原理</h2>
-<p>​
-AMM发展至今已经落地在不少应用中，虽然具体实现方法和应用场景略有差别，但很多以简单模型为基础改进，本节将以其代表项目UniswapV2为例讲解。各种改进算法将不做讨论
-AMM实现功能靠以下两个核心功能：</p>
-<h3 id="swaps">Swaps:</h3>
-<p>​ AMM的token交换基于流动性资金池和恒定乘积公式算法：<span
-class="math inline">\(x \times y = k\)</span>，即交易发生在 （卖出资产-
-买入资产）交易对的流动性资金池中，交易价格由恒定乘积公式决定。
-x，y为资金池中两种资产的量：
-<img src="https://lh3.googleusercontent.com/DlgPwa6IlYeRgPkAPdwHPY7P0UCGMSiiESzvhCpUUSFuJ0HhFWG3rV1FSxEb_RFyV1JfdBQ1MUjVkzO8yDmJQXf-O0Ym0UWj-CM5xla9hARaA0kY6D6tSDhsYVhVkhbDrOj2-WHv" alt="img" style="zoom:50%;" /></p>
-<p>​ 例如在一个<span class="math inline">\(x = 200\)</span>, <span
-class="math inline">\(y =
-300\)</span>的资金池内想用100个y来兑换x，那么有<span
-class="math inline">\((y+100)\times (x- \delta x) = x \times
-y\)</span>，可解兑换出50个x资产。一个池子内，x越少，就可以用x换取更多的y，反之亦然，套利者会自发将两者价格与全链同步，这就是swap的基本原理。
-​
-那么K值是否能够改变呢？答案是肯定的，因为手续费和流动性的原因，几乎每一笔交易成功实际发生后，k都会改变。所谓的固定乘积，是交易发生前计算价格的方法。</p>
-<h3 id="liquidity-pools">Liquidity Pools:</h3>
-<p>​ AMM的用户不直接与另一个用户发生交易，他们的交易要通过liquidity
-pools实现，而且因为在AMM的恒定乘积公式算法中，当流动性池内资金量少时，很容易出现x，y有一个非常小导致价格离谱的情况。
-​流动性资金池由用户质押资产提供，用户质押资产进入liquidity
-pools，然后获得质押凭证LP
-token，而提供流动性的用户也会获得手续费收益，即LP
-token分红和对应交易所的治理代币。用户也可以使用LP
-token赎回其质押的资产，被称为移除流动性(remove liquidity)。</p>
-<h2 id="流动性挖矿与lp-tokens">流动性挖矿与LP Tokens</h2>
-<p>​ LP Tokens的一个很引人注目的应用领域就是流动性挖矿(Yield
-Farming)，将他们两个结合起来，是一种向多个不同合约组合操作以达到收益最大化的挖矿方式，下面举一个Curve中的例子：</p>
-<ol type="1">
-<li>向Curve 的liquidity pool质押DAI</li>
-<li>获得LP tokens</li>
-<li>将LP tokens质押进Curve的质押池</li>
-<li>获得Curve利息</li>
-</ol>
-<h2 id="引用">引用：</h2>
-<p><a
-href="https://fintechruminations.com/2021/07/09/uniswap-and-the-amm-model/">UNISWAP
-AND THE AMM MODEL</a> <a
-href="https://www.gemini.com/cryptopedia/liquidity-provider-amm-tokens">How
-Liquidity Provider (LP) Tokens Work</a></p>
-]]></content>
-      <categories>
-        <category>以太坊</category>
-      </categories>
-      <tags>
-        <tag>DeFi</tag>
       </tags>
   </entry>
   <entry>
@@ -1750,6 +1321,80 @@ LISTING ADMIN拒绝更改现有oracle，只允许添加。</p>
       </tags>
   </entry>
   <entry>
+    <title>金融特化，现金交易，浅析新公链Aptos与Move语言</title>
+    <url>/2022/08/29/aptos-and-move/</url>
+    <content><![CDATA[<h2 id="前言">前言</h2>
+<p>Aptos 的 AIT3
+注册快结束了，Alvan搞完节点也终于空出时间来整理一个关于Aptos和Move的分享，这篇文章会讲一下Aptos和Move的优势和特性，以及觉得它们中很有意思的地方。</p>
+<h2 id="aptos的前世今生">Aptos的前世今生</h2>
+<p>2019年有一个Libra项目后来改名diem，运营不善后diem项目组秽土转生出了分裂成了两个项目，aptos和sui，他们从diem继承的共同遗产就是move语言。</p>
+<p>这两个是一个专注于高性能高安全,不兼容evm的layer1，pos机制。一个承袭了老项目多一点，一个自由发挥多一点。
+aptos目前还处于测试阶段，根据项目方透露今年万圣节之前可以主网上线。</p>
+<p>目前已经有四十多个项目已经宣布加入aptos生态，钱包和nft市场以及开发者工具之类项目量大管饱，但是目前真正完成并上线测试网并且开源的很少。一方面是由于现在版本迭代太快，不太稳定，另一方面就是很多solidity的团队需要时间去学习使用Move投入生产。</p>
+<h2 id="aptos有哪些特性呢">Aptos有哪些特性呢</h2>
+<p>Aptos其实写的很明白，它和其他传统区块链的最大区别就是高效(存疑)和安全。</p>
+<p>第一点是使用了流水线模式，增强了并行程度，根据开发团队声称tps可以到十万，但是测试网明显没有压榨出最大的效率，究竟能达到什么程度持保留意见，毕竟以太坊升级之后的理想状态也是超过十万的。</p>
+<p>第二点，我觉得这是它与以太坊差异最大的的设计，就像下图所示，</p>
+<figure>
+<img src="aptos分享稿.004.png" alt="aptos分享稿.004" />
+<figcaption aria-hidden="true">aptos分享稿.004</figcaption>
+</figure>
+<p>以太坊的storage，是合约账户拥有的一块存储区，里边每个合约存储着不同人的账户信息，
+aptos里的信息被称为resource资源，存在每一个外部账户的存储区里。
+这有什么区别呢，要实现一个A token的记账，以太坊的做法是在A
+token合约里存一个map，key是账户地址，value是账户余额，要空投币就是在合约内部去找key改value。而aptos的做法是在A
+token合约里声明一个叫coin的resoure，然后把resource发送给用户，这样A
+token就到了用户的存储区。如果对应现实世界的话，一种是记账模式，一种是现金模式。这个之后我们再讲。</p>
+<h2 id="move语言又是何方神圣">Move语言又是何方神圣</h2>
+<p>讲完aptos链本身，现在我们开始看看时薪1200刀的Move语言，它并不是一个新玩意了,Libra(Diem)时期就已经投产的语言，也被Sui和aptos继承了，现在最全的Move文档依然在Diem的网站下边挂着。</p>
+<p>它脱胎于rust,很多设计和概念都有相似。Move声称对solidity的优势是安全高效，实际上rust对Cpp和GC语言的优势也分别是安全和高效,也就会围绕着这两点介绍move的特性。可能会涉及到一些概念没接触过也不要紧，我会简单说明一下，并不会耽误理解。</p>
+<p>首先我们从安全说起，在我们编程的时候肯定会遇到一个重要的问题，如果它不是你编程时遇到的问题，那一定也是面试的时候一定会遇到问题，就是申请和回收内存。</p>
+<p>C++在处理变量或者指针时，需要全程手动，所以C++程序员的心智负担很重，他也不知道哪里出现一个悬垂指针哪里有一个内存泄漏，软件的可靠性就会极度依赖开发者的水平。</p>
+<p>Java和Go使用了GC机制，在运行的时候有一个GC程序监控记录引用情况，在变量失效时清除，这让程序员的日子好过不少，但是意味着一定会造成额外的性能开销。</p>
+<p>那么有没有既不增加开销还能自动管理内存的方案呢？答案是肯定的，Rust或者说Move的
+生命周期+所有权
+是一个用语法规范内存操作的方案，可以把内存安全检测放在编译期解决。</p>
+<p>简单来说像这段rust代码一样</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">fn</span> <span class="title function_">timelife_and_ownership</span>()<span class="punctuation">-&gt;</span><span class="type">String</span>&#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">x</span> :<span class="type">String</span> = <span class="string">&quot;hello aptos&quot;</span>.<span class="title function_ invoke__">to_string</span>();<span class="comment">//x的生命周期开始，开辟内存</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">y</span> :<span class="type">String</span> = <span class="string">&quot;hello move&quot;</span>.<span class="title function_ invoke__">to_string</span>();<span class="comment">//y的生命周期开始，开辟内存</span></span><br><span class="line">    &#125;<span class="comment">//y的生命周期结束，回收内存</span></span><br><span class="line">    <span class="comment">//println!(&quot;&#123;&#125;&quot;,y); error:cannot find value `y` in this scope</span></span><br><span class="line">    x</span><br><span class="line">&#125;<span class="comment">//x的生命周期结束，回收内存</span></span><br></pre></td></tr></table></figure>
+<p>每一个变量有一个作用域，也就是一个大括号代码块。
+当程序运行出代码块时，就把这块里声明的内存清理掉了。这样在编译期就能解决指针乱飞的问题，也不会造成额外开销，同时是把它变得高效的根本原因。</p>
+<p>所有权又是什么呢？
+在rust里，每一个变量都有一个所有者，其他变量想要使用它需要复制或者借用/引用。而move把这个思路用在了处理资源上，资源其实就是我们存储区上的数据，比如我们刚才说的A
+token。</p>
+<p>每一个资源有四个可选ability：Copy，Drop，Store，Key。Copy表示可以被复制，Drop的意思是可以销毁该资源，store表示可以存进全局也就是区块链，key表示该资源可以被检索。</p>
+<p>他们之间也有一定耦合，比如一个拥有key的结构体，它里边的资源肯定是store的，这是不言自明的。使用的时候就是在声明变量的后边加上"has
+copy"，‘has key’。</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">MessageHolder</span> has key &#123;</span><br><span class="line">        message: string::<span class="type">String</span>,</span><br><span class="line">        message_change_events: event::EventHandle&lt;MessageChangeEvent&gt;,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">MessageChangeEvent</span> has drop, store &#123;</span><br><span class="line">        from_message: string::<span class="type">String</span>,</span><br><span class="line">        to_message: string::<span class="type">String</span>,</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>我们完全可以按照写程序的思维去理解它的顶层设计。上文提到了所有权和借用，当一个借用是不可变借用的时候它当然是安全的，如果是可变借用，那必须只有一个，不然这段代码就很难安全(最重要的是不知道什么时候释放)，尤其是在异步程序里。</p>
+<p>在move里可变引用和不可变引用分别是borrow_global 和
+borrow_global_mut</p>
+<p>aptos官方的coin设计里是这样的</p>
+<figure>
+<img src="aptos分享稿.011.png" alt="aptos分享稿.011" />
+<figcaption aria-hidden="true">aptos分享稿.011</figcaption>
+</figure>
+<p>某人持有的资金是存在自己存储区下的一个resource，我们暂且把它称为Coin，实现持有就是把amount放进一个没有copy和drop的资源Coin里，转账的时候是切割/合并Coin资源来实现。这样资源相当于被实体化了，在同一时间里想要有可变的Coin资源只能被一个所有者修改，避免了很多安全问题。跟以太坊的账户转账相比一个是账本模式一种现金模式。感觉有点UTXO的味道。</p>
+<p>标准库代码：</p>
+<p>这是标准coin的transfer函数，可以看到分为两步，发送方withdraw，接收方deposit。</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="comment">/// Transfers `amount` of coins `CoinType` from `from` to `to`.</span></span><br><span class="line">    public entry fun transfer&lt;CoinType&gt;(</span><br><span class="line">        from: &amp;signer,</span><br><span class="line">        to: address,</span><br><span class="line">        amount: <span class="type">u64</span>,</span><br><span class="line">    ) acquires CoinStore &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">coin</span> = withdraw&lt;CoinType&gt;(from, amount);</span><br><span class="line">        <span class="title function_ invoke__">deposit</span>(to, coin);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>withdraw与extract函数，请看注释</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="comment">/// Withdraw specifed `amount` of coin `CoinType` from the signing account.</span></span><br><span class="line">    public fun withdraw&lt;CoinType&gt;(</span><br><span class="line">        account: &amp;signer,</span><br><span class="line">        amount: <span class="type">u64</span>,</span><br><span class="line">    ): Coin&lt;CoinType&gt; acquires CoinStore &#123;</span><br><span class="line">        <span class="keyword">let</span> <span class="variable">account_addr</span> = signer::<span class="title function_ invoke__">address_of</span>(account);</span><br><span class="line">        <span class="built_in">assert!</span>(</span><br><span class="line">            is_account_registered&lt;CoinType&gt;(account_addr),</span><br><span class="line">            error::<span class="title function_ invoke__">not_found</span>(ECOIN_STORE_NOT_PUBLISHED),</span><br><span class="line">        );</span><br><span class="line">        <span class="comment">//先用变量coin_store拿到account_addr中coin资源的所有权</span></span><br><span class="line">        <span class="keyword">let</span> <span class="variable">coin_store</span> = borrow_global_mut&lt;CoinStore&lt;CoinType&gt;&gt;(account_addr);</span><br><span class="line"></span><br><span class="line">        event::emit_event&lt;WithdrawEvent&gt;(</span><br><span class="line">            &amp;<span class="keyword">mut</span> coin_store.withdraw_events,</span><br><span class="line">            WithdrawEvent &#123; amount &#125;,</span><br><span class="line">        );</span><br><span class="line">				<span class="comment">//分割coin，并返回一个coin</span></span><br><span class="line">        <span class="title function_ invoke__">extract</span>(&amp;<span class="keyword">mut</span> coin_store.coin, amount)</span><br><span class="line">    &#125;</span><br><span class="line">    public fun extract&lt;CoinType&gt;(coin: &amp;<span class="keyword">mut</span> Coin&lt;CoinType&gt;, amount: <span class="type">u64</span>): Coin&lt;CoinType&gt; &#123;</span><br><span class="line">        <span class="built_in">assert!</span>(coin.value &gt;= amount, error::<span class="title function_ invoke__">invalid_argument</span>(EINSUFFICIENT_BALANCE));</span><br><span class="line">        <span class="comment">//修改传入coin的值</span></span><br><span class="line">        coin.value = coin.value - amount;</span><br><span class="line">        <span class="comment">//创建一个新coin并返回</span></span><br><span class="line">        Coin &#123; value: amount &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>接收方的deposit就是上述操作的逆操作而已。我们可以在上述代码中看到所有权的流动。</p>
+<p>我们再往下想从这个方面来讲，aptos里就没有了token和CryptoCurrency的高低贵贱之分，在以往以太坊里边eth是一等公民，erc20是二等公民，在aptos里所有的coin理论上都是同等地位，因为他们都是resource，也不用在写合约的时候把e
+th和erc20每一个都写一个分支逻辑了。</p>
+<p>从存储区的角度来说，一切信息存在用户处，合约反而成了一个纯粹的lib，这也使得合约的逻辑和存储天然分离，更有助于智能合约的去中心化。</p>
+<h2 id="结语">结语</h2>
+<p>Aptos的业务模型和Move合约的设计远远比高性能更让人拍案叫绝，在学习的时候忍不住把它们和rust联系起来(因为真的很像)，一点粗浅理解，还望诸君包涵！</p>
+]]></content>
+      <categories>
+        <category>Aptos</category>
+      </categories>
+      <tags>
+        <tag>Move</tag>
+        <tag>Aptos</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>无需合约，在Aptos上发布NFT</title>
     <url>/2022/07/31/aptos-first-nft/</url>
     <content><![CDATA[<p>从前有一个大网红Diana坐拥百万粉丝，她有一天突发奇想，想给每一个粉丝发放一个粉丝牌NFT，那么她应该怎么做呢？第一步，她需要部署一张NFT合约；第二步，铸造100万枚粉丝牌NFT；第三步，将粉丝牌NFT发送给粉丝。先不说天价gas费和Diana小姐会不会写合约，这一套下来等到粉丝全部收到粉丝牌保守估计得有四五天了，Diana很是头疼，怎么办呢。</p>
@@ -1780,8 +1425,8 @@ LISTING ADMIN拒绝更改现有oracle，只允许添加。</p>
         <category>Aptos</category>
       </categories>
       <tags>
-        <tag>Rust</tag>
         <tag>Aptos</tag>
+        <tag>Rust</tag>
       </tags>
   </entry>
   <entry>
@@ -1890,8 +1535,8 @@ api文档：https://fullnode.devnet.aptoslabs.com/spec.html#/</p>
         <category>Aptos</category>
       </categories>
       <tags>
-        <tag>Rust</tag>
         <tag>Aptos</tag>
+        <tag>Rust</tag>
       </tags>
   </entry>
   <entry>
@@ -2177,6 +1822,435 @@ deltaBlock\)</span>，确实和我们预想的一样。</p>
       </categories>
       <tags>
         <tag>Rust</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>深入理解EVM - Part 5 - 调用/委托调用的原理与实现</title>
+    <url>/2022/06/30/Digging-Deep-EVM-Part5/</url>
+    <content><![CDATA[<p>原文链接：https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-a5f
+译者：<a href="alvan.coffee">Alvan's Blog</a></p>
+<h1 id="深入理解evm---part-5---调用委托调用">深入理解EVM - Part 5 -
+调用/委托调用</h1>
+<p>今天我们详细解读一下 CALL 和 DELEGATECALL 两个操作，如果没看过<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-d6b?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第二篇</a>，<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-3ea?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第三篇</a>
+和<a
+href="https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-5a5?utm_source=%2Fprofile%2F80455042-noxx&amp;utm_medium=reader2&amp;s=r">第四篇</a>的话，建议作为前置知识读一下。</p>
+<p>我们将从solidity，EVM 和 Geth
+三个层面解读这两个opcode，让你对它们有一个全面的认识。然而在深入理解他们之前，我们先确认一下合约执行上下文的概念：</p>
+<h3 id="执行上下文">执行上下文</h3>
+<p><em>当EVM运行合约时，会创造一个<a
+href="https://www.evm.codes/about">上下文</a>，它包含以下几个部分：</em></p>
+<ul>
+<li>Code
+<ul>
+<li>存储在链上的合约的不可变代码。</li>
+</ul></li>
+<li>Call Stack
+<ul>
+<li>前文讲过的合约的调用栈，EVM运行合约时会初始化一个空的。</li>
+</ul></li>
+<li>Memory
+<ul>
+<li>合约的内存，EVM运行合约时会初始化一个空的。</li>
+</ul></li>
+<li>Storage
+<ul>
+<li>存储区在执行过程中持久化，链上存储，根据合约地址和插槽寻址。</li>
+</ul></li>
+<li>The Call Data
+<ul>
+<li>交易的传入数据</li>
+</ul></li>
+<li>The Return Data
+<ul>
+<li>合约调用的返回数据</li>
+</ul></li>
+</ul>
+<p>在阅读下面内容时，时刻记着这几个点。我们先从<a
+href="https://www.youtube.com/watch?v=uawCDnxFJ-0">Smart Contract
+Programmer</a>的DELEGATECALL使用用例开始讲：</p>
+<h3 id="solidity-样例">Solidity 样例</h3>
+<p>下图是同一个合约中的两个调用，一个使用了DELEGATECALL，另一个使用了CALL。现在我们看一下他们之间的区别。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fbd68e45d-6238-483a-bf8f-393db30ac39c_2650x1572.png"><img
+src="https://substackcdn.com/image/fetch/w_2400,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fbd68e45d-6238-483a-bf8f-393db30ac39c_2650x1572.png"
+alt="img" /></a></p>
+<p>下边是这次交互的一些信息(如果你在remix里自己执行的话，会是不一样的数据)：</p>
+<p>我们有两个合约，即 Contract A 和 Contract B 还有一个 EOA：</p>
+<ul>
+<li>EOA 地址 = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4</li>
+<li>Contract A 地址 = 0x7b96aF9Bd211cBf6BA5b0dd53aa61Dc5806b6AcE</li>
+<li>Contract B 地址 = 0x3328358128832A260C76A4141e19E2A943CD4B6D</li>
+</ul>
+<p>现在把 Contract B 的地址和一个uint值 12以及 1000000000000000000 Wei
+传入，调用 Contract A 里的两个方法， setVarsDelegateCall 和
+setVarsCall。</p>
+<p><strong><em>Delegate Call</em></strong></p>
+<ol type="1">
+<li>一个 EOA 地址把 Contract B 的地址和一个uint值 12以及
+1000000000000000000 Wei 传入，调用Contract
+A的setVarsDelegateCall，这次是委托调用Contract
+B执行setVars(uint256)，参数是12。</li>
+<li>委托调用运行 Contract B 的 setVars(uint256) 但是更新的是 Contract A
+的存储区，它运行时的存储区，msg.sender 和msg.value
+也都和父调用一样。</li>
+<li>Contract A的存储区写入数据：num=12，sender = EOA Address以及value =
+1000000000000000000。尽管Contract A
+调用的setVars(uint256)不带value，</li>
+</ol>
+<p>执行完这个方法之后我们检查Contract A 和Contract B的num， sender 和
+value状态。我们可以看到Contract B没有被初始化，都设置在Contract
+A里了。</p>
+<p><strong><em>Call</em></strong></p>
+<ol type="1">
+<li>一个 EOA 地址把 Contract B 的地址和一个uint值 12以及
+1000000000000000000 Wei 传入，调用 Contract A
+的setVarsCall，这次是调用Contract B执行setVars(uint256)，参数是12。</li>
+<li>调用运行 Contract B 的setVars(uint256)
+，不改变(本合约的)存储区，msg.sender,和msg.value</li>
+<li>Contract B的存储区写入数据：num=12，sender = Contract A Address
+以及value = 0。(1000000000000000000 Wei被传进了父调用setVarsCall。)</li>
+</ol>
+<p>执行完这个方法之后我们检查Contract A 和Contract B的num， sender 和
+value状态。我们可以看到Contract A没有被初始化，都设置在Contract
+B里了。</p>
+<p>“委托调用”就是允许你从别的合约里复制一个方法粘贴到你的合约里，运行起来就行在你的合约里执行的一样，使用本合约的存储区，msg.sender
+和
+msg.value。而“调用”是进入到另一个合约去执行方法，相当于发了一笔交易，有其自己的value值和sender(也就是调用call的合约)。</p>
+<h3 id="delegate-call-storage-layout委托调用与内存布局">Delegate Call
+&amp; Storage Layout委托调用与内存布局</h3>
+<p>在上述例子里，你肯呢个注意到Contract B 第5行的注释<em>“NOTE: storage
+layout must be the same as contract A”</em>。</p>
+<p>合约里的每一个函数都会经过编译成为一个静态的字节码。当我们理解solidity变量的时候，是看见num，sender和value去理解的。但是字节码不知道这些，它只认存储插槽，而声明变量的时候就把插槽定下来了。</p>
+<p>Contract B 的 setVars(uint256) 函数里，“num = _num”就是说要把 _num
+存进插槽0。当我们看一个DELEGATECALL的时候不要去想num → num，sender →
+sender的映射，因为在字节码的层面不是这样的，我们需要认识到这是slot 0 →
+slot 0, slot 1 → slot 1的映射。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fcf64c77b-f60f-4720-96bb-575dabef8917_1006x306.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2Fcf64c77b-f60f-4720-96bb-575dabef8917_1006x306.png"
+alt="img" /></a></p>
+<p>试想如果我们改变了声明变量的顺序会怎样。那么他们的插槽位置会改变，同时setVars(uint256)
+的字节码也跟着变了。如果我们把 Contract B 的6行和8行互换位置，先声明
+value 后声明 num 。那就意味着11行的“num = _num”意味着把
+_num存进插槽2里，13行的“value = msg.value”意味着把msg.value
+存进插槽0。这就用意味着两合约中，我们变量之间的映射和插槽之间的映射不匹配了</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f24b3ce-a2ed-4bbe-b87d-6d36b9148640_1006x306.png"><img
+src="https://substackcdn.com/image/fetch/w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F0f24b3ce-a2ed-4bbe-b87d-6d36b9148640_1006x306.png"
+alt="img" /></a></p>
+<p>在这种情况下，当我们运行 DELEGATECALL
+时，num变量会被存在插槽2，而这里在 Contract A 中映射到 value
+变量。反过来也是一样的，两个变量就会存储进预想之外的地方。这就是DELEGATECALL比较危险的原因之一。我们意外地
+value 值把 num 覆盖了，用 num 值把 value
+覆盖了。但是黑客可不会意外，他们会有目的地攻击。</p>
+<p>试想我们知道一个开放 delegatecall 的合约，我们知道那个合约存储
+owner的插槽。现在我们可以做一个相同布局的合约，然后写一个更新owner的方法，这就意味着我们可以通过委托调用这个更新方法来改变该合约的owner。</p>
+<p>如果你对这个黑客攻击感兴趣的话可以在这里深入了解一下：</p>
+<ul>
+<li><a
+href="https://ethernaut.openzeppelin.com/level/0x9451961b7Aea1Df57bc20CC68D72f662241b5493">Ethernaut
+Level 6 - Delegation</a></li>
+<li><a
+href="https://ethernaut.openzeppelin.com/level/0x97E982a15FbB1C28F6B8ee971BEc15C78b3d263F">Ethernaut
+Level 16 - Preservation</a></li>
+</ul>
+<p>下面看一看opcode层面</p>
+<h2 id="opcodes">Opcodes</h2>
+<p>我们现在知道DELEGATECALL怎么工作了，那么深入一下，看看DELEGATECALL和CALL的操作码。</p>
+<p>对于DELEGATECALL我们有以下输入变量</p>
+<ul>
+<li><code>gas</code>: 执行的gas费</li>
+<li><code>address</code>: 执行上下文的account</li>
+<li><code>argsOffset</code>: 输入数据(calldata)的偏移量</li>
+<li><code>argsSize</code>: calldata的大小</li>
+<li><code>retOffset</code>: 输出数据(returndata)的偏移量</li>
+<li><code>retSize</code>: returndata的大小</li>
+</ul>
+<p>CALL比起上边的只多一个value，其它的都一样</p>
+<ul>
+<li><code>value</code>: 发送给account的以太币(CALL only)</li>
+</ul>
+<p>委托调用不需要value输入，它从父调用继承。我们的执行上下文有和父调用一样的存储区，msg.sender
+和 msg.value。</p>
+<p>他们都是有一个返回值布尔值"success"，为0则为执行失败，反之则为1。</p>
+<blockquote>
+<p><em>如果调用位置没有合约或者没有代码，Delegatecall会返回true。这会出现bug，因为它没执行，我们是希望返回False的</em></p>
+</blockquote>
+<h3
+id="delegatecall-opcode-inspection-with-remix利用remix检验delegatecall">DELEGATECALL
+Opcode Inspection With Remix利用Remix检验DELEGATECALL</h3>
+<p>下边是Remix中调用DELEGATECALL操作码的截图。对应Solidity代码的24-26行。</p>
+<p>我们可以看到栈和内存的条目以及它们是怎么传进DELEGATECALL的。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F39945796-94b6-4d6b-8bf6-52b29ac22559_3404x1334.png"><img
+src="https://substackcdn.com/image/fetch/w_5760,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F39945796-94b6-4d6b-8bf6-52b29ac22559_3404x1334.png"
+alt="img" /></a></p>
+<p>我们按照这条路线理解：opcode → stack → memory → calldata</p>
+<ol type="1">
+<li>Solidity代码的24行，使用了delegatecall 调用 Contract B 的
+setVars(unit256)，调用了DELEGATECALL操作码。</li>
+<li>DELEGATECALL从栈上拿6个输入：
+<ol type="1">
+<li>Gas = 0x45eb</li>
+<li>Address = 0x3328358128832A260C76A4141e19E2A943CD4B6D (Address for
+Contract B)</li>
+<li>ArgsOffset = 0xc4</li>
+<li>ArgsSize = 0x24</li>
+<li>RetOffset = 0xc4</li>
+<li>RetSize = 0x00</li>
+</ol></li>
+<li>注意到 argsOffset 和 argsSize 两个代表了传入 Contract B 的
+calldata。这两个变量让我们从内存位置0xc4开始，复制后边的 0x24
+(十进制36)作为calldata。</li>
+<li>我们因此拿到了0x6466414b000000000000000000000000000000000000000000000000000000000000000c，6466414b是setVars(uint256)
+的函数签名，而000000000000000000000000000000000000000000000000000000000000000c是我们传入的数据
+12。</li>
+<li>这对应了Solidity代码的25行，abi.encodeWithSignature("setVars(uint256)",
+_num)。</li>
+</ol>
+<p>因为setVars(uint256)不返回任何值，所以retSize置0。</p>
+<p>如果有返回值的话，就是存在retOffset以后的retOffset以内。这应该让你对这个操作码的底层逻辑了解的深一点，也会和Solidity联系起来了。</p>
+<p>现在我们看一下Geth里的实现。</p>
+<h3 id="geth实现">Geth实现</h3>
+<p>我们看一下Geth里写DELEGATECALL的部分。目标是展现DELEGATECALL和CALL在存储的层面的区别，以及是怎么联系上SLOAD的。</p>
+<p>下边的图有点唬人，但是我们拆解开来一步一步做，在结束的时候你就会对DELEGATECALL和CALL有深刻的认识。</p>
+<p><a
+href="https://substackcdn.com/image/fetch/f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F60abd9bd-475f-4694-8bce-aa4c4b43fadd_4102x3874.png"><img
+src="https://substackcdn.com/image/fetch/w_5760,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F60abd9bd-475f-4694-8bce-aa4c4b43fadd_4102x3874.png"
+alt="img" /></a></p>
+<p>We have the DELEGATECALL &amp; CALL opcodes labeled on the left-hand
+side and the SLOAD opcode labeled bottom right. Let’s see how they’re
+connected.</p>
+<ol type="1">
+<li>这图里有两个 [1]
+号截图，分别对应DELEGATECALL和CALL操作码的代码，在<a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go">instructions.go</a>里。我们可以看到从栈里弹出的那几个变量，之后可以看到调用
+interpreter.evm.DeleagteCall和 interpreter.evm.Call
+这两个函数，传进去了栈里的变量，目标地址和现在的合约上下文</li>
+<li>图里也有两个 [2] 号截图，分别对应 evm.DelegateCall 和 evm.Call
+的代码的代码，在 <a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/evm.go">evm.go</a>里边。中间省略了一些校验和其它函数，我们主要关注执行调用NewContract方法新建上下文的代码，其它的可以忽略掉。</li>
+<li>图里有两个 [3] 号截图。里边主要是evm.DelegateCall和evm.Call
+调用NewContract。它们非常相似，以下两点除外：
+<ol type="1">
+<li>DelegateCall的value参数设为nil，它从之前的上下文继承，所以不写进这个参数里。</li>
+<li>NewContract的第二个参数也不一样。evm.DelegateCall 里caller.Address(
+) 用的是Contract A的地址。evm.Call
+里addrCopy是复制的toAddr，也就是Contract
+B的地址，这一点区别非常大。他俩都是AccountRef类型，这个很重要，后边会提到。</li>
+</ol></li>
+<li>DelegateCall’s的NewContract会返回一个Contract结构体。它又调用了AsDelegate()方法(在<a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)(见图[4])，把msg.sender
+和 msg.value设置成了父调用的样子，也就是EOA地址和1000000000000000000
+Wei。这在Call的实现里是没有的。</li>
+<li>evm.DelegateCall 和 evm.Call 都执行NewContract方法(在<a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)，NewContract方法的第二个入参是“object
+ContractRef”，对应着第三点里提到的AccountRef。</li>
+<li>“object
+ContractRef”和一些其他值被用来初始化合约，对应Contract结构体里的“self”</li>
+<li>Contract结构体( 在<a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/contract.go">contract.go</a>里)有一个“self”字段，你可以看到也有其他的字段与我们之前提到的执行上下文有关。</li>
+<li>现在我们跳跃一下，去看看Geth里SLOAD(在<a
+href="https://github.com/ethereum/go-ethereum/blob/d4d288e3f1cebb183fce9137829a76ddf7c6d12a/core/vm/instructions.go">instructions.go</a>里)的实现，它在调用GetState时用的参数就是scope.Contract.Address(
+)。这里的“Contract”就是我们在第7条提到的结构体。</li>
+<li>Contract结构体的Address( ) 返回的是self.Address。</li>
+<li>Self是一个ContractRef类型，ContractRef必然有一个Address( )
+方法。</li>
+<li>ContractRef是一个接口，规定如果一个类型要做ContractRef，那必须有一个返回值类型是common.Address的Address(
+)
+函数。common.Address是一个长度20的字节数组，也就是以太坊地址的长度。</li>
+<li>我们回到第3块看一下evm.DelegateCall和evm.Call
+中AccountRef的区别。我们可以看到AccountRef就是一个有Address( )
+函数的地址，那它也符合ContractRef接口的规则。</li>
+<li>AccountRef 的 Address( ) 函数是把 AccountRef
+转化成common.Address，也就是 evm.DelegateCall 里的 Contract A 地址和
+evm.Call 里的Contract B 地址。这意味着第8部分讲的 SLOAD 会在
+DELEGATECALL 时使用 Contract A 的存储区，在 CALL 时使用 Contract B
+的存储区。</li>
+</ol>
+<p>通过学习Geth的实现你应该对DelegateCall的存储区，
+msg.sender和msg.value的来龙去脉有了深刻了解，对DELEGATECALL也有了一定的认识，很棒！下次再见！</p>
+]]></content>
+      <categories>
+        <category>以太坊</category>
+      </categories>
+      <tags>
+        <tag>ethereum</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Alpaca文档翻译</title>
+    <url>/2022/06/13/Alpaca-docs/</url>
+    <content><![CDATA[<h2 id="overview">Overview</h2>
+<p>Alpaca
+Finance是一个借贷协议，但它和Compound，Aave等单纯等待别人从池子里借款从而分红利息的项目不一样，在这里你不仅可以加上杠杆，还可以主动选择一些心仪的流动性挖矿项目并质押进去，吃到多次利润。</p>
+<p>Alpaca Leverage Farming 主要有四个组成部分 1.Vault 2.Worker
+3.Strategy 4.Fairlaunch(此模块另行介绍)</p>
+<h2 id="architecture">Architecture</h2>
+<ul>
+<li>前端(Frontend) - Alpaca 前端接口</li>
+<li>清算机器人(Liquidator) -
+观察仓位状态，一旦出现资不抵债就进行清算的机器人</li>
+<li>复投机器人(Reinvestor) - 自动收获利润又复投的机器人</li>
+</ul>
+<p><img
+src="https://alpaca-doc.s3.ap-southeast-1.amazonaws.com/lyf/Export-3aa4ff3c-20f2-4868-95ee-96a4da364889/Contract%20Documentation%204c48a0c0db7442c6aa0268dd110e6b80/Screen_Shot_2564-09-29_at_12.03.52.png" /></p>
+<h2 id="vault">Vault</h2>
+<p>顾名思义，这个合约用处是存放借款者的抵押物。作为在此时贡献资金池使用率的回报，借款者还可以向Vault申请资金。一个底层资产对应一个Vault合约。</p>
+<h2 id="worker">Worker</h2>
+<p>worker是一个管理仓位使用方法的合约，使用方法包括但不限于
+在一个DEX里开启一个流动性挖矿的仓位 平掉这个仓位 调节这个仓位
+每一个worker都对应特定的一些代币和一个特定的DEX，不同的ERC20代币/DEX会使用不同的worker。</p>
+<h2 id="strategy">Strategy</h2>
+<p>strategy合约是具体操作DEX的合约，每次只处理一个特定场景。可以对动态指定的不同的token做出童谣的DEX操作。</p>
+<h2 id="fairlaunch">FairLaunch</h2>
+<p>这是Alpaca的激励组件，可以接收ERC20然后给各个token池生成Alpaca代币，每个池子的发放量存在差异</p>
+<h2 id="contract-document">Contract Document</h2>
+<p><a href="#Vault%20Contract">Vault Contract</a> <a
+href="#Worker%20Contract">Worker Contract</a> <a
+href="#Strategy%20Contract">Strategy Contract</a></p>
+<h2 id="dex-integration">DEX Integration</h2>
+<p>尽管Alpaca集成了不少不同的DEX，他们之间也在细节上有差别，但是大部分DEX都是基于uniswapV2的机制，在这版文档里我们只讨论与PancakeSwap对接的Worker和Strategy。即以下具体实现：</p>
+<h3 id="worker-1">Worker</h3>
+<p>PancakeSwap Worker</p>
+<h3 id="strategy-1">Strategy</h3>
+<p>PancakeswapV2RestrictedStrategyAddBaseTokenOnly Strategy
+PancakeswapV2RestrictedStrategyAddTwoSidesOptimal Strategy
+PancakeswapV2RestrictedStrategyLiquidate Strategy
+PancakeswapV2RestrictedStrategyPartialCloseLiquidateStrategy
+PancakeswapV2RestrictedStrategyPartialCloseMinimizeTrading Strategy
+PancakeswapV2RestrictedStrategyWithdrawMinimizeTrading Strategy</p>
+<h1 id="vault-contract">Vault Contract</h1>
+<p><a name="Vault Contract"></a></p>
+<p><a
+href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/Vault.sol">合约源码</a></p>
+<h2 id="background">Background</h2>
+<p>Alpaca
+Finance里最重要的一个操作是通过vaults达成的，注意是vaults而非vault，vault被设计成连接存款者和借款者的中间体，存款者把资产储存进vault，借款者可以借出来一些用于流动性挖矿。
+存储token的同时，vault会给用户ibToken，用户可以用这个在Alpaca
+Finance中进行更多操作，比如获得FairLaunch里的Alpaca激励，获得合作Token激励，以后还有更多。
+借出token的同时，用户也可以获得debtToken，这也可以自动获得FairLuanch给的激励。</p>
+<h2 id="abstract">Abstract</h2>
+<ul>
+<li>Vault会给用户分配ibToken，用来标记用户在此vault里所占的份额(share)。随着时间推移，利息会进入份额，1份份额(share)的实际价值会增加。</li>
+<li>当用户开仓时，他们先需要在vault里放质押物。这使得vault的债务价值(debt
+value)根据借款量增加。</li>
+<li>一旦vault收获借款人的利息，vault的债务价值(debt
+value)会随着利息增加。这意味着随着时间推移，取出资产需要用到的量要比存款时更大。</li>
+<li>当用户平仓时，初始抵押品债务会从总债务中去除，流动性挖矿的利息会完整地还给lender。</li>
+<li>部分利息会被项目组留下，放在保留金池子里。</li>
+<li>由于用户是在不同的时间存款的，我们要用债务份额价值(debt share
+value)保持记录用户从哪里进入vault。</li>
+<li>债务份额(debt share)也被表示成vault铸造的生息token。</li>
+<li>债务份额的计算方法：<span
+class="math inline">\(\frac{DebtValue}{TotalDebtValue} \times
+ExistingDebtShare\)</span></li>
+</ul>
+<h2 id="structs">Structs</h2>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">struct Position &#123;</span><br><span class="line">    address worker;</span><br><span class="line">    address owner;</span><br><span class="line">    uint256 debtShare;</span><br><span class="line">  &#125;</span><br><span class="line">mapping(uint256 =&gt; Position) public positions;</span><br></pre></td></tr></table></figure>
+<h2 id="main-function">Main Function</h2>
+<p>Vault 主要业务逻辑有： 1.质押token获得ibToken (deposit)
+2.赎回token燃烧ibToken (withdraw)
+3.执行借贷+DEX流动性挖矿操作，调用worker.work，根据Position里worker的不同具体执行逻辑也不一样
+(work)
+4.清算，调用worker.liquidate，根据Position里worker的不同具体执行逻辑也不一样
+(kill)</p>
+<h1 id="worker-contract">Worker Contract</h1>
+<p><a name="Worker Contract"></a></p>
+<p><a
+href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/interfaces/IWorker02.sol">源码地址</a></p>
+<h2 id="background-1">BackGround</h2>
+<p>borrowers从vault申请款项唯一的办法就是从vault借出钱来做一些操作，特别是加杠杆的流动性挖矿。
+每一个worker根据配置比如其连接的DEX和LP token pair
+来进行不一样的操作，但是所有的Worker共用一个接口。
+然而worker并不一定要做流动性挖矿，也可能就只是做一些简单的操作，比如Syrup
+Pool。 这部分我们只讲一下所有worker共通的Interface。</p>
+<h2 id="abstract-1">Abstract</h2>
+<ul>
+<li>在整个系统里有多个worker</li>
+<li>一个worker可以根据实际情况使用不同的strategy</li>
+<li>worker会把特定的token对当成整体处理，即使他们在不同的仓里</li>
+<li>worker和底层资产服务强关联，比如Pancake的BNB-BUSD
+worker处理不了Wault的BNB-BUSD</li>
+<li>Base
+token是ERC20标准，是worker的主要资产，通常与借款，本金挂钩。</li>
+<li>Farm token是ERC20标准，与base token结对可以给DEX提供流动性</li>
+<li>worker把Fram token和Base token成对处理，如果我们需要将现在的farm
+token作为base
+token就需要另一个worker，反之亦然。因为在DEX中，Pancake的BNB-BUSD 也与
+Pancake的BUSD- BNB不一样。</li>
+<li>Worker Config作为一个分离出来的合约，存放着worker们的配置信息</li>
+</ul>
+<p>worker可以被两种角色调用： 1.Operator: 大多数情况是一个Vault合约
+2.Reinvestor: 白名单EOA，取出LP收益再复投</p>
+<h2 id="main-function-1">Main Function</h2>
+<p>1.利息复投(_reinvest) 2.调用Strategy的excute方法，并将返回的LP
+token质押，根据Strategy种类不同具体实现不一样 (work)
+3.计算某个position换算成baseToken的价值，用来做清算判断 (health)</p>
+<h1 id="strategy-contract">Strategy Contract</h1>
+<p><a name="Strategy Contract"></a></p>
+<p><a
+href="https://github.com/alpaca-finance/bsc-alpaca-contract/blob/main/contracts/6/protocol/interfaces/IStrategy.sol">合约源码</a></p>
+<h2 id="background-2">Background</h2>
+<p>顾名思义，这类合约只做一件事，那就是制定交易策略，根据DEX，token和需求不同分配不同的Strategy。这一节我们详细介绍策略逻辑和公式。值得注意的是，这个合约是一个耦合度极低的合约，只负责把传给该合约的资产在DEX中操作，再转账，几乎没有存储任何信息，也就是不参与借贷相关的任何逻辑。借贷/还账的逻辑应该在它的上层实现。</p>
+<h2 id="abstract-2">Abstract</h2>
+<p>根据用户的操作，前端会提供一个strategy，比如一个用户想借BUSD在Pancake开一个BUSD-
+USDT的仓，前端会用PancakeswapV2RestrictedStrategyAddBaseTokenOnly(一种Strategy合约)调用Vault.work，这样Vault将会调用USDT-
+BUSD PancakeSwap
+的worker。worker随后调用PancakeswapV2RestrictedStrategyAddBaseTokenOnly.</p>
+<h2 id="main-function-2">Main Function</h2>
+<p>有六种Strategy都只有一个主要方法,excute：</p>
+<h3 id="addbasetokenonly">AddBaseTokenOnly:</h3>
+<p>提供base token，根据最佳方案兑换farming
+token，再提供流动性拿LP，推导过程：
+balance为托管处理的baseToken总量，aIn为swap为farming token的base
+token，rIn，rOut是池子里的量</p>
+<p><span class="math inline">\(\begin{cases} rIn\times rOut = (rIn +
+aIn)\times(rOut - aOut)\\ \frac{rIn}{rOut} = \frac{balance - aIn}{ aOut
+}\\ \end{cases}\)</span></p>
+<p>得出<span class="math inline">\(aIn^{2} + 2rIn\times aIn - rIn\times
+balance = 0\)</span>，即<span
+class="math inline">\(aIn=\frac{\sqrt{rIn\times (4balance +
+4rIn)}-2rIn}{2}\)</span> 与代码吻合：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">uint256 aIn = AlpacaMath.sqrt(rIn.mul(balance.mul(399000000).add(rIn.mul(399000625)))).sub(rIn.mul(19975)) / 19950;</span><br></pre></td></tr></table></figure>
+<h3 id="addtwosideoptimal">AddTwoSideOptimal</h3>
+<p>同时提供base token和farming
+token，合约转换成正好的比例提供流动性，推导过程:
+bIn,bOut是用户提供的两种token量，aIn是打算换成另一种的多余Token量，aOut是换出的token量，
+<span class="math inline">\(\begin{cases} rIn\times rOut = (rIn +
+aIn)\times(rOut - aOut)\\ \frac{rIn + bIn }{rOut - bOut} =
+\frac{bIn-aIn}{bOut+aOut}\\ \end{cases}\)</span></p>
+<p>得出<span class="math inline">\(aIn^{2} + 2rIn\times aIn + \frac
+{rIn\times bOut - rOut \times bIn}{rOut+bOut} \times rIn = 0\)</span>
+即<span class="math inline">\(aIn = \frac{\sqrt{4rIn^{2}-4\times (\frac
+{rIn\times bOut - rOut \times bIn}{rOut+bOut} \times
+rIn)}-2rIn}{2}\)</span> 与代码吻合：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/// @dev Compute optimal deposit amount helper</span><br><span class="line">  /// @param amtA amount of token A desired to deposit</span><br><span class="line">  /// @param amtB amonut of token B desired to deposit</span><br><span class="line">  /// @param resA amount of token A in reserve</span><br><span class="line">  /// @param resB amount of token B in reserve</span><br><span class="line">  function _optimalDepositA(</span><br><span class="line">    uint256 amtA,</span><br><span class="line">    uint256 amtB,</span><br><span class="line">    uint256 resA,</span><br><span class="line">    uint256 resB</span><br><span class="line">  ) internal pure returns (uint256) &#123;</span><br><span class="line">    require(amtA.mul(resB) &gt;= amtB.mul(resA), &quot;Reversed&quot;);</span><br><span class="line"></span><br><span class="line">    uint256 a = 9975;</span><br><span class="line">    uint256 b = uint256(19975).mul(resA);</span><br><span class="line">    uint256 _c = (amtA.mul(resB)).sub(amtB.mul(resA));</span><br><span class="line">    uint256 c = _c.mul(10000).div(amtB.add(resB)).mul(resA);</span><br><span class="line"></span><br><span class="line">    uint256 d = a.mul(c).mul(4);</span><br><span class="line">    uint256 e = AlpacaMath.sqrt(b.mul(b).add(d));</span><br><span class="line"></span><br><span class="line">    uint256 numerator = e.sub(b);</span><br><span class="line">    uint256 denominator = a.mul(2);</span><br><span class="line"></span><br><span class="line">    return numerator.div(denominator);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="liquidate">Liquidate</h3>
+<p>提供LPToken，取消所有流动性，之后所有farming token 兑换成base token
+返还给用户。</p>
+<h3 id="partialcloseliquidate">PartialCloseLiquidate</h3>
+<p>前面和Liquidate一样，也是把一定量的LP取消流动性，再全兑成base
+token提出来，最后留下一部分baseToken(数目是入参，一般做平账用，由合约传入)，剩下的返还给用户。</p>
+<h3 id="partialcloseminimizetrading">PartialCloseMinimizeTrading</h3>
+<p>提供一定量LPToken，取消流动性，返还base token和farming
+token，如果base
+token不够lessDebt值(数目是入参，一般做平账用，由合约传入)，用farming
+token兑换至足额，并将base token和剩余的farming token返还。</p>
+<h3 id="withdrawminimizetrading">WithdrawMinimizeTrading</h3>
+<p>把所有的LPToken取消流动性,返还base token和farming token，如果base
+token不够lessDebt值(数目是入参，一般做平账用，由合约传入)，用farming
+token兑换至足额，并将base token和剩余的farming token返还。</p>
+<h1 id="后记">后记</h1>
+<p>Alpaca小弟也是最近刚刚接触，如果有前辈研究过这个项目还请指路一下更多的资料，谢谢大家了。</p>
+]]></content>
+      <categories>
+        <category>DeFi</category>
+      </categories>
+      <tags>
+        <tag>DeFi</tag>
       </tags>
   </entry>
 </search>

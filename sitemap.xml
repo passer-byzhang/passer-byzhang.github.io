@@ -2,6 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2022/09/13/screct-generate/</loc>
+    
+    <lastmod>2022-09-13T09:11:56.154Z</lastmod>
+    
+    <date>1663058589000</date>
+    <title>在抽奖系统中生成lucky code | Alvan's Blog</title>
+    
+    <desc>一种带揭示功能的生成luckycode的方法</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/2022/08/29/aptos-and-move/</loc>
     
     <lastmod>2022-08-29T08:04:25.048Z</lastmod>

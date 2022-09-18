@@ -2,6 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2022/09/18/move-prover-guide/</loc>
+    
+    <lastmod>2022-09-18T13:28:18.198Z</lastmod>
+    
+    <date>1663507512000</date>
+    <title>Move Prover 入门 | Alvan's Blog</title>
+    
+    <desc>翻译自一个关于Move Prover的入门教程</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/2022/09/13/screct-generate/</loc>
     
     <lastmod>2022-09-13T09:24:32.373Z</lastmod>

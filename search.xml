@@ -2288,4 +2288,175 @@ deltaBlock\)</span>，确实和我们预想的一样。</p>
         <tag>Rust</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Move Prover 入门</title>
+    <url>/2022/09/18/move-prover-guide/</url>
+    <content><![CDATA[<figure>
+<img
+src="https://osec.io/blog/assets/posts/move-prover/move-prover-title.png"
+alt="The Move Prover: A Practical Guide" />
+<figcaption aria-hidden="true">The Move Prover: A Practical
+Guide</figcaption>
+</figure>
+<p><em>形式化验证</em> -
+一种验证程序正确性的强力工具。但它是如何工作的呢？这篇博客会介绍一些Move
+Prover的使用技巧，充分利用其潜力，并探讨如何在一个实际例子中使用形式化验证去保证合约安全。</p>
+<p>从上层看，形式化验证可以为程序提供规范，程序的符号输入会根据规范进行校验，并要求证明所有可能的输入都符合该规范。</p>
+<h2 id="move-prover">Move Prover</h2>
+<p>Move Prover是一个对Move语言智能合约形式化验证的自动化工具。</p>
+<p>Move在设计上就是便于自动化验证的，更有趣的是Move
+Prover也是操作MoveVM的字节码本身，这就避免了潜在的编译器错误影响证明程序的正确性。</p>
+<p>Move Prover由多个组件构成，如下图所示：</p>
+<figure>
+<img src="https://i.imgur.com/ti4vkTu.png" alt="Move Prover arch" />
+<figcaption aria-hidden="true">Move Prover arch</figcaption>
+</figure>
+<p>首先，Move Prover
+接收一个Move源文件作为输入，该文件中需要设置程序输入规范。之后 Move
+Parser 会在源码中把规范提取出来。Move
+编译器将源文件编译为字节码，和规范系统(specification)共同转化为验证者对象模型(Prover
+Object Model)。</p>
+<p>这个模型会被翻译成一种名为<a
+href="https://www.microsoft.com/en-us/research/project/boogie-an-intermediate-verification-language/">Boogie</a>的中间语言。这段
+Boogie 代码会被传入 Boogie 验证系统，该系统对输入进行“验证条件生成”(<a
+href="https://en.wikipedia.org/wiki/Verification_condition_generator">verification
+condition generation</a>)。该验证条件(VC)会被传入一个名为 Z3
+的自动理论验证器(<a
+href="https://en.wikipedia.org/wiki/Automated_theorem_proving">automated
+theorem prove</a>)中。</p>
+<p>VC 被传进 Z3 程序后，该验证器会检查 SMT公式
+是否是不可满足的。如果是这样，这意味着规范是成立的。否则，将生成一个满足条件的模型，并将其转换回Boogie格式，以便发布诊断报告。然后将诊断报告还原为与标准编译器错误类似的源码级错误。</p>
+<p><em>译者注：SMT是形式语言与自动机的相关知识，有兴趣的读者可以搜索 SAT
+与 SMT
+进一步了解，大致意思就是SMT/SAT是一个公式，可满足性是指是否存在一组输入使其为真。</em></p>
+<h2 id="move-specification-language">Move Specification Language</h2>
+<p>MSL是Move语言的子集，它引入了对静态描述有关程序正确性的行为的支持，而不影响生产。</p>
+<p>为了更好地理解使用MSL的方法，我们将使用<a
+href="https://github.com/pontem-network/u256">Pontem’s U256
+library</a>作为教学案例，这是一个实现U256的Move开源库。</p>
+<p>U256是由一个包含4个u64的结构体实现的。</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">U256</span> has copy, drop, store &#123;</span><br><span class="line">    v0: <span class="type">u64</span>,</span><br><span class="line">    v1: <span class="type">u64</span>,</span><br><span class="line">    v2: <span class="type">u64</span>,</span><br><span class="line">    v3: <span class="type">u64</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>现在我们聚焦到函数<code>add(a: U256, b: U256): U256</code>上。为了保证这样一个函数的正确性，验证一些群论的公理可能会有用处，比如交换律和结合律。</p>
+<p>规范(specifications)被声明在“规范代码块”(specification
+block，下均称spec代码块)中，它可能在Move
+Module的函数中，也可能作为一个单独的规范module文件。</p>
+<p>例如，如果你的文件是<code>sources/u256.move</code>,那你可以把规范放在<code>sources/u256.spec.move</code>里。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spec add &#123; ... &#125;</span><br></pre></td></tr></table></figure>
+<p>放置在spec代码块中的规范被视为<em>表达式</em>。</p>
+<h2 id="表达式">表达式</h2>
+<p>我们先看一些通用表达式吧。</p>
+<p><code>aborts_if</code>定义了函数应该何时终止(abort)。这在智能合约开发中非常有用，在合约里一个abort就可以导致整个交易回滚。</p>
+<p>举个例子：当且仅当U256加法溢出的时候<code>add</code>函数abort。让我们把这句话变成表达式：</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">const</span> P64: <span class="type">u128</span> = <span class="number">0x10000000000000000</span>;</span><br><span class="line"></span><br><span class="line">spec fun <span class="title function_ invoke__">value_of_U256</span>(a: U256): num &#123;</span><br><span class="line">    a.v0 + </span><br><span class="line">    a.v1 * P64 + </span><br><span class="line">    a.v2 * P64 * P64 + </span><br><span class="line">    a.v3 * P64 * P64 * P64</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">spec add &#123;</span><br><span class="line">    aborts_if <span class="title function_ invoke__">value_of_U256</span>(a) + <span class="title function_ invoke__">value_of_U256</span>(b) &gt;= P64 * P64 * P64 * P64;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们在上边的代码片段中可以看到在spec代码块中可以调用函数。但是被调用者必须是一个MSL函数或者一个纯Move函数。纯Move函数就是不修改全局变量或者其使用的语句和特性均被MSL支持。</p>
+<p><code>aborts_if</code> 的一个常见写法是
+<code>aborts_if false</code>，它可以让一个函数验证永不abort。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spec critical_function &#123;</span><br><span class="line">    aborts_if false;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>另一个我们经常使用的表达式是
+<code>ensures</code>，顾名思义，就是保证在函数运行的结尾确认一个状态。</p>
+<p>在<code>add</code>函数的例子里我们希望确认返回值是两个参数之和。⚠️注意，因为MSL使用无界数，我们可以清楚这个表达式是不会溢出的。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spec add &#123;</span><br><span class="line">    aborts_if value_of_U256(a) + value_of_U256(b) &gt;= P64 * P64 * P64 * P64;</span><br><span class="line">    ensures value_of_U256(result) == value_of_U256(a) + value_of_U256(b);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>因为Move规范函数是用MSL写的，所以在这里不存在溢出风险。</p>
+<p>让我们试着用上面的规范来验证这个库：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">$ move prove</span><br></pre></td></tr></table></figure>
+<p>报出以下错误信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">[...]</span><br><span class="line"></span><br><span class="line">error: abort not covered by any of the `aborts_if` clauses</span><br><span class="line">╭     spec add &#123; </span><br><span class="line">|         aborts_if value_of_U256(a) + value_of_U256(b) &gt;= P64 * P64 * P64 * P64;</span><br><span class="line">|         ensures value_of_U256(result) == value_of_U256(a) + value_of_U256(b);</span><br><span class="line">|     &#125;</span><br><span class="line">╰─────^</span><br><span class="line"></span><br><span class="line">[...]</span><br><span class="line"></span><br><span class="line"> at ./sources/u256.move:316: add</span><br><span class="line"> enter loop, variable(s) carry, i, ret havocked and reassigned</span><br><span class="line">     carry = 54</span><br><span class="line">     i = 3792</span><br><span class="line">     ret = u256.U256&#123;v0 = 26418, v1 = 27938, v2 = 6900, v3 = 1999&#125;</span><br><span class="line"> at ./sources/u256.move:346: add</span><br><span class="line">     ABORTED</span><br><span class="line">     </span><br><span class="line">FAILURE proving 1 modules from package `u256` in 9.143s</span><br><span class="line">&#123;</span><br><span class="line">    &quot;Error&quot;: &quot;Move Prover failed: exiting with verification errors&quot;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>验证器说这个abort没有被abort_if覆盖到所以验证失败了，但是我们明明已经做到了全覆盖不是吗？</p>
+<p>让我们继续看错误信息，会遇到一个意义不明的信息：<code>ret havocked and reassigned</code>.</p>
+<p>这是什么意思？</p>
+<p>深入理解Move Prover源码后，我们找到了一个<a
+href="https://github.com/move-language/move/blob/e0dafc5cf3efe4c4e61411f10cdf0f379a36673c/language/move-prover/bytecode/src/loop_analysis.rs#L94">可能性怀疑</a>。验证器试图用归纳法证明所有的循环！</p>
+<p>严格来说，它会把循环分解为两个关键步骤，遵循经典的归纳法证明</p>
+<p>1.基本情况：对循环开始时的循环不变量进行断言
+2.归纳：假设不变量，执行循环体，并断言不变量成立</p>
+<p><em>译者注：此处和下面的 不变量，均为 invariant 和 invariants
+的翻译，与 const常量 不同，不变量
+并不是一个值，而代表一个状态，例如在某个循环中，a 永远小于 b，那么 a
+&lt; b 是一个 循环不变量，其他 不变量 也类似。</em></p>
+<p>循环证明程序还会把循环内的所有变量破坏和随机赋值。回到日志消息，这意味着变量<code>carry</code>，
+<code>ret</code>和
+<code>i</code>已经被破坏，或被分配了随机值。这也解释了为什么<code>add</code>的输入输出不灵了。</p>
+<p>更具体地说，循环分析转换为以下步骤：</p>
+<ol type="1">
+<li>断言循环不变量</li>
+<li>破坏所有修改过的变量</li>
+<li>假设循环不变量</li>
+<li>假设循环保护(while条件里的代码)</li>
+<li>执行循环体</li>
+<li>断言循环不变量</li>
+</ol>
+<p>这里有两种处理循环的解决方案</p>
+<p>第一个是指定循环不变量。</p>
+<p>为了指定循环不变量我们需要用到一些特殊的语法，在<a
+href="https://osec.io/blog/tutorials/2022-09-06-move-introduction/">之前的一篇文章里</a>简单介绍过。</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="title function_ invoke__">while</span> (&#123;</span><br><span class="line">    spec &#123;</span><br><span class="line">        invariant <span class="title function_ invoke__">len</span>(amounts_times_coins) == i;</span><br><span class="line">        invariant i &lt;= n_coins;</span><br><span class="line">        invariant forall j <span class="keyword">in</span> <span class="number">0</span>..i: amounts_times_coins[j] == input[j] * n_coins;</span><br><span class="line">    &#125;;</span><br><span class="line">    (i &lt; n_coins)</span><br><span class="line">&#125;) &#123;</span><br><span class="line">    vector::<span class="title function_ invoke__">push_back</span>(</span><br><span class="line">        &amp;<span class="keyword">mut</span> amounts_times_coins,</span><br><span class="line">        (*vector::<span class="title function_ invoke__">borrow</span>(&amp;input, (i <span class="keyword">as</span> <span class="type">u64</span>)) <span class="keyword">as</span> <span class="type">u128</span>) * (n_coins <span class="keyword">as</span> <span class="type">u128</span>)</span><br><span class="line">    );</span><br><span class="line">    i = i + <span class="number">1</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>在这个例子里，括号中指明了<code>while</code>
+循环中的循环不变量，请注意，由于循环不变量实在循环保护之后执行的，所以我们需要一个额外的步骤<code>i &lt;= n_coins</code>。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">while (&#123;</span><br><span class="line">    spec &#123;</span><br><span class="line">        invariant len(amounts_times_coins) == i;</span><br><span class="line">        invariant i &lt;= n_coins;</span><br><span class="line">        invariant forall j in 0..i: amounts_times_coins[j] == input[j] * n_coins;</span><br><span class="line">    &#125;;</span><br><span class="line">    (i &lt; n_coins)</span><br><span class="line">&#125;) &#123;</span><br></pre></td></tr></table></figure>
+<p>循环不变量通常情况下很难写，尤其是重要循环体</p>
+<p>第二个处理循环的解决方案是展开循环。这种技术在某些特定情况下是有效的，就如我们所看到那样，<code>add</code>函数内的循环恰好循环4次。</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="comment">/// Total words in `U256` (64 * 4 = 256).</span></span><br><span class="line"><span class="keyword">const</span> WORDS: <span class="type">u64</span> = <span class="number">4</span>;</span><br><span class="line"></span><br><span class="line">[...]</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> <span class="variable">i</span> = <span class="number">0</span>;</span><br><span class="line"><span class="title function_ invoke__">while</span> (i &lt; WORDS) &#123;</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">a1</span> = <span class="title function_ invoke__">get</span>(&amp;a, i);</span><br><span class="line">    <span class="keyword">let</span> <span class="variable">b1</span> = <span class="title function_ invoke__">get</span>(&amp;b, i);</span><br><span class="line"></span><br><span class="line">[...]</span><br></pre></td></tr></table></figure>
+<p>展开这个函数再跑一次，Move Prover会打印出成功信息：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SUCCESS proving 1 modules from package `u256` in 9.685s</span><br><span class="line">&#123;</span><br><span class="line">    &quot;Result&quot;: &quot;Success&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>为了确保<strong>交换律</strong>(<code>a+(b+c) = (a+b)+c</code>)
+成立，改变加数的分组不改变加法结果。为了验证该项，我们首先写一个模拟该属性的函数：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">fun add_assoc_property(a: U256, b: U256, c: U256): bool &#123;</span><br><span class="line">    let result_1 = add(b, c); </span><br><span class="line">    let result_11 = add(a, result_1); </span><br><span class="line">    let result_2 = add(a, b); </span><br><span class="line">    let result_22 = add(c, result_2); </span><br><span class="line"></span><br><span class="line">    let cmp = compare(&amp;result_11, &amp;result_22); </span><br><span class="line">    if ( cmp == EQUAL ) true else false</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后再创建一个spec代码块来规范溢出话函数结果：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spec add_assoc_property &#123;</span><br><span class="line">    aborts_if (value_of_U256(a) + value_of_U256(b)) + value_of_U256(c) &gt;= P64 * P64 * P64 * P64;</span><br><span class="line">    ensures result == true;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>运行Move Prover的新规范吗我们可以确认这里没有验证错误：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">SUCCESS proving 1 modules from package `u256` in 9.685s</span><br><span class="line">&#123;</span><br><span class="line">    &quot;Result&quot;: &quot;Success&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果余姚进一步了解Move Prover语法，建议阅读Move仓库中的<a
+href="https://github.com/move-language/move/blob/main/language/move-prover/doc/user/spec-lang.md">spec-lang.md</a>
+完整文档。</p>
+<h2 id="用例">用例</h2>
+<p>形式化验证可以证明智能合约满足所有可能情况下的给定需求，甚至不需要运行该合约。困难的是制定规范。在这里，我们希望探索一些验证思想的实际例子。</p>
+<h3 id="错误条件">错误条件</h3>
+<p>以<code>std::fixed_point32</code>为例，显式定义函数何时可能中止通常是有用的。例如具有定点数的算术运算只有在溢出时才会出错。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spec schema MultiplyAbortsIf &#123;</span><br><span class="line">    val: num;</span><br><span class="line">    multiplier: FixedPoint32;</span><br><span class="line">    aborts_if spec_multiply_u64(val, multiplier) &gt; MAX_U64 with EMULTIPLICATION;</span><br><span class="line">&#125;</span><br><span class="line">spec fun spec_multiply_u64(val: num, multiplier: FixedPoint32): num &#123;</span><br><span class="line">    (val * multiplier.value) &gt;&gt; 32</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="访问控制策略">访问控制策略</h3>
+<p>与错误条件类似，在规范中强制显式访问控制策略通常很有用。</p>
+<p>例如，在<code>std::offer</code>
+中，我们可以看到，当且仅当不存在offer时或者接收者不被允许时，函数应该abort。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">spec redeem &#123;</span><br><span class="line">  /// Aborts if there is no offer under `offer_address` or if the account</span><br><span class="line">  /// cannot redeem the offer.</span><br><span class="line">  /// Ensures that the offered struct under `offer_address` is removed.</span><br><span class="line">  aborts_if !exists&lt;Offer&lt;Offered&gt;&gt;(offer_address);</span><br><span class="line">  aborts_if !is_allowed_recipient&lt;Offered&gt;(offer_address, signer::address_of(account));</span><br><span class="line">  ensures !exists&lt;Offer&lt;Offered&gt;&gt;(offer_address);</span><br><span class="line">  ensures result == old(global&lt;Offer&lt;Offered&gt;&gt;(offer_address).offered);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这些访问控制规范使得以后不会意外删除关键访问控制策略。</p>
+<h3 id="复杂的数学公式">复杂的数学公式</h3>
+<p>无论是十进制实现还是更复杂的数据结构，验证"期望的输出"恒等于"输出"通常是有用的。</p>
+<p>证明基本数据结构完全按照预期工作将使您对代码库的其余部分更有信心。</p>
+<p>例如，在我们与<a href="https://laminar.markets/">Laminar
+Markets</a>的合作中，我们提供了针对更简单的优先级队列数据结构验证其内部扩展树实现的建议。</p>
+<h3 id="数据不变量">数据不变量</h3>
+<p>形式化验证提供了验证某些“变量”或“资源”没有超出预期边界的最佳环境。让我们从下面考虑结构。我们可以使用<code>struct invariant</code>确保<code>index</code>永远不大于4。</p>
+<figure class="highlight rust"><table><tr><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">Type</span> &#123;</span><br><span class="line">    index: <span class="type">u64</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">spec Type &#123;</span><br><span class="line">    invariant index &lt; <span class="number">4</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们最近对<a href="https://layerzero.network/">LayerZero</a>和<a
+href="http://ariesmarkets.xyz/">Aries
+Markets</a>的审计中验证更复杂的属性，细节留给读者练习。</p>
+<h3 id="经济不变量">经济不变量</h3>
+<p>设计恰当的经济不变量需要更高的创造力，但可以非常有效地保护您的协议。</p>
+<p>举个例子，您不能通过增加和减少股权从池子里提走代币，在实践中，您可以将其作为工具帮助函数实现。</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// #[test] // TODO: cannot specify the test-only functions</span><br><span class="line">fun no_free_money_theorem(coin1_in: u64, coin2_in: u64): (u64, u64) acquires Pool &#123;</span><br><span class="line">    let share = add_liquidity(coin1_in, coin2_in);</span><br><span class="line">    remove_liquidity(share)</span><br><span class="line">&#125;</span><br><span class="line">spec no_free_money_theorem &#123;</span><br><span class="line">    pragma verify=false;</span><br><span class="line">    ensures result_1 &lt;= coin1_in;</span><br><span class="line">    ensures result_2 &lt;= coin2_in;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里有一些中心思想：</p>
+<ol type="1">
+<li>通过 AMM 进行 swap
+操作永远不会在池的一边没减少的情况下令另一边增加。换句话说，no free
+money。</li>
+<li>在一系列的存贷取款指令之后，贷款协议应该始终是完全抵押的。</li>
+<li>在下单后取消订单后，订单簿不应该赔钱。</li>
+</ol>
+<h2 id="结语">结语</h2>
+<p>在这篇文章中，我们探讨了如何正确地利用Move验证器来验证代码库中的关键不变量。</p>
+<p>在我们接下来的文章中，我们将探索如何通过学习问正确的问题，将Move验证器变成压制安全漏洞的利器，所以请继续关注!</p>
+<p>我们热衷于形式化验证，并将Move安全的可能性推向极致。如果您有任何想法或者想深入了解审计，请随时联系我<a
+href="https://twitter.com/notdeghost/"><span class="citation"
+data-cites="notdeghost">@notdeghost</span></a>。</p>
+<h2 id="原文链接">原文链接</h2>
+<p>https://osec.io/blog/tutorials/2022-09-16-move-prover/</p>
+]]></content>
+      <categories>
+        <category>Aptos</category>
+      </categories>
+      <tags>
+        <tag>Move</tag>
+        <tag>Aptos</tag>
+      </tags>
+  </entry>
 </search>

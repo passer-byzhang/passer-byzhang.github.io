@@ -2,6 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2022/10/11/aptos-merkle/</loc>
+    
+    <lastmod>2022-10-11T03:40:40.127Z</lastmod>
+    
+    <date>1665458472000</date>
+    <title>Aptos中实现merkle树验证 | Alvan's Blog</title>
+    
+    <desc>merkle树验证在aptos上的实现，练练手</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/2022/09/18/move-prover-guide/</loc>
     
     <lastmod>2022-09-18T13:28:18.198Z</lastmod>

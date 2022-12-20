@@ -2,6 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2022/12/20/solidity-journey-1/</loc>
+    
+    <lastmod>2022-12-20T15:32:34.602Z</lastmod>
+    
+    <date>1671550128000</date>
+    <title>solidity journey day1 | Alvan's Blog</title>
+    
+    <desc>A learning note of deploying/testing contract by using hardhat and using vrf service.</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/2022/11/09/node-connect-reids-failed/</loc>
     
     <lastmod>2022-11-09T03:19:22.473Z</lastmod>

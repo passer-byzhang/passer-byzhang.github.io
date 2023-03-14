@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Alvan's Blog">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideDownBigOut"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="十道题熟悉 evm opcode">
+<meta property="og:type" content="article">
+<meta property="og:title" content="通过 EVM PUZZLES 学习 EVM opcodes">
+<meta property="og:url" content="http://example.com/2023/03/14/evm-puzzles/index.html">
+<meta property="og:site_name" content="Alvan&#39;s Blog">
+<meta property="og:description" content="十道题熟悉 evm opcode">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2023-03-14T06:58:53.000Z">
+<meta property="article:modified_time" content="2023-03-14T07:02:05.735Z">
+<meta property="article:author" content="张钰Alvan">
+<meta property="article:tag" content="ethereum">
+<meta property="article:tag" content="solidity">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2023/03/14/evm-puzzles/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>通过 EVM PUZZLES 学习 EVM opcodes | Alvan's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Alvan's Blog</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2023/03/14/evm-puzzles/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/Alvan.png">
+      <meta itemprop="name" content="张钰Alvan">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Alvan's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          通过 EVM PUZZLES 学习 EVM opcodes
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+              
+
+              <time title="Created: 2023-03-14 14:58:53 / Modified: 15:02:05" itemprop="dateCreated datePublished" datetime="2023-03-14T14:58:53+08:00">2023-03-14</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ethereum/" itemprop="url" rel="index"><span itemprop="name">ethereum</span></a>
+                </span>
+            </span>
+
+          
+            <div class="post-description">十道题熟悉 evm opcode</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Evm puzzles 是一套练习和入门 evm 执行原理和 opcode
+的习题，里边涉及到简单的 opcode 操作，如操作堆栈，操作内存，操作
+calldata
+，部署合约等等，更重要的是它只有十道题，即使是新手也可以在几个小时内解决谜题！让我们开始吧！</p>
+<p>规则：输入恰当的 calldata 和 value，使得题目的 opcode
+正确执行，直到执行STOP。</p>
+<p>puzzle 交互工具：https://github.com/fvictorio/evm-puzzles</p>
+<h2 id="puzzle-1">puzzle 1:</h2>
+<p>题目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode  opcode name</span><br><span class="line">00      34      CALLVALUE</span><br><span class="line">01      56      JUMP</span><br><span class="line">02      FD      REVERT</span><br><span class="line">03      FD      REVERT</span><br><span class="line">04      FD      REVERT</span><br><span class="line">05      FD      REVERT</span><br><span class="line">06      FD      REVERT</span><br><span class="line">07      FD      REVERT</span><br><span class="line">08      5B      JUMPDEST</span><br><span class="line">09      00      STOP</span><br></pre></td></tr></table></figure>
+<p>此题简单明了，我们需要跳转至<code>pc = 0x08</code>才能避免中途
+revert，所以<code>0x01</code>位置的<code>JUMP</code>应该跳转至
+<code>0x08</code>。 根据evm文档，JUMP 操作 的模式为：</p>
+<table>
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 16%" />
+<col style="width: 7%" />
+<col style="width: 24%" />
+<col style="width: 22%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>stack</th>
+<th>name</th>
+<th>gas</th>
+<th>initial stack</th>
+<th>result stack</th>
+<th>mem/storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>56</td>
+<td>JUMP</td>
+<td>8</td>
+<td>dst</td>
+<td>/</td>
+<td>/</td>
+</tr>
+<tr class="even">
+<td>34</td>
+<td>CALLVALUE</td>
+<td>2</td>
+<td>/</td>
+<td>msg.value</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>即：CALLVALUE 把 msg.value 放在调用栈上，JUMP
+从调用栈的一个值，跳转至该值位置。 现在应该很清楚了 msg.value == 8
+即可通关。</p>
+<h2 id="puzzle-2">puzzle 2:</h2>
+<p>题目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode  opcode name</span><br><span class="line">00      34      CALLVALUE</span><br><span class="line">01      38      CODESIZE</span><br><span class="line">02      03      SUB</span><br><span class="line">03      56      JUMP</span><br><span class="line">04      FD      REVERT</span><br><span class="line">05      FD      REVERT</span><br><span class="line">06      5B      JUMPDEST</span><br><span class="line">07      00      STOP</span><br><span class="line">08      FD      REVERT</span><br><span class="line">09      FD      REVERT</span><br></pre></td></tr></table></figure>
+<p>此题跟 puzzle 1 差不多，只新增了两个 opcode，我们依然先看文档：</p>
+<table>
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 14%" />
+<col style="width: 7%" />
+<col style="width: 23%" />
+<col style="width: 25%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>stack</th>
+<th>name</th>
+<th>gas</th>
+<th>initial stack</th>
+<th>result stack</th>
+<th>mem/storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>38</td>
+<td>CODESIZE</td>
+<td>2</td>
+<td>/</td>
+<td>len(this.code)</td>
+<td>/</td>
+</tr>
+<tr class="even">
+<td>03</td>
+<td>SUB</td>
+<td>3</td>
+<td>a,b</td>
+<td>a - b</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>我们先使用 CALLVALUE 将 msg.value
+压入调用栈，再把代码长度压栈，我们可以看到我们的 code 总长度为10，也就是
+<code>10 - msg.value == 0x06</code>，可得 msg.value == 4。题解结束。</p>
+<h2 id="puzzle-3">puzzle 3:</h2>
+<p>题目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode  opcode name</span><br><span class="line">00      36      CALLDATASIZE</span><br><span class="line">01      56      JUMP</span><br><span class="line">02      FD      REVERT</span><br><span class="line">03      FD      REVERT</span><br><span class="line">04      5B      JUMPDEST</span><br><span class="line">05      00      STOP</span><br></pre></td></tr></table></figure>
+<p>新增了一个 opcode:</p>
+<table>
+<colgroup>
+<col style="width: 8%" />
+<col style="width: 20%" />
+<col style="width: 6%" />
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 18%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>stack</th>
+<th>name</th>
+<th>gas</th>
+<th>initial stack</th>
+<th>result stack</th>
+<th>mem/storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>36</td>
+<td>CALLDATASIZE</td>
+<td>2</td>
+<td>/</td>
+<td>len(msg.data)</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>只要我们的 <code>len(msg.data) == 4</code> 即可完成题解，例如
+<code>msg.data == 0x00000000</code></p>
+<h2 id="puzzle-4">puzzle 4:</h2>
+<p>题目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode  opcode name</span><br><span class="line">00      34      CALLVALUE</span><br><span class="line">01      38      CODESIZE</span><br><span class="line">02      18      XOR</span><br><span class="line">03      56      JUMP</span><br><span class="line">04      FD      REVERT</span><br><span class="line">05      FD      REVERT</span><br><span class="line">06      FD      REVERT</span><br><span class="line">07      FD      REVERT</span><br><span class="line">08      FD      REVERT</span><br><span class="line">09      FD      REVERT</span><br><span class="line">0A      5B      JUMPDEST</span><br><span class="line">0B      00      STOP</span><br></pre></td></tr></table></figure>
+<p>XOR 大家应该都很熟悉了, 就是 pop 两个操作栈里的值，然后把异或结果 pop
+回去：</p>
+<table>
+<thead>
+<tr class="header">
+<th>stack</th>
+<th>name</th>
+<th>gas</th>
+<th>initial stack</th>
+<th>result stack</th>
+<th>mem/storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>18</td>
+<td>XOR</td>
+<td>3</td>
+<td>a,b</td>
+<td>a ^ b</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>我们需要保证 <code>msg.value xor codesize == 0x0A</code>。0x0A
+的二进制表示为 0000 1010，而我们可以知道 codesize ==
+0c（10进制的12）,二进制表示为0000 1100，可以计算出
+<code>msg.data == 6</code> 即二进制表示为 0000 0110。</p>
+<h2 id="puzzle-5">puzzle 5:</h2>
+<p>题目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode      opcode name</span><br><span class="line">00      34          CALLVALUE</span><br><span class="line">01      80          DUP1</span><br><span class="line">02      02          MUL</span><br><span class="line">03      610100      PUSH2 0100</span><br><span class="line">06      14          EQ</span><br><span class="line">07      600C        PUSH1 0C</span><br><span class="line">09      57          JUMPI</span><br><span class="line">0A      FD          REVERT</span><br><span class="line">0B      FD          REVERT</span><br><span class="line">0C      5B          JUMPDEST</span><br><span class="line">0D      00          STOP</span><br><span class="line">0E      FD          REVERT</span><br><span class="line">0F      FD          REVERT</span><br></pre></td></tr></table></figure>
+<p>认识一下新的 opcode:</p>
+<table>
+<thead>
+<tr class="header">
+<th>stack</th>
+<th>name</th>
+<th>gas</th>
+<th>initial stack</th>
+<th>result stack</th>
+<th>mem/storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>80</td>
+<td>DUP1</td>
+<td>3</td>
+<td>a</td>
+<td>a,a</td>
+<td>/</td>
+</tr>
+<tr class="even">
+<td>02</td>
+<td>MUL</td>
+<td>5</td>
+<td>a,b</td>
+<td>a * b</td>
+<td>/</td>
+</tr>
+<tr class="odd">
+<td>60</td>
+<td>PUSH1</td>
+<td>3</td>
+<td>.</td>
+<td>uint8</td>
+<td>/</td>
+</tr>
+<tr class="even">
+<td>61</td>
+<td>PUSH2</td>
+<td>3</td>
+<td>.</td>
+<td>uint16</td>
+<td>/</td>
+</tr>
+<tr class="odd">
+<td>14</td>
+<td>EQ</td>
+<td>3</td>
+<td>a,b</td>
+<td>a == b</td>
+<td>/</td>
+</tr>
+<tr class="even">
+<td>57</td>
+<td>JUMPI</td>
+<td>10</td>
+<td>dst, condition</td>
+<td>/</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>DUP1：将栈顶元素再复制一份放在栈顶。 MUL：pop 栈顶两元素，push a*b
+的结果到栈顶。 PUSH1/PUSH2：把一个元素放在栈顶，如610100 即使用
+PUSH2(61) 将 8(0100) 放在栈顶。 EQ：pop 栈顶两元素，push a==b
+的结果到栈顶。 JUMPI：取栈顶两元素，分别是 dst 和 condition，如果
+condition == 1 则跳转到
+<code>pc == dst</code>的位置，否则，执行下一条语句。</p>
+<p>我们可以从结果往前推，目的是达到<code>0x0d</code>位置的
+STOP，需要通过跳转达到<code>0x0c</code>，也就是来自
+<code>pc == 0x09</code>位置的 JUMPI 。 <code>pc == 0x07</code>
+处我们得知，此时的栈顶元素是 PUSH1 操作符操作的
+<code>0x0c</code>，这正好与我们的目标地址相等。也就是说明 JU MPI 的
+condition 为真。即<code>pc == 0x06</code>处的 EQ 返回为真。
+再往上就简单多了 ，其实只需要满足
+<code>msg.value*msg.value == 0x0100</code>
+注意，这里的0100是16进制数字而非二进制数字，所以<code>msg.data*msg.data == 256</code>
+即 <code>msg.data == 16</code> 完成题解。</p>
+<h2 id="puzzle-6">puzzle 6:</h2>
+<p>题目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode  opcode name</span><br><span class="line">00      6000      PUSH1 00</span><br><span class="line">02      35        CALLDATALOAD</span><br><span class="line">03      56        JUMP</span><br><span class="line">04      FD        REVERT</span><br><span class="line">05      FD        REVERT</span><br><span class="line">06      FD        REVERT</span><br><span class="line">07      FD        REVERT</span><br><span class="line">08      FD        REVERT</span><br><span class="line">09      FD        REVERT</span><br><span class="line">0A      5B        JUMPDEST</span><br><span class="line">0B      00        STOP</span><br></pre></td></tr></table></figure>
+<p>新增一个 opcode:</p>
+<table>
+<colgroup>
+<col style="width: 7%" />
+<col style="width: 18%" />
+<col style="width: 6%" />
+<col style="width: 20%" />
+<col style="width: 30%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>stack</th>
+<th>name</th>
+<th>gas</th>
+<th>initial stack</th>
+<th>result stack</th>
+<th>mem/storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>35</td>
+<td>CALLDATALOAD</td>
+<td>3</td>
+<td>idx</td>
+<td>msg.data[idx:idx+32]</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>简单明了 pop 栈顶元素作为 idx ，把 msg.data 从 idx
+开始的32位写入操作栈。
+这样我们可以直接获得构造条件：<code>msg.data[0:32]== 0x000000000000000000000000000000000000000000000000000000000000000a</code>
+即可</p>
+<h2 id="puzzle-7">puzzle 7:</h2>
+<p>题目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">00      36        CALLDATASIZE</span><br><span class="line">01      6000      PUSH1 00</span><br><span class="line">03      80        DUP1</span><br><span class="line">04      37        CALLDATACOPY</span><br><span class="line">05      36        CALLDATASIZE</span><br><span class="line">06      6000      PUSH1 00</span><br><span class="line">08      6000      PUSH1 00</span><br><span class="line">0A      F0        CREATE</span><br><span class="line">0B      3B        EXTCODESIZE</span><br><span class="line">0C      6001      PUSH1 01</span><br><span class="line">0E      14        EQ</span><br><span class="line">0F      6013      PUSH1 13</span><br><span class="line">11      57        JUMPI</span><br><span class="line">12      FD        REVERT</span><br><span class="line">13      5B        JUMPDEST</span><br><span class="line">14      00        STOP</span><br></pre></td></tr></table></figure>
+<p>从第7题开始难度会增加一些，我们先看一下新引入的opcode吧</p>
+<table>
+<colgroup>
+<col style="width: 4%" />
+<col style="width: 11%" />
+<col style="width: 7%" />
+<col style="width: 15%" />
+<col style="width: 13%" />
+<col style="width: 48%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>stack</th>
+<th>name</th>
+<th>gas</th>
+<th>initial stack</th>
+<th>result stack</th>
+<th>mem/storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>37</td>
+<td>CALLDATACOPY</td>
+<td>3+</td>
+<td>dstOst, ost, len</td>
+<td>/</td>
+<td>mem[dstOst:dstOst+len-1] := msg.data[ost:ost+len-1]</td>
+</tr>
+<tr class="even">
+<td>F0</td>
+<td>CREATE</td>
+<td>32000+</td>
+<td>val, ost, len</td>
+<td>addr</td>
+<td>/</td>
+</tr>
+<tr class="odd">
+<td>3B</td>
+<td>EXTCODESIZE</td>
+<td>100/2600</td>
+<td>addr</td>
+<td>len(addr.code)</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>CALLDATACOPY 简单明了，就是 pop 出三个栈顶元素，记为dstOst, ost,
+len。把<code>msg.data[ost:ost+len-1]</code>
+复制到内存：<code>msg.data[ost:ost+len-1]</code></p>
+<p>CREATE 相对复杂，它是一个部署合约的 opcode，pop
+出三个栈顶元素，记为val, ost, len。 val 是创建合约时传入的 eth 数目。
+mem[ost:ost+len-1] 是合约的 contract code。 addr
+返回值是已创建合约的地址。</p>
+<p>EXTCODESIZE 取出栈顶元素，然后返回该合约的 code 长度。</p>
+<p>我们先看第一段，<code>0x00</code> - <code>0x05</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">00      36        CALLDATASIZE</span><br><span class="line">01      6000      PUSH1 00</span><br><span class="line">03      80        DUP1</span><br><span class="line">04      37        CALLDATACOPY</span><br><span class="line">05      36        CALLDATASIZE</span><br></pre></td></tr></table></figure>
+<p>这一段其实就是把 <code>msg.data</code>
+整个复制到内存<code>mem</code>。</p>
+<p>第二段，<code>0x06</code>-<code>0x0a</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode  opcode name</span><br><span class="line">06      6000      PUSH1 00</span><br><span class="line">08      6000      PUSH1 00</span><br><span class="line">0A      F0        CREATE</span><br></pre></td></tr></table></figure>
+<p>把 <code>mem</code>上的代码部署到链。并把合约地址写回栈顶。</p>
+<p>第三段，<code>0x0b</code>-<code>0x14</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">0B      3B        EXTCODESIZE</span><br><span class="line">0C      6001      PUSH1 01</span><br><span class="line">0E      14        EQ</span><br><span class="line">0F      6013      PUSH1 13</span><br><span class="line">11      57        JUMPI</span><br><span class="line">12      FD        REVERT</span><br><span class="line">13      5B        JUMPDEST</span><br><span class="line">14      00        STOP</span><br></pre></td></tr></table></figure>
+<p>我们可以看到要正确跳转需要满足的条件是
+<code>len(address.code) == 1</code>。</p>
+<p>现在的问题是，新创建合约使用的code是我们的
+msg.data，那是不是意味着部署后合约的 code 也是msg.data
+呢？其实不然。创建合约的 code 被称为 creation code,
+而最终留在区块链里的合约代码被称为 runtime code。这其实隐含着
+conrtuctor的内容，contructor 只存在于 creation code 而非 runtime code
+，这也是构造函数只被执行一次的原因。合约 creation code
+会在一个交易里执行，并把 runtime code通过 <code>RETURN</code> 返回。</p>
+<p>我们还需要额外引入一个 opcode:</p>
+<table>
+<thead>
+<tr class="header">
+<th>stack</th>
+<th>name</th>
+<th>gas</th>
+<th>initial stack</th>
+<th>result stack</th>
+<th>mem/storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>F3</td>
+<td>RETURN</td>
+<td>*</td>
+<td>ost, len</td>
+<td>/</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>ost 为 runtime code 在内存的起始位置，len
+为截取长度，我们尝试构建一个 creation code:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">00      6001      PUSH1 01</span><br><span class="line">02      6000      PUSH1 00</span><br><span class="line">04      F3        RETURN</span><br></pre></td></tr></table></figure>
+<p>这样我们返回的 runtime code
+的长度就只是从内存中取出的一位操作符了。</p>
+<p>也就是 <code>msg.data == 0x60016000f3</code> 即可完成 puzzle ！</p>
+<h2 id="puzzle-8">puzzle 8:</h2>
+<p>题目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">00      36        CALLDATASIZE</span><br><span class="line">01      6000      PUSH1 00</span><br><span class="line">03      80        DUP1</span><br><span class="line">04      37        CALLDATACOPY</span><br><span class="line">05      36        CALLDATASIZE</span><br><span class="line">06      6000      PUSH1 00</span><br><span class="line">08      6000      PUSH1 00</span><br><span class="line">0A      F0        CREATE</span><br><span class="line">0B      6000      PUSH1 00</span><br><span class="line">0D      80        DUP1</span><br><span class="line">0E      80        DUP1</span><br><span class="line">0F      80        DUP1</span><br><span class="line">10      80        DUP1</span><br><span class="line">11      94        SWAP5</span><br><span class="line">12      5A        GAS</span><br><span class="line">13      F1        CALL</span><br><span class="line">14      6000      PUSH1 00</span><br><span class="line">16      14        EQ</span><br><span class="line">17      601B      PUSH1 1B</span><br><span class="line">19      57        JUMPI</span><br><span class="line">1A      FD        REVERT</span><br><span class="line">1B      5B        JUMPDEST</span><br><span class="line">1C      00        STOP</span><br></pre></td></tr></table></figure>
+<p>难度比起 puzzle 7 更上一层楼，我们先看看涉及到了几个新的 opcode:</p>
+<table>
+<colgroup>
+<col style="width: 3%" />
+<col style="width: 3%" />
+<col style="width: 21%" />
+<col style="width: 33%" />
+<col style="width: 8%" />
+<col style="width: 29%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>stack</th>
+<th>name</th>
+<th>gas</th>
+<th>initial stack</th>
+<th>result stack</th>
+<th>mem/storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>94</td>
+<td>SWAP5</td>
+<td>3</td>
+<td>a, ..., b</td>
+<td>b, ..., a</td>
+<td>/</td>
+</tr>
+<tr class="even">
+<td>5A</td>
+<td>GAS</td>
+<td>2</td>
+<td>/</td>
+<td>gasRemaining</td>
+<td>/</td>
+</tr>
+<tr class="odd">
+<td>F1</td>
+<td>CALL</td>
+<td>base_gas + gas_sent_with_call</td>
+<td>gas, addr, val, argOst, argLen, retOst, retLen</td>
+<td>success</td>
+<td>mem[retOst:retOst+retLen-1] := returndata</td>
+</tr>
+</tbody>
+</table>
+<p>SWAP 系列的 opcode 很好理解，SWAP1 是把栈顶的 a，b 变成 b，a，SWAP5
+就是把 a,x,x,x,x,,b 变成 b,x,x,x,x,a。 GAS 是计算 gas 费并写入栈顶。
+CALL 即为调用合约，其使用到的栈顶元素 分别为 gas, addr(合约地址),
+val(msg.data), argOst(在内存中截取的输入数据起点), argLen(输入数据长度),
+retOst(在内存中截取的返回数据起点), retLen(返回数据长度)。若交易成功 将
+1 写入栈顶，若失败，将0写入栈顶。</p>
+<p>我们先看第一段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">00      36        CALLDATASIZE</span><br><span class="line">01      6000      PUSH1 00</span><br><span class="line">03      80        DUP1</span><br><span class="line">04      37        CALLDATACOPY</span><br><span class="line">05      36        CALLDATASIZE</span><br><span class="line">06      6000      PUSH1 00</span><br><span class="line">08      6000      PUSH1 00</span><br><span class="line">0A      F0        CREATE</span><br></pre></td></tr></table></figure>
+<p>z这一段跟 puzzle 7 一样，把我们 msg.data
+的数据当成合约部署在链上，再把新创建的合约地址写回栈顶。</p>
+<p>第二段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">0B      6000      PUSH1 00</span><br><span class="line">0D      80        DUP1</span><br><span class="line">0E      80        DUP1</span><br><span class="line">0F      80        DUP1</span><br><span class="line">10      80        DUP1</span><br><span class="line">11      94        SWAP5</span><br><span class="line">12      5A        GAS</span><br><span class="line">13      F1        CALL</span><br></pre></td></tr></table></figure>
+<p>这一段运行下到最后，我们可以知道这是一个 call 命令，参数依次是 gas ,
+addr , 0, 0, 0, 0, 0。也就是不传入数据，没有返回值，不传入value,
+若运行成功则把 1 压栈，反之压栈 0。</p>
+<p>第三段</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">14      6000      PUSH1 00</span><br><span class="line">16      14        EQ</span><br><span class="line">17      601B      PUSH1 1B</span><br><span class="line">19      57        JUMPI</span><br><span class="line">1A      FD        REVERT</span><br><span class="line">1B      5B        JUMPDEST</span><br><span class="line">1C      00        STOP</span><br></pre></td></tr></table></figure>
+<p>这一段就是用来反推我们合约返回结果的部分了，我们需要从上一个部分得到一个
+<code>0x00</code>，使得EQ返回值为 1，方能成功触发 JUMPI
+跳到终点。也就说明我们需要本次合约交易失败。这其实很简单，我们构造一个合约使得
+runtime code只有一个 revert 就可以了，类似 puzzle
+7，再稍微加点东西：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">00      60FD      PUSH1 FD //FD 是revert操作符的编号</span><br><span class="line">02      6000      PUSH1 00</span><br><span class="line">04      53        MSTORE8</span><br><span class="line">05      6001      PUSH1 01</span><br><span class="line">07      6000      PUSH1 00</span><br><span class="line">09      F3        RETURN</span><br></pre></td></tr></table></figure>
+<p>这样，我们把 <code>0xfd</code> 写入内存
+<code>0x00</code>了。这也就是我们的 runtime code。</p>
+<p>这样我们得出题解：<code>msg.data == 0x60fd60005360016000f3</code></p>
+<h2 id="puzzle-9">puzzle 9:</h2>
+<p>题目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">00      36        CALLDATASIZE</span><br><span class="line">01      6003      PUSH1 03</span><br><span class="line">03      10        LT</span><br><span class="line">04      6009      PUSH1 09</span><br><span class="line">06      57        JUMPI</span><br><span class="line">07      FD        REVERT</span><br><span class="line">08      FD        REVERT</span><br><span class="line">09      5B        JUMPDEST</span><br><span class="line">0A      34        CALLVALUE</span><br><span class="line">0B      36        CALLDATASIZE</span><br><span class="line">0C      02        MUL</span><br><span class="line">0D      6008      PUSH1 08</span><br><span class="line">0F      14        EQ</span><br><span class="line">10      6014      PUSH1 14</span><br><span class="line">12      57        JUMPI</span><br><span class="line">13      FD        REVERT</span><br><span class="line">14      5B        JUMPDEST</span><br><span class="line">15      00        STOP</span><br></pre></td></tr></table></figure>
+<p>经历了 puzzle 7 &amp;&amp; puzzle 8
+的折磨，接下来的两道题实际上已经难不住我们了，先看新出现的 opcode
+文档，非常简单：</p>
+<table>
+<thead>
+<tr class="header">
+<th>stack</th>
+<th>name</th>
+<th>gas</th>
+<th>initial stack</th>
+<th>result stack</th>
+<th>mem/storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>10</td>
+<td>LT</td>
+<td>3</td>
+<td>a, b</td>
+<td>a &lt; b</td>
+<td>/</td>
+</tr>
+<tr class="even">
+<td>02</td>
+<td>MUL</td>
+<td>5</td>
+<td>a,b</td>
+<td>a * b</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>第一段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">00      36        CALLDATASIZE</span><br><span class="line">01      6003      PUSH1 03</span><br><span class="line">03      10        LT</span><br><span class="line">04      6009      PUSH1 09</span><br><span class="line">06      57        JUMPI</span><br><span class="line">07      FD        REVERT</span><br><span class="line">08      FD        REVERT</span><br><span class="line">09      5B        JUMPDEST</span><br></pre></td></tr></table></figure>
+<p>我们可以得出一个限制：<code>0x03 &lt; len(msg.data)</code></p>
+<p>第二段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode    opcode name</span><br><span class="line">0A      34        CALLVALUE</span><br><span class="line">0B      36        CALLDATASIZE</span><br><span class="line">0C      02        MUL</span><br><span class="line">0D      6008      PUSH1 08</span><br><span class="line">0F      14        EQ</span><br><span class="line">10      6014      PUSH1 14</span><br><span class="line">12      57        JUMPI</span><br><span class="line">13      FD        REVERT</span><br><span class="line">14      5B        JUMPDEST</span><br><span class="line">15      00        STOP</span><br></pre></td></tr></table></figure>
+<p>很容易得出另一个限制 <code>len(msd.data) * msg.value == 8</code>,
+又根据第一部分的限制，我们可以随意构造一个长度为4的m sg.data，然后令
+msg.value == 2。</p>
+<p>即可构造出一个符合题意的题解： <code>msg.value == 2</code>
+<code>msg.data == 0x12121212</code></p>
+<h2 id="puzzle-10">puzzle 10:</h2>
+<p>题目：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode      opcode name</span><br><span class="line">00      38          CODESIZE</span><br><span class="line">01      34          CALLVALUE</span><br><span class="line">02      90          SWAP1</span><br><span class="line">03      11          GT</span><br><span class="line">04      6008        PUSH1 08</span><br><span class="line">06      57          JUMPI</span><br><span class="line">07      FD          REVERT</span><br><span class="line">08      5B          JUMPDEST</span><br><span class="line">09      36          CALLDATASIZE</span><br><span class="line">0A      610003      PUSH2 0003</span><br><span class="line">0D      90          SWAP1</span><br><span class="line">0E      06          MOD</span><br><span class="line">0F      15          ISZERO</span><br><span class="line">10      34          CALLVALUE</span><br><span class="line">11      600A        PUSH1 0A</span><br><span class="line">13      01          ADD</span><br><span class="line">14      57          JUMPI</span><br><span class="line">15      FD          REVERT</span><br><span class="line">16      FD          REVERT</span><br><span class="line">17      FD          REVERT</span><br><span class="line">18      FD          REVERT</span><br><span class="line">19      5B          JUMPDEST</span><br><span class="line">1A      00          STOP</span><br></pre></td></tr></table></figure>
+<p>和第九题很类似，我们看一下新增的几个 opcode，也都很简单:</p>
+<table>
+<colgroup>
+<col style="width: 9%" />
+<col style="width: 14%" />
+<col style="width: 7%" />
+<col style="width: 23%" />
+<col style="width: 25%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>stack</th>
+<th>name</th>
+<th>gas</th>
+<th>initial stack</th>
+<th>result stack</th>
+<th>mem/storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>38</td>
+<td>CODESIZE</td>
+<td>2</td>
+<td>/</td>
+<td>len(this.code)</td>
+<td>/</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td>GT</td>
+<td>3</td>
+<td>a,b</td>
+<td>a &gt; b</td>
+<td>/</td>
+</tr>
+<tr class="odd">
+<td>01</td>
+<td>ADD</td>
+<td>3</td>
+<td>a,b</td>
+<td>a + b</td>
+<td>/</td>
+</tr>
+<tr class="even">
+<td>06</td>
+<td>MOD</td>
+<td>5</td>
+<td>a,b</td>
+<td>a % b</td>
+<td>/</td>
+</tr>
+<tr class="odd">
+<td>15</td>
+<td>ISZERO</td>
+<td>3</td>
+<td>a</td>
+<td>a == 0</td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+<p>值得注意的是，codesize是指我们正在运行的代码的长度，本题中我们可以看到是
+21 (0x1b)。</p>
+<p>第一段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode      opcode name</span><br><span class="line">00      38          CODESIZE</span><br><span class="line">01      34          CALLVALUE</span><br><span class="line">02      90          SWAP1</span><br><span class="line">03      11          GT</span><br><span class="line">04      6008        PUSH1 08</span><br><span class="line">06      57          JUMPI</span><br><span class="line">07      FD          REVERT</span><br><span class="line">08      5B          JUMPDEST</span><br></pre></td></tr></table></figure>
+<p>我们得到第一条限制 <code>21 &gt; msg.value</code></p>
+<p>第二段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">pc      opcode      opcode name</span><br><span class="line">09      36          CALLDATASIZE</span><br><span class="line">0A      610003      PUSH2 0003</span><br><span class="line">0D      90          SWAP1</span><br><span class="line">0E      06          MOD</span><br><span class="line">0F      15          ISZERO</span><br><span class="line">10      34          CALLVALUE</span><br><span class="line">11      600A        PUSH1 0A</span><br><span class="line">13      01          ADD</span><br><span class="line">14      57          JUMPI</span><br><span class="line">15      FD          REVERT</span><br><span class="line">16      FD          REVERT</span><br><span class="line">17      FD          REVERT</span><br><span class="line">18      FD          REVERT</span><br><span class="line">19      5B          JUMPDEST</span><br><span class="line">1A      00          STOP</span><br></pre></td></tr></table></figure>
+<p>我们从结果反推<code>0x14</code>处， JUMPI 的 dst 操作数 应为
+<code>0x19</code>指向<code>0x19</code>处的JUMPDEST，condition 操作数应为
+1。 这其实就是 <code>0x13</code>处 ADD 的结果为
+<code>0x19</code>，<code>0x0f</code>处的 ISZERO 结果为 1。</p>
+<p>即
+<code>len(msg.data) % 3 == 0</code>，<code>msg.data + 10 == 25</code>（0x0A的十进制是10，0x19的十进制是25）。</p>
+<p>我们可以构造一个题解： <code>msg.value == 15</code>
+<code>msg.data == 0x121212</code></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/ethereum/" rel="tag"># ethereum</a>
+              <a href="/tags/solidity/" rel="tag"># solidity</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/12/20/solidity-journey-1/" rel="prev" title="solidity journey day1">
+      <i class="fa fa-chevron-left"></i> solidity journey day1
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#puzzle-1"><span class="nav-number">1.</span> <span class="nav-text">puzzle 1:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#puzzle-2"><span class="nav-number">2.</span> <span class="nav-text">puzzle 2:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#puzzle-3"><span class="nav-number">3.</span> <span class="nav-text">puzzle 3:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#puzzle-4"><span class="nav-number">4.</span> <span class="nav-text">puzzle 4:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#puzzle-5"><span class="nav-number">5.</span> <span class="nav-text">puzzle 5:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#puzzle-6"><span class="nav-number">6.</span> <span class="nav-text">puzzle 6:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#puzzle-7"><span class="nav-number">7.</span> <span class="nav-text">puzzle 7:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#puzzle-8"><span class="nav-number">8.</span> <span class="nav-text">puzzle 8:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#puzzle-9"><span class="nav-number">9.</span> <span class="nav-text">puzzle 9:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#puzzle-10"><span class="nav-number">10.</span> <span class="nav-text">puzzle 10:</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="张钰Alvan"
+      src="/images/Alvan.png">
+  <p class="site-author-name" itemprop="name">张钰Alvan</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">22</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+      <a href="https://github.com/passer-byzhang" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;passer-byzhang" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+      <a href="mailto:alvanzhang@skiff.com" rel="alternate" title="E-Mail" rel="noopener" target="_blank"> <i class="fa fa-fw fa-envelope"></i> E-Mail</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2023</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">张钰Alvan</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '7be3591b434db5b63b24',
+      clientSecret: 'f0904467341de11c96d8a9f6a3c6e8d9754bba82',
+      repo        : 'passer-byzhang.github.io',
+      owner       : 'passer-byzhang',
+      admin       : ['passer-byzhang'],
+      id          : 'b679a2f566e72bdc8fe38d9dc91c1fb0',
+        language: 'zh-CN',
+      distractionFreeMode: false
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

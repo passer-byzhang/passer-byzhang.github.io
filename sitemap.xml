@@ -2,6 +2,17 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://example.com/2023/03/14/evm-puzzles/</loc>
+    
+    <lastmod>2023-03-14T07:02:05.735Z</lastmod>
+    
+    <date>1678777133000</date>
+    <title>通过 EVM PUZZLES 学习 EVM opcodes | Alvan's Blog</title>
+    
+    <desc>十道题熟悉 evm opcode</desc>
+  </url>
+  
+  <url>
     <loc>http://example.com/2022/12/20/solidity-journey-1/</loc>
     
     <lastmod>2022-12-20T15:32:34.602Z</lastmod>
